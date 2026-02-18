@@ -1,6 +1,6 @@
-import { initialParams } from "./internal/initialParams.js";
-import { _setImmediate as setImmediate } from "./internal/setImmediate.js";
-import { isAsync } from "./internal/wrapAsync.js";
+import { initialParams } from "./initialParams.js";
+import { _setImmediate as setImmediate } from "./setImmediate.js";
+import { isAsync } from "./wrapAsync.js";
 
 /**
  * Take a sync function and make it async, passing its return value to a

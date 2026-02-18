@@ -214,27 +214,28 @@ export class Archiver extends Transform {
       this.emit("error", new ArchiverError("NOENDMETHOD"));
     }
   }
+
   /**
    * Pipes the module to our internal stream with error bubbling.
    *
    * @private
-   * @return void
    */
-  _modulePipe() {
+  _modulePipe(): void {
     this._module.on("error", this._onModuleError.bind(this));
     this._module.pipe(this);
     this._state.modulePiped = true;
   }
+
   /**
    * Unpipes the module from our internal stream.
    *
    * @private
-   * @return void
    */
-  _moduleUnpipe() {
+  _moduleUnpipe(): void {
     this._module.unpipe(this);
     this._state.modulePiped = false;
   }
+
   /**
    * Normalizes entry data with fallbacks for key properties.
    *
@@ -336,15 +337,15 @@ export class Archiver extends Transform {
       this._finalize();
     }
   }
+
   /**
    * Appends each queue task to the module.
    *
    * @private
    * @param  {Object} task
    * @param  {Function} callback
-   * @return void
    */
-  _onQueueTask(task, callback) {
+  private _onQueueTask(task, callback): void {
     const fullCallback = () => {
       if (task.data.callback) {
         task.data.callback();
@@ -362,15 +363,13 @@ export class Archiver extends Transform {
     this._task = task;
     this._moduleAppend(task.source, task.data, fullCallback);
   }
+
   /**
    * Performs a file stat and reinjects the task back into the queue.
-   *
-   * @private
    * @param  {Object} task
    * @param  {Function} callback
-   * @return void
    */
-  _onStatQueueTask(task, callback) {
+  private _onStatQueueTask(task, callback): void {
     if (
       this._state.finalizing ||
       this._state.finalized ||
@@ -379,33 +378,30 @@ export class Archiver extends Transform {
       callback();
       return;
     }
-    fs.lstat(
-      task.filepath,
-      function (err, stats) {
-        if (this._state.aborted) {
-          setImmediate(callback);
-          return;
-        }
-        if (err) {
-          this._entriesCount--;
-          /**
-           * @event Archiver#warning
-           * @type {ErrorData}
-           */
-          this.emit("warning", err);
-          setImmediate(callback);
-          return;
-        }
-        task = this._updateQueueTaskWithStats(task, stats);
-        if (task) {
-          if (stats.size) {
-            this._fsEntriesTotalBytes += stats.size;
-          }
-          this._queue.push(task);
-        }
+    fs.lstat(task.filepath, (err, stats) => {
+      if (this._state.aborted) {
         setImmediate(callback);
-      }.bind(this),
-    );
+        return;
+      }
+      if (err) {
+        this._entriesCount--;
+        /**
+         * @event Archiver#warning
+         * @type {ErrorData}
+         */
+        this.emit("warning", err);
+        setImmediate(callback);
+        return;
+      }
+      task = this._updateQueueTaskWithStats(task, stats);
+      if (task) {
+        if (stats.size) {
+          this._fsEntriesTotalBytes += stats.size;
+        }
+        this._queue.push(task);
+      }
+      setImmediate(callback);
+    });
   }
   /**
    * Unpipes the module and ends our internal stream.

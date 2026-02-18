@@ -21,10 +21,13 @@ const ERROR_CODES = {
   SYMLINKTARGETREQUIRED:
     "symlink target argument must be a non-empty string value",
   ENTRYNOTSUPPORTED: "entry not supported",
-};
+} as const;
+
+type ERROR_CODE = keyof typeof ERROR_CODES;
 
 class ArchiverError extends Error {
-  constructor(code, data) {
+  code: ERROR_CODE;
+  constructor(code: ERROR_CODE, data) {
     super(ERROR_CODES[code] || code);
     Error.captureStackTrace(this, this.constructor);
     this.code = code;

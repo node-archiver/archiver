@@ -1,13 +1,14 @@
+import type { Stream } from "node:stream";
 import zlib from "node:zlib";
 
 import TarStream from "tar-stream";
 
 import { collectStream } from "../utils.js";
 
+type Pack = ReturnType<typeof TarStream.pack>;
+
 export default class Tar {
-  /**
-   * @param {TarOptions} options
-   */
+  engine: Pack;
   constructor(options) {
     options = this.options = { gzip: false, ...options };
     if (typeof options.gzipOptions !== "object") {
@@ -26,30 +27,26 @@ export default class Tar {
   }
 
   /**
-   * [append description]
-   *
-   * @param  {(Buffer|Stream)} source
    * @param  {TarEntryData} data
    * @param  {Function} callback
-   * @return void
    */
-  append(source, data, callback) {
-    const self = this;
+  append(source: Buffer | Stream, data, callback): void {
     data.mtime = data.date;
-    function append(err, sourceBuffer) {
+    const append = (err, sourceBuffer) => {
       if (err) {
         callback(err);
         return;
       }
-      self.engine.entry(data, sourceBuffer, function (err) {
+      this.engine.entry(data, sourceBuffer, function (err) {
         callback(err, data);
       });
-    }
+    };
+
     if (data.sourceType === "buffer") {
       append(null, source);
     } else if (data.sourceType === "stream" && data.stats) {
       data.size = data.stats.size;
-      const entry = self.engine.entry(data, function (err) {
+      const entry = this.engine.entry(data, function (err) {
         callback(err, data);
       });
       source.pipe(entry);

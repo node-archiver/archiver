@@ -1,10 +1,10 @@
-import { queue as _queue } from "./internal/queue.js";
-import { wrapAsync } from "./internal/wrapAsync.js";
+import { queue as _queue } from "./queue.js";
+import { wrapAsync } from "./wrapAsync.js";
 
 function queue(worker, concurrency: number) {
-  const _worker = (0, wrapAsync)(worker);
+  const _worker = wrapAsync(worker);
 
-  return (0, _queue)(
+  return _queue(
     (items, cb) => {
       _worker(items[0], cb);
     },
