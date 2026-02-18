@@ -1,4 +1,4 @@
-import { asyncify } from "../asyncify.js";
+import { asyncify } from "./asyncify";
 
 function isAsync(fn) {
   return fn[Symbol.toStringTag] === "AsyncFunction";
@@ -6,7 +6,7 @@ function isAsync(fn) {
 
 function wrapAsync(asyncFn) {
   if (typeof asyncFn !== "function") throw new Error("expected a function");
-  return isAsync(asyncFn) ? (0, asyncify)(asyncFn) : asyncFn;
+  return isAsync(asyncFn) ? asyncify(asyncFn) : asyncFn;
 }
 
 export { wrapAsync, isAsync };

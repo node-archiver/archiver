@@ -7,7 +7,7 @@ const SLIDING_DICTIONARY_SIZE_FLAG = 1 << 1;
 const STRONG_ENCRYPTION_FLAG = 1 << 6;
 const UFT8_NAMES_FLAG = 1 << 11;
 
-export default class GeneralPurposeBit {
+class GeneralPurposeBit {
   constructor() {
     this.descriptor = false;
     this.encryption = false;
@@ -77,3 +77,5 @@ export default class GeneralPurposeBit {
     return this.utf8;
   }
 }
+
+export { GeneralPurposeBit };

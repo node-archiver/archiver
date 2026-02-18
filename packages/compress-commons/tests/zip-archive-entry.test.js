@@ -1,6 +1,6 @@
 import { expect, it, beforeEach, describe } from "bun:test";
 
-import GeneralPurposeBit from "../src/archivers/zip/general-purpose-bit.js";
+import { GeneralPurposeBit } from "../src/archivers/zip/general-purpose-bit.js";
 import * as UnixStat from "../src/archivers/zip/unix-stat.js";
 import { ZipArchiveEntry } from "../src/index.js";
 

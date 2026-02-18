@@ -1,9 +1,29 @@
-import { Transform, isReadable, isWritable } from "node:stream";
+import {
+  Stream,
+  Transform,
+  isReadable,
+  isWritable,
+  PassThrough,
+} from "node:stream";
 
-import { normalizeInputSource } from "../util/index.js";
-import ArchiveEntry from "./archive-entry.js";
+import { ArchiveEntry } from "./archive-entry";
 
-export default class ArchiveOutputStream extends Transform {
+function normalizeInputSource(source: null | string | Stream) {
+  if (source === null) {
+    return Buffer.alloc(0);
+  }
+  if (typeof source === "string") {
+    return Buffer.from(source);
+  }
+  if ((isReadable(source) || isWritable(source)) && !source._readableState) {
+    const normalized = new PassThrough();
+    source.pipe(normalized);
+    return normalized;
+  }
+  return source;
+}
+
+class ArchiveOutputStream extends Transform {
   constructor(options) {
     super(options);
 
@@ -23,11 +43,11 @@ export default class ArchiveOutputStream extends Transform {
     // scaffold only
   }
 
-  _emitErrorCallback = function (err) {
+  _emitErrorCallback(err) {
     if (err) {
       this.emit("error", err);
     }
-  };
+  }
 
   _finish(ae) {
     // scaffold only
@@ -95,3 +115,4 @@ export default class ArchiveOutputStream extends Transform {
     return super.write(chunk, cb);
   }
 }
+export { ArchiveOutputStream };

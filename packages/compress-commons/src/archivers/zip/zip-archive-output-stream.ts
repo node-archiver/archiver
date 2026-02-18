@@ -1,6 +1,6 @@
 import crc32 from "crc-32";
 
-import ArchiveOutputStream from "../archive-output-stream.js";
+import { ArchiveOutputStream } from "../archive-output-stream.js";
 import {
   LONG_ZERO,
   METHOD_DEFLATED,
@@ -38,7 +38,7 @@ function _defaults(o) {
   return o;
 }
 
-export default class ZipArchiveOutputStream extends ArchiveOutputStream {
+class ZipArchiveOutputStream extends ArchiveOutputStream {
   constructor(options) {
     const _options = _defaults(options);
     super(_options);
@@ -367,3 +367,5 @@ export default class ZipArchiveOutputStream extends ArchiveOutputStream {
     this._archive.comment = comment;
   }
 }
+
+export { ZipArchiveOutputStream };

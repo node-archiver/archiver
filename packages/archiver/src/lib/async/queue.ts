@@ -1,16 +1,16 @@
-import { DoublyLinkedList } from "./DoublyLinkedList.js";
-import { onlyOnce } from "./onlyOnce.js";
-import { _setImmediate as setImmediate } from "./setImmediate.js";
-import { wrapAsync } from "./wrapAsync.js";
+import { DoublyLinkedList } from "./DoublyLinkedList";
+import { onlyOnce } from "./onlyOnce";
+import { _setImmediate as setImmediate } from "./setImmediate";
+import { wrapAsync } from "./wrapAsync";
 
-function queue(worker, concurrency, payload) {
+function queue(worker, concurrency: number, payload: 1) {
   if (concurrency == null) {
     concurrency = 1;
   } else if (concurrency === 0) {
     throw new RangeError("Concurrency must not be zero");
   }
 
-  const _worker = (0, wrapAsync)(worker);
+  const _worker = wrapAsync(worker);
   let numRunning = 0;
   const workersList = [];
   const events = {
@@ -141,6 +141,7 @@ function queue(worker, concurrency, payload) {
   };
 
   let isProcessing = false;
+
   const q = {
     _tasks: new DoublyLinkedList(),
     _createTaskItem(data, callback) {
@@ -221,7 +222,7 @@ function queue(worker, concurrency, payload) {
           trigger("saturated");
         }
 
-        const cb = (0, onlyOnce)(_createCB(tasks));
+        const cb = onlyOnce(_createCB(tasks));
         _worker(data, cb);
       }
       isProcessing = false;
@@ -272,6 +273,7 @@ function queue(worker, concurrency, payload) {
       value: eventMethod("error"),
     },
   });
+
   return q;
 }
 

@@ -1,10 +1,12 @@
-import { createReadStream, lstat, readlinkSync, Stats } from "node:fs";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import {
-  dirname,
-  relative as relativePath,
-  resolve as resolvePath,
-} from "node:path";
-import { Transform, isReadable, isWritable } from "node:stream";
+  Transform,
+  TransformCallback,
+  isReadable,
+  isWritable,
+  type Stream,
+} from "node:stream";
 
 import readdirGlob from "readdir-glob";
 
@@ -17,28 +19,34 @@ import {
   sanitizePath,
   trailingSlashIt,
 } from "./utils.js";
+
 const { ReaddirGlob } = readdirGlob;
+
 const win32 = process.platform === "win32";
 
-export default class Archiver extends Transform {
+type ArchiverOptions = CoreOptions & TransformOptions;
+
+export class Archiver extends Transform {
   _supportsDirectory = false;
   _supportsSymlink = false;
 
-  /**
-   * @constructor
-   * @param {String} format The archive format to use.
-   * @param {(CoreOptions|TransformOptions)} options See also {@link ZipOptions} and {@link TarOptions}.
-   */
-  constructor(options) {
-    options = {
+  options: ArchiverOptions;
+
+  private _pointer: number;
+
+  constructor(optionsParam?: Partial<CoreOptions> & TransformOptions) {
+    const options = {
       highWaterMark: 1024 * 1024,
       statConcurrency: 4,
-      ...options,
+      ...optionsParam,
     };
+
     super(options);
+
     this.options = options;
-    this._format = false;
-    this._module = false;
+
+    this._module = null;
+
     this._pending = 0;
     this._pointer = 0;
     this._entriesCount = 0;
@@ -64,11 +72,8 @@ export default class Archiver extends Transform {
 
   /**
    * Internal logic for `abort`.
-   *
-   * @private
-   * @return void
    */
-  _abort() {
+  private _abort(): void {
     this._state.aborted = true;
     this._queue.kill();
     this._statQueue.kill();
@@ -76,15 +81,11 @@ export default class Archiver extends Transform {
       this._shutdown();
     }
   }
+
   /**
    * Internal helper for appending files.
-   *
-   * @private
-   * @param  {String} filepath The source filepath.
-   * @param  {EntryData} data The entry data.
-   * @return void
    */
-  _append(filepath, data) {
+  private _append(filepath: string, data?: EntryData): void {
     data = data || {};
     let task = {
       source: null,
@@ -96,7 +97,7 @@ export default class Archiver extends Transform {
     data.sourcePath = filepath;
     task.data = data;
     this._entriesCount++;
-    if (data.stats && data.stats instanceof Stats) {
+    if (data.stats && data.stats instanceof fs.Stats) {
       task = this._updateQueueTaskWithStats(task, data.stats);
       if (task) {
         if (data.stats.size) {
@@ -152,63 +153,55 @@ export default class Archiver extends Transform {
     }
     return false;
   }
+
   /**
    * Appends an entry to the module.
-   *
-   * @private
-   * @fires  Archiver#entry
-   * @param  {(Buffer|Stream)} source
-   * @param  {EntryData} data
-   * @param  {Function} callback
-   * @return void
    */
-  _moduleAppend(source, data, callback) {
+  private _moduleAppend(
+    source: Buffer | Stream,
+    data: EntryData,
+    callback,
+  ): void {
     if (this._state.aborted) {
       callback();
       return;
     }
-    this._module.append(
-      source,
-      data,
-      function (err) {
-        this._task = null;
-        if (this._state.aborted) {
-          this._shutdown();
-          return;
-        }
-        if (err) {
-          this.emit("error", err);
-          setImmediate(callback);
-          return;
-        }
-        /**
-         * Fires when the entry's input has been processed and appended to the archive.
-         *
-         * @event Archiver#entry
-         * @type {EntryData}
-         */
-        this.emit("entry", data);
-        this._entriesProcessedCount++;
-        if (data.stats && data.stats.size) {
-          this._fsEntriesProcessedBytes += data.stats.size;
-        }
-        /**
-         * @event Archiver#progress
-         * @type {ProgressData}
-         */
-        this.emit("progress", {
-          entries: {
-            total: this._entriesCount,
-            processed: this._entriesProcessedCount,
-          },
-          fs: {
-            totalBytes: this._fsEntriesTotalBytes,
-            processedBytes: this._fsEntriesProcessedBytes,
-          },
-        });
+    this._module.append(source, data, (err) => {
+      this._task = null;
+      if (this._state.aborted) {
+        this._shutdown();
+        return;
+      }
+      if (err) {
+        this.emit("error", err);
         setImmediate(callback);
-      }.bind(this),
-    );
+        return;
+      }
+      /**
+       * Fires when the entry's input has been processed and appended to the archive.
+       *
+       * @type {EntryData}
+       */
+      this.emit("entry", data);
+      this._entriesProcessedCount++;
+      if (data.stats && data.stats.size) {
+        this._fsEntriesProcessedBytes += data.stats.size;
+      }
+      /**
+       * @type {ProgressData}
+       */
+      this.emit("progress", {
+        entries: {
+          total: this._entriesCount,
+          processed: this._entriesProcessedCount,
+        },
+        fs: {
+          totalBytes: this._fsEntriesTotalBytes,
+          processedBytes: this._fsEntriesProcessedBytes,
+        },
+      });
+      setImmediate(callback);
+    });
   }
   /**
    * Finalizes the module.
@@ -225,36 +218,28 @@ export default class Archiver extends Transform {
       this.emit("error", new ArchiverError("NOENDMETHOD"));
     }
   }
+
   /**
    * Pipes the module to our internal stream with error bubbling.
-   *
-   * @private
-   * @return void
    */
-  _modulePipe() {
+  protected _modulePipe(): void {
     this._module.on("error", this._onModuleError.bind(this));
     this._module.pipe(this);
     this._state.modulePiped = true;
   }
+
   /**
    * Unpipes the module from our internal stream.
-   *
-   * @private
-   * @return void
    */
-  _moduleUnpipe() {
+  protected _moduleUnpipe(): void {
     this._module.unpipe(this);
     this._state.modulePiped = false;
   }
+
   /**
    * Normalizes entry data with fallbacks for key properties.
-   *
-   * @private
-   * @param  {Object} data
-   * @param  {fs.Stats} stats
-   * @return {Object}
    */
-  _normalizeEntryData(data, stats) {
+  private _normalizeEntryData(data, stats: fs.Stats) {
     data = {
       type: "file",
       name: null,
@@ -309,28 +294,21 @@ export default class Archiver extends Transform {
     }
     return data;
   }
+
   /**
    * Error listener that re-emits error on to our internal stream.
-   *
-   * @private
-   * @param  {Error} err
-   * @return void
    */
-  _onModuleError(err) {
+  private _onModuleError(err: Error): void {
     /**
-     * @event Archiver#error
      * @type {ErrorData}
      */
     this.emit("error", err);
   }
+
   /**
-   * Checks the various state variables after queue has drained to determine if
-   * we need to `finalize`.
-   *
-   * @private
-   * @return void
+   * Checks the various state variables after queue has drained to determine if we need to `finalize`.
    */
-  _onQueueDrain() {
+  private _onQueueDrain(): void {
     if (
       this._state.finalizing ||
       this._state.finalized ||
@@ -347,15 +325,11 @@ export default class Archiver extends Transform {
       this._finalize();
     }
   }
+
   /**
    * Appends each queue task to the module.
-   *
-   * @private
-   * @param  {Object} task
-   * @param  {Function} callback
-   * @return void
    */
-  _onQueueTask(task, callback) {
+  private _onQueueTask(task, callback): void {
     const fullCallback = () => {
       if (task.data.callback) {
         task.data.callback();
@@ -373,15 +347,13 @@ export default class Archiver extends Transform {
     this._task = task;
     this._moduleAppend(task.source, task.data, fullCallback);
   }
+
   /**
    * Performs a file stat and reinjects the task back into the queue.
-   *
-   * @private
    * @param  {Object} task
    * @param  {Function} callback
-   * @return void
    */
-  _onStatQueueTask(task, callback) {
+  private _onStatQueueTask(task, callback): void {
     if (
       this._state.finalizing ||
       this._state.finalized ||
@@ -390,34 +362,31 @@ export default class Archiver extends Transform {
       callback();
       return;
     }
-    lstat(
-      task.filepath,
-      function (err, stats) {
-        if (this._state.aborted) {
-          setImmediate(callback);
-          return;
-        }
-        if (err) {
-          this._entriesCount--;
-          /**
-           * @event Archiver#warning
-           * @type {ErrorData}
-           */
-          this.emit("warning", err);
-          setImmediate(callback);
-          return;
-        }
-        task = this._updateQueueTaskWithStats(task, stats);
-        if (task) {
-          if (stats.size) {
-            this._fsEntriesTotalBytes += stats.size;
-          }
-          this._queue.push(task);
-        }
+    fs.lstat(task.filepath, (err, stats) => {
+      if (this._state.aborted) {
         setImmediate(callback);
-      }.bind(this),
-    );
+        return;
+      }
+      if (err) {
+        this._entriesCount--;
+        /**
+         * @type {ErrorData}
+         */
+        this.emit("warning", err);
+        setImmediate(callback);
+        return;
+      }
+      task = this._updateQueueTaskWithStats(task, stats);
+      if (task) {
+        if (stats.size) {
+          this._fsEntriesTotalBytes += stats.size;
+        }
+        this._queue.push(task);
+      }
+      setImmediate(callback);
+    });
   }
+
   /**
    * Unpipes the module and ends our internal stream.
    *
@@ -428,35 +397,30 @@ export default class Archiver extends Transform {
     this._moduleUnpipe();
     this.end();
   }
+
   /**
    * Tracks the bytes emitted by our internal stream.
-   *
-   * @private
-   * @param  {Buffer} chunk
-   * @param  {String} encoding
-   * @param  {Function} callback
-   * @return void
    */
-  _transform(chunk, encoding, callback) {
+  _transform(
+    chunk: Buffer,
+    encoding: BufferEncoding,
+    callback: TransformCallback,
+  ): void {
     if (chunk) {
       this._pointer += chunk.length;
     }
     callback(null, chunk);
   }
+
   /**
    * Updates and normalizes a queue task using stats data.
-   *
-   * @private
-   * @param  {Object} task
-   * @param  {Stats} stats
-   * @return {Object}
    */
-  _updateQueueTaskWithStats(task, stats) {
+  private _updateQueueTaskWithStats(task, stats: fs.Stats) {
     if (stats.isFile()) {
       task.data.type = "file";
       task.data.sourceType = "stream";
       task.source = new Readable(function () {
-        return createReadStream(task.filepath);
+        return fs.createReadStream(task.filepath);
       });
     } else if (stats.isDirectory() && this._supportsDirectory) {
       task.data.name = trailingSlashIt(task.data.name);
@@ -465,12 +429,12 @@ export default class Archiver extends Transform {
       task.data.sourceType = "buffer";
       task.source = Buffer.concat([]);
     } else if (stats.isSymbolicLink() && this._supportsSymlink) {
-      const linkPath = readlinkSync(task.filepath);
-      const dirName = dirname(task.filepath);
+      const linkPath = fs.readlinkSync(task.filepath);
+      const dirName = path.dirname(task.filepath);
       task.data.type = "symlink";
-      task.data.linkname = relativePath(
+      task.data.linkname = path.relative(
         dirName,
-        resolvePath(dirName, linkPath),
+        path.resolve(dirName, linkPath),
       );
       task.data.sourceType = "buffer";
       task.source = Buffer.concat([]);
@@ -502,10 +466,8 @@ export default class Archiver extends Transform {
    * - ending both sides of the Transform stream
    *
    * It will NOT drain any remaining sources.
-   *
-   * @return {this}
    */
-  abort() {
+  abort(): this {
     if (this._state.aborted || this._state.finalized) {
       return this;
     }
@@ -518,12 +480,10 @@ export default class Archiver extends Transform {
    * When the instance has received, processed, and emitted the input, the `entry`
    * event is fired.
    *
-   * @fires  Archiver#entry
    * @param  {(Buffer|Stream|String)} source The input source.
    * @param  {EntryData} data See also {@link ZipEntryData} and {@link TarEntryData}.
-   * @return {this}
    */
-  append(source, data) {
+  append(source: Buffer | Stream | string, data: EntryData): this {
     if (this._state.finalize || this._state.aborted) {
       this.emit("error", new ArchiverError("QUEUECLOSED"));
       return this;
@@ -636,20 +596,13 @@ export default class Archiver extends Transform {
     globber.on("end", onGlobEnd.bind(this));
     return this;
   }
+
   /**
-   * Appends a file given its filepath using a
-   * [lazystream]{@link https://github.com/jpommerening/node-lazystream} wrapper to
-   * prevent issues with open file limits.
+   * Appends a file given its filepath.
    *
-   * When the instance has received, processed, and emitted the file, the `entry`
-   * event is fired.
-   *
-   * @param  {String} filepath The source filepath.
-   * @param  {EntryData} data See also [ZipEntryData]{@link ZipEntryData} and
-   * [TarEntryData]{@link TarEntryData}.
-   * @return {this}
+   * When the instance has received, processed, and emitted the file, the `entry` event is fired.
    */
-  file(filepath, data) {
+  file(filepath: string, data: EntryData): this {
     if (this._state.finalize || this._state.aborted) {
       this.emit("error", new ArchiverError("QUEUECLOSED"));
       return this;
@@ -661,16 +614,13 @@ export default class Archiver extends Transform {
     this._append(filepath, data);
     return this;
   }
+
   /**
    * Appends multiple files that match a glob pattern.
    *
-   * @param  {String} pattern The [glob pattern]{@link https://github.com/isaacs/minimatch} to match.
    * @param  {Object} options See [node-readdir-glob]{@link https://github.com/yqnn/node-readdir-glob#options}.
-   * @param  {EntryData} data See also [ZipEntryData]{@link ZipEntryData} and
-   * [TarEntryData]{@link TarEntryData}.
-   * @return {this}
    */
-  glob(pattern, options, data) {
+  glob(pattern: string, options, data: EntryData): this {
     this._pending++;
     options = {
       stat: true,
@@ -786,42 +736,53 @@ export default class Archiver extends Transform {
     return this;
   }
   /**
-   * Returns the current length (in bytes) that has been emitted.
-   *
-   * @return {Number}
+   * @returns the current length (in bytes) that has been emitted.
    */
-  pointer() {
+  pointer(): number {
     return this._pointer;
   }
 }
 
-/**
- * @typedef {Object} CoreOptions
- * @global
- * @property {Number} [statConcurrency=4] Sets the number of workers used to
- * process the internal fs stat queue.
- */
+interface CoreOptions {
+  /** Sets the number of workers used to process the internal fs stat queue. */
+  statConcurrency: number;
+}
 
-/**
- * @typedef {Object} TransformOptions
- * @property {Boolean} [allowHalfOpen=true] If set to false, then the stream
- * will automatically end the readable side when the writable side ends and vice
- * versa.
- * @property {Boolean} [readableObjectMode=false] Sets objectMode for readable
- * side of the stream. Has no effect if objectMode is true.
- * @property {Boolean} [writableObjectMode=false] Sets objectMode for writable
- * side of the stream. Has no effect if objectMode is true.
- * @property {Boolean} [decodeStrings=true] Whether or not to decode strings
- * into Buffers before passing them to _write(). `Writable`
- * @property {String} [encoding=NULL] If specified, then buffers will be decoded
- * to strings using the specified encoding. `Readable`
- * @property {Number} [highWaterMark=16kb] The maximum number of bytes to store
- * in the internal buffer before ceasing to read from the underlying resource.
- * `Readable` `Writable`
- * @property {Boolean} [objectMode=false] Whether this stream should behave as a
- * stream of objects. Meaning that stream.read(n) returns a single value instead
- * of a Buffer of size n. `Readable` `Writable`
- */
+interface TransformOptions {
+  /** If set to false, then the stream will automatically end the readable side when the writable side ends and vice versa. */
+  allowHalfOpen?: boolean;
+  /** Sets objectMode for readable side of the stream. Has no effect if objectMode is true */
+  readableObjectMode?: boolean;
+  /** Sets objectMode for writable side of the stream. Has no effect if objectMode is true */
+  writableObjectMode?: boolean;
+  /** Sets objectMode for writable side of the stream. Has no effect if objectMode is true */
+  decodeStrings?: boolean;
+  /** If specified, then buffers will be decoded to strings using the specified encoding */
+  encoding?: BufferEncoding;
+  /** The maximum number of bytes to store in the internal buffer before ceasing to read from the underlying resource. */
+  highWaterMark?: number;
+  /**
+   * Whether this stream should behave as a stream of objects.
+   * Meaning that stream.read(n) returns a single value instead of a Buffer of size n.
+   */
+  objectMode?: boolean;
+}
+
+interface EntryData {
+  /** Sets the entry name including internal path. */
+  name: string;
+  /** Sets the entry date. */
+  date?: Date | string;
+  /** Sets the entry permissions. */
+  mode?: number;
+  /**
+   * Sets a path prefix for the entry name.
+   * Useful when working with methods like `directory` or `glob`.
+   **/
+  prefix?: string;
+  /** Sets the fs stat data for this entry allowing for reduction of fs stat calls when stat data is already known. */
+  stats?: fs.Stats;
+}
 
 /**
  * @typedef {Object} EntryData
@@ -833,6 +794,15 @@ export default class Archiver extends Transform {
  * @property {fs.Stats} [stats] Sets the fs stat data for this entry allowing
  * for reduction of fs stat calls when stat data is already known.
  */
+
+interface ErrorData {
+  /** The message of the error. */
+  message: string;
+  /** The error code assigned to this error. */
+  code: string;
+  /** Additional data provided for reporting or debugging (where available). */
+  data: string;
+}
 
 /**
  * @typedef {Object} ErrorData

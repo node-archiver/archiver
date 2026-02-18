@@ -1,64 +1,50 @@
+import type { Stream } from "node:stream";
 import zlib from "node:zlib";
 
-import engine from "tar-stream";
+import TarStream from "tar-stream";
 
-import { collectStream } from "../utils.js";
+import { collectStream } from "../utils";
+
+type Pack = ReturnType<typeof TarStream.pack>;
 
 export default class Tar {
-  /**
-   * @constructor
-   * @param {TarOptions} options
-   */
+  engine: Pack;
+  compressor: zlib.Gzip | null;
+
   constructor(options) {
-    options = this.options = {
-      gzip: false,
-      ...options,
-    };
+    options = this.options = { gzip: false, ...options };
     if (typeof options.gzipOptions !== "object") {
       options.gzipOptions = {};
     }
-    this.engine = engine.pack(options);
-    this.compressor = false;
+    this.engine = TarStream.pack(options);
+    this.compressor = null;
     if (options.gzip) {
       this.compressor = zlib.createGzip(options.gzipOptions);
       this.compressor.on("error", this._onCompressorError.bind(this));
     }
   }
-  /**
-   * [_onCompressorError description]
-   *
-   * @private
-   * @param  {Error} err
-   * @return void
-   */
-  _onCompressorError(err) {
+
+  private _onCompressorError(err: Error): void {
     this.engine.emit("error", err);
   }
-  /**
-   * [append description]
-   *
-   * @param  {(Buffer|Stream)} source
-   * @param  {TarEntryData} data
-   * @param  {Function} callback
-   * @return void
-   */
-  append(source, data, callback) {
-    const self = this;
+
+  append(source: Buffer | Stream, data, callback): void {
     data.mtime = data.date;
-    function append(err, sourceBuffer) {
+    const append = (err, sourceBuffer) => {
       if (err) {
         callback(err);
         return;
       }
-      self.engine.entry(data, sourceBuffer, function (err) {
+      this.engine.entry(data, sourceBuffer, function (err) {
         callback(err, data);
       });
-    }
+    };
+
     if (data.sourceType === "buffer") {
       append(null, source);
     } else if (data.sourceType === "stream" && data.stats) {
       data.size = data.stats.size;
-      const entry = self.engine.entry(data, function (err) {
+      const entry = this.engine.entry(data, function (err) {
         callback(err, data);
       });
       source.pipe(entry);
@@ -74,22 +60,15 @@ export default class Tar {
   finalize() {
     this.engine.finalize();
   }
+
   /**
-   * [on description]
-   *
    * @return this.engine
    */
   on() {
     return this.engine.on.apply(this.engine, arguments);
   }
-  /**
-   * [pipe description]
-   *
-   * @param  {String} destination
-   * @param  {Object} options
-   * @return this.engine
-   */
-  pipe(destination, options) {
+
+  pipe(destination: string, options): zlib.Gzip {
     if (this.compressor) {
       return this.engine.pipe
         .apply(this.engine, [this.compressor])
@@ -98,9 +77,8 @@ export default class Tar {
       return this.engine.pipe.apply(this.engine, arguments);
     }
   }
+
   /**
-   * [unpipe description]
-   *
    * @return this.engine
    */
   unpipe() {
