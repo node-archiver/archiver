@@ -3,12 +3,13 @@ import zlib from "node:zlib";
 
 import TarStream from "tar-stream";
 
-import { collectStream } from "../utils.js";
+import { collectStream } from "../utils";
 
 type Pack = ReturnType<typeof TarStream.pack>;
 
 export default class Tar {
   engine: Pack;
+  compressor: zlib.Gzip | null;
 
   constructor(options) {
     options = this.options = { gzip: false, ...options };
@@ -67,12 +68,7 @@ export default class Tar {
     return this.engine.on.apply(this.engine, arguments);
   }
 
-  /**
-   * @param  {String} destination
-   * @param  {Object} options
-   * @return this.engine
-   */
-  pipe(destination: string, options) {
+  pipe(destination: string, options): zlib.Gzip {
     if (this.compressor) {
       return this.engine.pipe
         .apply(this.engine, [this.compressor])

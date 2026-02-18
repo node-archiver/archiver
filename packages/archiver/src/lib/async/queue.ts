@@ -1,7 +1,7 @@
-import { DoublyLinkedList } from "./DoublyLinkedList.js";
-import { onlyOnce } from "./onlyOnce.js";
-import { _setImmediate as setImmediate } from "./setImmediate.js";
-import { wrapAsync } from "./wrapAsync.js";
+import { DoublyLinkedList } from "./DoublyLinkedList";
+import { onlyOnce } from "./onlyOnce";
+import { _setImmediate as setImmediate } from "./setImmediate";
+import { wrapAsync } from "./wrapAsync";
 
 function queue(worker, concurrency: number, payload: 1) {
   if (concurrency == null) {

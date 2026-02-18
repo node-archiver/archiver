@@ -2,6 +2,7 @@
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "rules": {
     "unicorn/prefer-node-protocol": "error",
-    "no-var": "error"
+    "no-var": "error",
+    "no-this-alias": "error"
   }
 }

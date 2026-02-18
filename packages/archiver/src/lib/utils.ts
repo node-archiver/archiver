@@ -1,7 +1,10 @@
 import { PassThrough, isReadable, isWritable, type Stream } from "node:stream";
 
-export function collectStream(source: Stream, callback) {
-  const collection = [];
+export function collectStream(
+  source: Stream,
+  callback: (err: unknown, sourceBuffer: Buffer) => void,
+) {
+  const collection: unknown[] = [];
   let size = 0;
 
   source.on("error", callback);
