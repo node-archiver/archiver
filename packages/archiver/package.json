@@ -11,7 +11,8 @@
   "scripts": {
     "build": "tsdown",
     "test": "bun test --reporter dot",
-    "bench": "bun benchmark/simple/pack-zip.js"
+    "bench": "bun benchmark/simple/pack-zip.js",
+    "prepublishOnly": "bun run build"
   },
   "dependencies": {
     "@archiver/zip-stream": "workspace:*",

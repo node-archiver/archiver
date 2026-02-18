@@ -10,7 +10,8 @@
   },
   "scripts": {
     "build": "tsdown",
-    "test": "bun test --reporter dot"
+    "test": "bun test --reporter dot",
+    "prepublishOnly": "bun run build"
   },
   "dependencies": {
     "crc-32": "^1.2.2"
