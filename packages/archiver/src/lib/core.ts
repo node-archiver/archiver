@@ -153,17 +153,15 @@ export class Archiver extends Transform {
     }
     return false;
   }
+
   /**
    * Appends an entry to the module.
-   *
-   * @private
-   * @fires  Archiver#entry
-   * @param  {(Buffer|Stream)} source
-   * @param  {EntryData} data
-   * @param  {Function} callback
-   * @return void
    */
-  _moduleAppend(source, data, callback) {
+  private _moduleAppend(
+    source: Buffer | Stream,
+    data: EntryData,
+    callback,
+  ): void {
     if (this._state.aborted) {
       callback();
       return;
