@@ -1,3 +1,5 @@
+import type { Stream } from "node:stream";
+
 import {
   ZipArchiveOutputStream,
   ZipArchiveEntry,
@@ -83,19 +85,16 @@ export default class ZipStream extends ZipArchiveOutputStream {
   /**
    * Appends an entry given an input source (text string, buffer, or stream).
    *
-   * @param  {(Buffer|Stream|String)} source The input source.
    * @param  {Object} data
    * @param  {String} data.name Sets the entry name including internal path.
    * @param  {String} [data.comment] Sets the entry comment.
    * @param  {(String|Date)} [data.date=NOW()] Sets the entry date.
    * @param  {Number} [data.mode=D:0755/F:0644] Sets the entry permissions.
    * @param  {Boolean} [data.store=options.store] Sets the compression method to STORE.
-   * @param  {String} [data.type=file] Sets the entry type. Defaults to `directory`
-   * if name ends with trailing slash.
+   * @param  {String} [data.type=file] Sets the entry type. Defaults to `directory` if name ends with trailing slash.
    * @param  {Function} callback
-   * @return this
    */
-  entry(source, data, callback) {
+  entry(source: Buffer | Stream | string, data, callback): this {
     if (typeof callback !== "function") {
       callback = this._emitErrorCallback.bind(this);
     }

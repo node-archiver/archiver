@@ -26,7 +26,6 @@ export default class Archiver extends Transform {
 
   /**
    * @constructor
-   * @param {String} format The archive format to use.
    * @param {(CoreOptions|TransformOptions)} options See also {@link ZipOptions} and {@link TarOptions}.
    */
   constructor(options) {
@@ -521,9 +520,8 @@ export default class Archiver extends Transform {
    * @fires  Archiver#entry
    * @param  {(Buffer|Stream|String)} source The input source.
    * @param  {EntryData} data See also {@link ZipEntryData} and {@link TarEntryData}.
-   * @return {this}
    */
-  append(source, data) {
+  append(source, data): this {
     if (this._state.finalize || this._state.aborted) {
       this.emit("error", new ArchiverError("QUEUECLOSED"));
       return this;
@@ -786,11 +784,9 @@ export default class Archiver extends Transform {
     return this;
   }
   /**
-   * Returns the current length (in bytes) that has been emitted.
-   *
-   * @return {Number}
+   * @returns the current length (in bytes) that has been emitted.
    */
-  pointer() {
+  pointer(): number {
     return this._pointer;
   }
 }
@@ -833,6 +829,15 @@ export default class Archiver extends Transform {
  * @property {fs.Stats} [stats] Sets the fs stat data for this entry allowing
  * for reduction of fs stat calls when stat data is already known.
  */
+
+interface ErrorData {
+  /** The message of the error. */
+  message: string;
+  /** The error code assigned to this error. */
+  code: string;
+  /** Additional data provided for reporting or debugging (where available). */
+  data: string;
+}
 
 /**
  * @typedef {Object} ErrorData

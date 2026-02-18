@@ -1,4 +1,4 @@
-import Archiver from "./lib/core.js";
+import Archiver from "./lib/core";
 import Json from "./lib/plugins/json.js";
 import Tar from "./lib/plugins/tar.js";
 import Zip from "./lib/plugins/zip.js";
