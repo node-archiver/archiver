@@ -1,0 +1,22 @@
+{
+  "name": "@archiver/zip-stream",
+  "version": "0.0.0",
+  "description": "a streaming zip archive generator.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": "./src/index.js",
+  "scripts": {
+    "test": "bun test --reporter dot"
+  },
+  "dependencies": {
+    "compress-commons": "^7.0.0",
+    "normalize-path": "^3.0.0",
+    "readable-stream": "^4.0.0"
+  },
+  "devDependencies": {
+    "mkdirp": "3.0.1"
+  }
+}

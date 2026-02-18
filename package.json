@@ -1,0 +1,17 @@
+{
+  "private": true,
+  "workspaces": {
+    "packages": [
+      "packages/*"
+    ],
+    "catalog": {
+      "tsdown": "^0.20.3"
+    }
+  },
+  "scripts": {
+    "test": "bun run --filter='./packages/**' test"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
