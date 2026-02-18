@@ -134,7 +134,7 @@ describe("plugins", () => {
       if (win32) {
         return;
       }
-      expect(entries).toHaveProperty("directory/subdir/level0link.txt");
+      expect(entries).toHaveProperty(["directory/subdir/level0link.txt"]);
       expect(entries["directory/subdir/level0link.txt"]).toHaveProperty(
         "type",
         "SymbolicLink",
