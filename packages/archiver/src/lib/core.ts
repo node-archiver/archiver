@@ -1,6 +1,12 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { Transform, isReadable, isWritable, type Stream } from "node:stream";
+import {
+  Transform,
+  TransformCallback,
+  isReadable,
+  isWritable,
+  type Stream,
+} from "node:stream";
 
 import readdirGlob from "readdir-glob";
 
@@ -18,11 +24,15 @@ const { ReaddirGlob } = readdirGlob;
 
 const win32 = process.platform === "win32";
 
+type ArchiverOptions = CoreOptions & TransformOptions;
+
 export class Archiver extends Transform {
   _supportsDirectory = false;
   _supportsSymlink = false;
 
-  options: CoreOptions & TransformOptions;
+  options: ArchiverOptions;
+
+  private _pointer: number;
 
   constructor(optionsParam?: Partial<CoreOptions> & TransformOptions) {
     const options = {
@@ -35,8 +45,8 @@ export class Archiver extends Transform {
 
     this.options = options;
 
-    this._format = null;
     this._module = null;
+
     this._pending = 0;
     this._pointer = 0;
     this._entriesCount = 0;
@@ -172,7 +182,6 @@ export class Archiver extends Transform {
       /**
        * Fires when the entry's input has been processed and appended to the archive.
        *
-       * @event Archiver#entry
        * @type {EntryData}
        */
       this.emit("entry", data);
@@ -181,7 +190,6 @@ export class Archiver extends Transform {
         this._fsEntriesProcessedBytes += data.stats.size;
       }
       /**
-       * @event Archiver#progress
        * @type {ProgressData}
        */
       this.emit("progress", {
@@ -232,12 +240,8 @@ export class Archiver extends Transform {
 
   /**
    * Normalizes entry data with fallbacks for key properties.
-   *
-   * @private
-   * @param  {Object} data
-   * @return {Object}
    */
-  _normalizeEntryData(data, stats: fs.Stats) {
+  private _normalizeEntryData(data, stats: fs.Stats) {
     data = {
       type: "file",
       name: null,
@@ -292,28 +296,21 @@ export class Archiver extends Transform {
     }
     return data;
   }
+
   /**
    * Error listener that re-emits error on to our internal stream.
-   *
-   * @private
-   * @param  {Error} err
-   * @return void
    */
-  _onModuleError(err) {
+  private _onModuleError(err: Error): void {
     /**
-     * @event Archiver#error
      * @type {ErrorData}
      */
     this.emit("error", err);
   }
+
   /**
-   * Checks the various state variables after queue has drained to determine if
-   * we need to `finalize`.
-   *
-   * @private
-   * @return void
+   * Checks the various state variables after queue has drained to determine if we need to `finalize`.
    */
-  _onQueueDrain() {
+  private _onQueueDrain(): void {
     if (
       this._state.finalizing ||
       this._state.finalized ||
@@ -333,10 +330,6 @@ export class Archiver extends Transform {
 
   /**
    * Appends each queue task to the module.
-   *
-   * @private
-   * @param  {Object} task
-   * @param  {Function} callback
    */
   private _onQueueTask(task, callback): void {
     const fullCallback = () => {
@@ -379,7 +372,6 @@ export class Archiver extends Transform {
       if (err) {
         this._entriesCount--;
         /**
-         * @event Archiver#warning
          * @type {ErrorData}
          */
         this.emit("warning", err);
@@ -396,6 +388,7 @@ export class Archiver extends Transform {
       setImmediate(callback);
     });
   }
+
   /**
    * Unpipes the module and ends our internal stream.
    *
@@ -406,30 +399,25 @@ export class Archiver extends Transform {
     this._moduleUnpipe();
     this.end();
   }
+
   /**
    * Tracks the bytes emitted by our internal stream.
-   *
-   * @private
-   * @param  {Buffer} chunk
-   * @param  {String} encoding
-   * @param  {Function} callback
-   * @return void
    */
-  _transform(chunk, encoding, callback) {
+  _transform(
+    chunk: Buffer,
+    encoding: BufferEncoding,
+    callback: TransformCallback,
+  ): void {
     if (chunk) {
       this._pointer += chunk.length;
     }
     callback(null, chunk);
   }
+
   /**
    * Updates and normalizes a queue task using stats data.
-   *
-   * @private
-   * @param  {Object} task
-   * @param  {Stats} stats
-   * @return {Object}
    */
-  _updateQueueTaskWithStats(task, stats: fs.Stats) {
+  private _updateQueueTaskWithStats(task, stats: fs.Stats) {
     if (stats.isFile()) {
       task.data.type = "file";
       task.data.sourceType = "stream";
@@ -610,20 +598,13 @@ export class Archiver extends Transform {
     globber.on("end", onGlobEnd.bind(this));
     return this;
   }
+
   /**
-   * Appends a file given its filepath using a
-   * [lazystream]{@link https://github.com/jpommerening/node-lazystream} wrapper to
-   * prevent issues with open file limits.
+   * Appends a file given its filepath.
    *
-   * When the instance has received, processed, and emitted the file, the `entry`
-   * event is fired.
-   *
-   * @param  {String} filepath The source filepath.
-   * @param  {EntryData} data See also [ZipEntryData]{@link ZipEntryData} and
-   * [TarEntryData]{@link TarEntryData}.
-   * @return {this}
+   * When the instance has received, processed, and emitted the file, the `entry` event is fired.
    */
-  file(filepath, data) {
+  file(filepath: string, data: EntryData): this {
     if (this._state.finalize || this._state.aborted) {
       this.emit("error", new ArchiverError("QUEUECLOSED"));
       return this;
@@ -635,16 +616,13 @@ export class Archiver extends Transform {
     this._append(filepath, data);
     return this;
   }
+
   /**
    * Appends multiple files that match a glob pattern.
    *
-   * @param  {String} pattern The [glob pattern]{@link https://github.com/isaacs/minimatch} to match.
    * @param  {Object} options See [node-readdir-glob]{@link https://github.com/yqnn/node-readdir-glob#options}.
-   * @param  {EntryData} data See also [ZipEntryData]{@link ZipEntryData} and
-   * [TarEntryData]{@link TarEntryData}.
-   * @return {this}
    */
-  glob(pattern, options, data) {
+  glob(pattern: string, options, data: EntryData): this {
     this._pending++;
     options = {
       stat: true,

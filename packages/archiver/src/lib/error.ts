@@ -26,12 +26,12 @@ const ERROR_CODES = {
 type ERROR_CODE = keyof typeof ERROR_CODES;
 
 class ArchiverError extends Error {
-  code: ERROR_CODE;
-  constructor(code: ERROR_CODE, data) {
+  constructor(
+    public readonly code: ERROR_CODE,
+    public readonly data?: unknown,
+  ) {
     super(ERROR_CODES[code] || code);
     Error.captureStackTrace(this, this.constructor);
-    this.code = code;
-    this.data = data;
   }
 }
 
