@@ -9,13 +9,14 @@ type Pack = ReturnType<typeof TarStream.pack>;
 
 export default class Tar {
   engine: Pack;
+
   constructor(options) {
     options = this.options = { gzip: false, ...options };
     if (typeof options.gzipOptions !== "object") {
       options.gzipOptions = {};
     }
     this.engine = TarStream.pack(options);
-    this.compressor = false;
+    this.compressor = null;
     if (options.gzip) {
       this.compressor = zlib.createGzip(options.gzipOptions);
       this.compressor.on("error", this._onCompressorError.bind(this));
@@ -26,10 +27,6 @@ export default class Tar {
     this.engine.emit("error", err);
   }
 
-  /**
-   * @param  {TarEntryData} data
-   * @param  {Function} callback
-   */
   append(source: Buffer | Stream, data, callback): void {
     data.mtime = data.date;
     const append = (err, sourceBuffer) => {

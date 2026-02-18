@@ -1,6 +1,6 @@
-import { PassThrough, isReadable, isWritable } from "node:stream";
+import { PassThrough, isReadable, isWritable, type Stream } from "node:stream";
 
-export function collectStream(source, callback) {
+export function collectStream(source: Stream, callback) {
   const collection = [];
   let size = 0;
 

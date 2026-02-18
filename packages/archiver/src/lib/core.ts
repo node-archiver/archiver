@@ -30,8 +30,8 @@ export class Archiver extends Transform {
     };
     super(options);
     this.options = options;
-    this._format = false;
-    this._module = false;
+    this._format = null;
+    this._module = null;
     this._pending = 0;
     this._pointer = 0;
     this._entriesCount = 0;
@@ -217,10 +217,8 @@ export class Archiver extends Transform {
 
   /**
    * Pipes the module to our internal stream with error bubbling.
-   *
-   * @private
    */
-  _modulePipe(): void {
+  protected _modulePipe(): void {
     this._module.on("error", this._onModuleError.bind(this));
     this._module.pipe(this);
     this._state.modulePiped = true;
@@ -228,10 +226,8 @@ export class Archiver extends Transform {
 
   /**
    * Unpipes the module from our internal stream.
-   *
-   * @private
    */
-  _moduleUnpipe(): void {
+  protected _moduleUnpipe(): void {
     this._module.unpipe(this);
     this._state.modulePiped = false;
   }
@@ -241,10 +237,9 @@ export class Archiver extends Transform {
    *
    * @private
    * @param  {Object} data
-   * @param  {fs.Stats} stats
    * @return {Object}
    */
-  _normalizeEntryData(data, stats) {
+  _normalizeEntryData(data, stats: fs.Stats) {
     data = {
       type: "file",
       name: null,
@@ -801,26 +796,6 @@ interface TransformOptions {
    */
   objectMode?: boolean;
 }
-
-/**
- * @typedef {Object} TransformOptions
- * @property {Boolean} [allowHalfOpen=true] If set to false, then the stream
- * will automatically end the readable side when the writable side ends and vice
- * versa.
- * @property {Boolean} [readableObjectMode=false] Sets objectMode for readable
- * side of the stream. Has no effect if objectMode is true.
- * @property {Boolean} [writableObjectMode=false] Sets objectMode for writable
- * side of the stream. Has no effect if objectMode is true.
- * @property {Boolean} [decodeStrings=true] Whether or not to decode strings
- * into Buffers before passing them to _write(). `Writable`
- * @property {String} [encoding=NULL] . `Readable`
- * @property {Number} [highWaterMark=16kb] The maximum number of bytes to store
- * in the internal buffer before ceasing to read from the underlying resource.
- * `Readable` `Writable`
- * @property {Boolean} [objectMode=false] Whether this stream should behave as a
- * stream of objects. Meaning that stream.read(n) returns a single value instead
- * of a Buffer of size n. `Readable` `Writable`
- */
 
 /**
  * @typedef {Object} EntryData
