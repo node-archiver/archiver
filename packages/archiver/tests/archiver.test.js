@@ -9,8 +9,9 @@ import {
   mkdirSync,
 } from "node:fs";
 import { Readable } from "node:stream";
-import { binaryBuffer, readJSON } from "./helpers/index.js";
+
 import { JsonArchive } from "../src/index.js";
+import { binaryBuffer, readJSON } from "./helpers/index.js";
 
 const testBuffer = binaryBuffer(1024 * 16);
 const testDate = new Date("Jan 03 2013 14:26:38 GMT");

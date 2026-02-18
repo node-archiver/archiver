@@ -1,5 +1,7 @@
-import zlib from "zlib";
+import zlib from "node:zlib";
+
 import engine from "tar-stream";
+
 import { collectStream } from "../utils.js";
 
 export default class Tar {

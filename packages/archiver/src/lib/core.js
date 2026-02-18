@@ -1,15 +1,17 @@
 import { createReadStream, lstat, readlinkSync, Stats } from "node:fs";
-import { isStream } from "is-stream";
-import readdirGlob from "readdir-glob";
-import { Readable } from "./lazystream";
-import { queue } from "./async";
 import {
   dirname,
   relative as relativePath,
   resolve as resolvePath,
-} from "path";
-import { ArchiverError } from "./error.js";
+} from "node:path";
 import { Transform } from "node:stream";
+
+import { isStream } from "is-stream";
+import readdirGlob from "readdir-glob";
+
+import { queue } from "./async";
+import { ArchiverError } from "./error.js";
+import { Readable } from "./lazystream";
 import {
   dateify,
   normalizeInputSource,

@@ -1,5 +1,3 @@
-import util from "util";
-
 const ERROR_CODES = {
   ABORTED: "archive was aborted",
   DIRECTORYDIRPATHREQUIRED:
@@ -25,13 +23,13 @@ const ERROR_CODES = {
   ENTRYNOTSUPPORTED: "entry not supported",
 };
 
-function ArchiverError(code, data) {
-  Error.captureStackTrace(this, this.constructor);
-  //this.name = this.constructor.name;
-  this.message = ERROR_CODES[code] || code;
-  this.code = code;
-  this.data = data;
+class ArchiverError extends Error {
+  constructor(code, data) {
+    super(ERROR_CODES[code] || code);
+    Error.captureStackTrace(this, this.constructor);
+    this.code = code;
+    this.data = data;
+  }
 }
-util.inherits(ArchiverError, Error);
 
 export { ArchiverError };

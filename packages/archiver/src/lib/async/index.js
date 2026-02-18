@@ -1,5 +1,4 @@
 import { queue as _queue } from "./internal/queue.js";
-
 import { wrapAsync } from "./internal/wrapAsync.js";
 
 function queue(worker, concurrency) {

@@ -1,4 +1,3 @@
-
 function onlyOnce(fn) {
   return function (...args) {
     if (fn === null) throw new Error("Callback was already called.");

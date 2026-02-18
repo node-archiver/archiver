@@ -1,3 +1,4 @@
+import { describe, expect, it, beforeAll, afterAll } from "bun:test";
 import {
   chmodSync,
   createReadStream,
@@ -7,11 +8,12 @@ import {
   WriteStream,
   mkdirSync,
 } from "node:fs";
+
 import * as tar from "tar";
 import yauzl from "yauzl";
+
 import { TarArchive, ZipArchive } from "../src/index.js";
 import { binaryBuffer } from "./helpers/index.js";
-import { describe, expect, it, beforeAll, afterAll } from "bun:test";
 
 const testBuffer = binaryBuffer(1024 * 16);
 const testDate = new Date("Jan 03 2013 14:26:38 GMT");

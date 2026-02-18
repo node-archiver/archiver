@@ -4,26 +4,30 @@
   "description": "a streaming interface for archive generation",
   "license": "MIT",
   "type": "module",
-  "engines": {
-    "node": ">=22"
-  },
   "scripts": {
     "build": "tsdown",
     "test": "bun test --reporter dot",
     "bench": "bun benchmark/simple/pack-zip.js"
   },
   "dependencies": {
+    "@archiver/zip-stream": "workspace:*",
     "buffer-crc32": "^1.0.0",
     "is-stream": "^4.0.0",
     "normalize-path": "^3.0.0",
     "readdir-glob": "^1.1.3",
-    "tar-stream": "^3.0.0",
-    "@archiver/zip-stream": "workspace:*"
+    "tar-stream": "^3.0.0"
   },
   "devDependencies": {
     "stream-bench": "0.1.2",
     "tar": "7.5.9",
     "tsdown": "catalog:",
     "yauzl": "3.2.0"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./package.json": "./package.json"
   }
 }

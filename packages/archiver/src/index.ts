@@ -1,7 +1,7 @@
 import Archiver from "./lib/core.js";
-import Zip from "./lib/plugins/zip.js";
-import Tar from "./lib/plugins/tar.js";
 import Json from "./lib/plugins/json.js";
+import Tar from "./lib/plugins/tar.js";
+import Zip from "./lib/plugins/zip.js";
 
 export { Archiver };
 

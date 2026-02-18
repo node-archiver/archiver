@@ -13,7 +13,7 @@ export function readJSON(filepath) {
   try {
     contents = readFileSync(String(filepath));
     contents = JSON.parse(contents);
-  } catch (e) {
+  } catch {
     contents = null;
   }
   return contents;

@@ -26,10 +26,16 @@ describe("utils", () => {
     it("should sanitize filepath", () => {
       expect(sanitizePath("\\this/path//file.txt")).toBe("this/path/file.txt");
       expect(sanitizePath("/this/path/file.txt")).toBe("this/path/file.txt");
-      expect(sanitizePath("./this\\path\\file.txt")).toBe("./this/path/file.txt");
-      expect(sanitizePath("../this\\path\\file.txt")).toBe("this/path/file.txt");
+      expect(sanitizePath("./this\\path\\file.txt")).toBe(
+        "./this/path/file.txt",
+      );
+      expect(sanitizePath("../this\\path\\file.txt")).toBe(
+        "this/path/file.txt",
+      );
 
-      expect(sanitizePath("c:\\this\\path\\file.txt")).toBe("this/path/file.txt");
+      expect(sanitizePath("c:\\this\\path\\file.txt")).toBe(
+        "this/path/file.txt",
+      );
       expect(sanitizePath("\\\\server\\share\\")).toBe("server/share/");
     });
   });

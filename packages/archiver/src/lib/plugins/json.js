@@ -1,5 +1,7 @@
 import { Transform } from "node:stream";
+
 import crc32 from "buffer-crc32";
+
 import { collectStream } from "../utils.js";
 
 export default class Json extends Transform {

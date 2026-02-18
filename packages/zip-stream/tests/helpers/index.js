@@ -1,4 +1,4 @@
-import { readFileSync } from "fs";
+import { readFileSync } from "node:fs";
 
 export function binaryBuffer(n) {
   var buffer = Buffer.alloc(n);
