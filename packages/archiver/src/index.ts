@@ -3,9 +3,7 @@ import Json from "./lib/plugins/json.js";
 import Tar from "./lib/plugins/tar.js";
 import Zip from "./lib/plugins/zip.js";
 
-export { Archiver };
-
-export class ZipArchive extends Archiver {
+class ZipArchive extends Archiver {
   constructor(options) {
     super(options);
     this._format = "zip";
@@ -16,7 +14,7 @@ export class ZipArchive extends Archiver {
   }
 }
 
-export class TarArchive extends Archiver {
+class TarArchive extends Archiver {
   constructor(options) {
     super(options);
     this._format = "tar";
@@ -27,7 +25,11 @@ export class TarArchive extends Archiver {
   }
 }
 
-export class JsonArchive extends Archiver {
+/**
+ * @deprecated
+ * There is no reason to use this. This will be removed
+ */
+class JsonArchive extends Archiver {
   constructor(options) {
     super(options);
     this._format = "json";
@@ -37,3 +39,5 @@ export class JsonArchive extends Archiver {
     this._modulePipe();
   }
 }
+
+export { ZipArchive, TarArchive, JsonArchive, Archiver };

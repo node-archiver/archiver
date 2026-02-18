@@ -44,18 +44,16 @@ const CRC_TABLE = new Int32Array([
   0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d,
 ]);
 
-function _crc32(buf: Buffer, previous) {
-  if (Buffer.isBuffer(previous)) {
-    previous = previous.readUInt32BE(0);
-  }
+function crc32(buf: Buffer) {
+  let crc = -1;
 
-  let crc = ~~previous ^ -1;
   for (let n = 0; n < buf.length; n++) {
     crc = CRC_TABLE[(crc ^ buf[n]) & 0xff] ^ (crc >>> 8);
   }
+
   return crc ^ -1;
 }
 
-export function unsigned() {
-  return _crc32.apply(null, arguments) >>> 0;
+export function unsigned(buf: Buffer) {
+  return crc32(buf) >>> 0;
 }

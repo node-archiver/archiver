@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { Transform, isReadable, isWritable } from "node:stream";
+import { Transform, isReadable, isWritable, type Stream } from "node:stream";
 
 import readdirGlob from "readdir-glob";
 
@@ -22,14 +22,19 @@ export class Archiver extends Transform {
   _supportsDirectory = false;
   _supportsSymlink = false;
 
-  constructor(options?: CoreOptions | TransformOptions) {
-    options = {
+  options: CoreOptions & TransformOptions;
+
+  constructor(optionsParam?: Partial<CoreOptions> & TransformOptions) {
+    const options = {
       highWaterMark: 1024 * 1024,
       statConcurrency: 4,
-      ...options,
+      ...optionsParam,
     };
+
     super(options);
+
     this.options = options;
+
     this._format = null;
     this._module = null;
     this._pending = 0;
@@ -57,11 +62,8 @@ export class Archiver extends Transform {
 
   /**
    * Internal logic for `abort`.
-   *
-   * @private
-   * @return void
    */
-  _abort() {
+  private _abort(): void {
     this._state.aborted = true;
     this._queue.kill();
     this._statQueue.kill();
@@ -69,15 +71,11 @@ export class Archiver extends Transform {
       this._shutdown();
     }
   }
+
   /**
    * Internal helper for appending files.
-   *
-   * @private
-   * @param  {String} filepath The source filepath.
-   * @param  {EntryData} data The entry data.
-   * @return void
    */
-  _append(filepath, data) {
+  private _append(filepath: string, data?: EntryData): void {
     data = data || {};
     let task = {
       source: null,
@@ -482,10 +480,8 @@ export class Archiver extends Transform {
    * - ending both sides of the Transform stream
    *
    * It will NOT drain any remaining sources.
-   *
-   * @return {this}
    */
-  abort() {
+  abort(): this {
     if (this._state.aborted || this._state.finalized) {
       return this;
     }
@@ -498,11 +494,10 @@ export class Archiver extends Transform {
    * When the instance has received, processed, and emitted the input, the `entry`
    * event is fired.
    *
-   * @fires  Archiver#entry
    * @param  {(Buffer|Stream|String)} source The input source.
    * @param  {EntryData} data See also {@link ZipEntryData} and {@link TarEntryData}.
    */
-  append(source, data): this {
+  append(source: Buffer | Stream | string, data: EntryData): this {
     if (this._state.finalize || this._state.aborted) {
       this.emit("error", new ArchiverError("QUEUECLOSED"));
       return this;
@@ -774,7 +769,7 @@ export class Archiver extends Transform {
 
 interface CoreOptions {
   /** Sets the number of workers used to process the internal fs stat queue. */
-  statConcurrency?: number;
+  statConcurrency: number;
 }
 
 interface TransformOptions {
@@ -795,6 +790,22 @@ interface TransformOptions {
    * Meaning that stream.read(n) returns a single value instead of a Buffer of size n.
    */
   objectMode?: boolean;
+}
+
+interface EntryData {
+  /** Sets the entry name including internal path. */
+  name: string;
+  /** Sets the entry date. */
+  date?: Date | string;
+  /** Sets the entry permissions. */
+  mode?: number;
+  /**
+   * Sets a path prefix for the entry name.
+   * Useful when working with methods like `directory` or `glob`.
+   **/
+  prefix?: string;
+  /** Sets the fs stat data for this entry allowing for reduction of fs stat calls when stat data is already known. */
+  stats?: fs.Stats;
 }
 
 /**
