@@ -1,5 +1,4 @@
 import crc32 from "crc-32";
-import { CRC32Stream, DeflateCRC32Stream } from "crc32-stream";
 
 import ArchiveOutputStream from "../archive-output-stream.js";
 import {
@@ -21,6 +20,7 @@ import {
   ZIP64_MAGIC_SHORT,
   ZLIB_BEST_SPEED,
 } from "./constants.js";
+import { CRC32Stream, DeflateCRC32Stream } from "./crc32-stream.js";
 import { getEightBytes, getLongBytes, getShortBytes } from "./util.js";
 
 function _defaults(o) {
