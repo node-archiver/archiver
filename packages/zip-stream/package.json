@@ -4,22 +4,21 @@
   "description": "a streaming zip archive generator",
   "license": "MIT",
   "type": "module",
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "build": "tsdown",
     "test": "bun test --reporter dot"
   },
   "dependencies": {
-    "compress-commons": "^7.0.0",
-    "normalize-path": "^3.0.0"
+    "compress-commons": "^7.0.0"
   },
   "devDependencies": {
     "tsdown": "catalog:"
   },
   "engines": {
     "node": ">=22"
-  },
-  "exports": {
-    ".": "./dist/index.mjs",
-    "./package.json": "./package.json"
   }
 }

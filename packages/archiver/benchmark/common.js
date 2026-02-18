@@ -1,7 +1,7 @@
 function binaryBuffer(n) {
-  var buffer = Buffer.alloc(n);
+  const buffer = Buffer.alloc(n);
 
-  for (var i = 0; i < n; i++) {
+  for (let i = 0; i < n; i++) {
     buffer.writeUInt8(i & 255, i);
   }
 

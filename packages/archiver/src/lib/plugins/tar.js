@@ -43,7 +43,7 @@ export default class Tar {
    * @return void
    */
   append(source, data, callback) {
-    var self = this;
+    const self = this;
     data.mtime = data.date;
     function append(err, sourceBuffer) {
       if (err) {
@@ -58,7 +58,7 @@ export default class Tar {
       append(null, source);
     } else if (data.sourceType === "stream" && data.stats) {
       data.size = data.stats.size;
-      var entry = self.engine.entry(data, function (err) {
+      const entry = self.engine.entry(data, function (err) {
         callback(err, data);
       });
       source.pipe(entry);

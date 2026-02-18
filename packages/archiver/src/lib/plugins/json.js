@@ -32,7 +32,7 @@ export default class Json extends Transform {
    * @return void
    */
   _writeStringified() {
-    var fileString = JSON.stringify(this.files);
+    const fileString = JSON.stringify(this.files);
     this.write(fileString);
   }
   /**
@@ -44,7 +44,7 @@ export default class Json extends Transform {
    * @return void
    */
   append(source, data, callback) {
-    var self = this;
+    const self = this;
     data.crc32 = 0;
     function onend(err, sourceBuffer) {
       if (err) {

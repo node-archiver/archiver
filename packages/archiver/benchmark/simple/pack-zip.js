@@ -5,11 +5,11 @@ import streamBench from "stream-bench";
 import * as archiver from "../../src/index";
 import { binaryBuffer } from "../common";
 
-var BITS_IN_BYTE = 1024;
-var BITS_IN_MBYTE = BITS_IN_BYTE * 1024;
+const BITS_IN_BYTE = 1024;
+const BITS_IN_MBYTE = BITS_IN_BYTE * 1024;
 
-var file = false;
-var level = 1;
+let file = false;
+let level = 1;
 
 if (process.argv[2]) {
   if (isNaN(parseInt(process.argv[2], 10))) {
@@ -27,7 +27,7 @@ if (process.argv[2]) {
   }
 }
 
-var archive = new archiver.ZipArchive({ zlib: { level: level } });
+const archive = new archiver.ZipArchive({ zlib: { level: level } });
 
 if (file === false) {
   mkdirSync("tmp", { recursive: true });
@@ -38,7 +38,7 @@ if (file === false) {
 
 console.log("zlib level: " + level);
 
-var bench = streamBench({
+const bench = streamBench({
   logReport: true,
   interval: 500,
   dump: true,

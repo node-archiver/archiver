@@ -4,6 +4,10 @@
   "description": "a streaming interface for archive generation",
   "license": "MIT",
   "type": "module",
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "build": "tsdown",
     "test": "bun test --reporter dot",
@@ -13,7 +17,6 @@
     "@archiver/zip-stream": "workspace:*",
     "buffer-crc32": "^1.0.0",
     "is-stream": "^4.0.0",
-    "normalize-path": "^3.0.0",
     "readdir-glob": "^1.1.3",
     "tar-stream": "^3.0.0"
   },
@@ -25,9 +28,5 @@
   },
   "engines": {
     "node": ">=22"
-  },
-  "exports": {
-    ".": "./dist/index.mjs",
-    "./package.json": "./package.json"
   }
 }

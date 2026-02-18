@@ -584,14 +584,14 @@ export default class Archiver extends Transform {
     } else if (typeof destpath !== "string") {
       destpath = dirpath;
     }
-    var dataFunction = false;
+    let dataFunction = false;
     if (typeof data === "function") {
       dataFunction = data;
       data = {};
     } else if (typeof data !== "object") {
       data = {};
     }
-    var globOptions = {
+    const globOptions = {
       stat: true,
       dot: true,
     };
@@ -711,12 +711,12 @@ export default class Archiver extends Transform {
    */
   finalize() {
     if (this._state.aborted) {
-      var abortedError = new ArchiverError("ABORTED");
+      const abortedError = new ArchiverError("ABORTED");
       this.emit("error", abortedError);
       return Promise.reject(abortedError);
     }
     if (this._state.finalize) {
-      var finalizingError = new ArchiverError("FINALIZING");
+      const finalizingError = new ArchiverError("FINALIZING");
       this.emit("error", finalizingError);
       return Promise.reject(finalizingError);
     }
@@ -724,9 +724,9 @@ export default class Archiver extends Transform {
     if (this._pending === 0 && this._queue.idle() && this._statQueue.idle()) {
       this._finalize();
     }
-    var self = this;
+    const self = this;
     return new Promise(function (resolve, reject) {
-      var errored;
+      let errored;
       self._module.on("end", function () {
         if (!errored) {
           resolve();
@@ -771,7 +771,7 @@ export default class Archiver extends Transform {
       );
       return this;
     }
-    var data = {};
+    const data = {};
     data.type = "symlink";
     data.name = filepath.replace(/\\/g, "/");
     data.linkname = target.replace(/\\/g, "/");
