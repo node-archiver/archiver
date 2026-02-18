@@ -786,13 +786,6 @@ interface CoreOptions {
   statConcurrency?: number;
 }
 
-/**
- * @typedef {Object} CoreOptions
- * @global
- * @property {Number} [statConcurrency=4] Sets the number of workers used to
- * process the internal fs stat queue.
- */
-
 interface TransformOptions {
   /** If set to false, then the stream will automatically end the readable side when the writable side ends and vice versa. */
   allowHalfOpen?: boolean;

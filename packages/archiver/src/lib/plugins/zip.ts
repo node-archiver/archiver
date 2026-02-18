@@ -1,5 +1,18 @@
 import ZipStream from "@archiver/zip-stream";
 
+interface ZipOptions {
+  /** Sets the zip archive comment. */
+  comment?: string;
+  /** Forces the archive to contain local file times instead of UTC. */
+  forceLocalTime?: boolean;
+  /** Forces the archive to contain ZIP64 headers. */
+  forceZip64?: boolean;
+  /** Prepends a forward slash to archive file paths. */
+  namePrependSlash?: boolean;
+  /** Sets the compression method to STORE. */
+  store?: boolean;
+}
+
 export default class Zip {
   /**
    * @constructor

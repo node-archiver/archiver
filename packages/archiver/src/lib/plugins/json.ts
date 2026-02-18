@@ -14,15 +14,12 @@ export default class Json extends Transform {
     this.files = [];
   }
   /**
-   * [_transform description]
-   *
-   * @private
    * @param  {Buffer}   chunk
    * @param  {String}   encoding
    * @param  {Function} callback
    * @return void
    */
-  _transform(chunk, encoding, callback) {
+  protected _transform(chunk: Buffer, encoding, callback) {
     callback(null, chunk);
   }
   /**
