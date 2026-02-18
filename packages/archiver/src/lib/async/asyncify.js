@@ -1,23 +1,8 @@
-"use strict";
+import { initialParams } from "./internal/initialParams.js";
 
-Object.defineProperty(exports, "__esModule", {
-  value: true,
-});
-exports.default = asyncify;
+import { _setImmediate as setImmediate } from "./internal/setImmediate.js";
 
-var _initialParams = require("./internal/initialParams.js");
-
-var _initialParams2 = _interopRequireDefault(_initialParams);
-
-var _setImmediate = require("./internal/setImmediate.js");
-
-var _setImmediate2 = _interopRequireDefault(_setImmediate);
-
-var _wrapAsync = require("./internal/wrapAsync.js");
-
-function _interopRequireDefault(obj) {
-  return obj && obj.__esModule ? obj : { default: obj };
-}
+import { isAsync } from "./internal/wrapAsync.js";
 
 /**
  * Take a sync function and make it async, passing its return value to a
@@ -68,15 +53,15 @@ function _interopRequireDefault(obj) {
  *
  * // es2017 example, though `asyncify` is not needed if your JS environment
  * // supports async functions out of the box
- * var q = async.queue(async.asyncify(async function(file) {
- *     var intermediateStep = await processFile(file);
+ * const q = async.queue(async.asyncify(async function(file) {
+ *     const intermediateStep = await processFile(file);
  *     return await somePromise(intermediateStep)
  * }));
  *
  * q.push(files);
  */
 function asyncify(func) {
-  if ((0, _wrapAsync.isAsync)(func)) {
+  if ((0, isAsync)(func)) {
     return function (...args /*, callback*/) {
       const callback = args.pop();
       const promise = func.apply(this, args);
@@ -84,8 +69,8 @@ function asyncify(func) {
     };
   }
 
-  return (0, _initialParams2.default)(function (args, callback) {
-    var result;
+  return (0, initialParams)(function (args, callback) {
+    let result;
     try {
       result = func.apply(this, args);
     } catch (e) {
@@ -118,9 +103,10 @@ function invokeCallback(callback, error, value) {
   try {
     callback(error, value);
   } catch (err) {
-    (0, _setImmediate2.default)((e) => {
+    (0, setImmediate)((e) => {
       throw e;
     }, err);
   }
 }
-module.exports = exports.default;
+
+export { asyncify };

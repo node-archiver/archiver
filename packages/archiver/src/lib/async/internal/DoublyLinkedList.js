@@ -1,13 +1,9 @@
-"use strict";
+function setInitial(dll, node) {
+  dll.length = 1;
+  dll.head = dll.tail = node;
+}
 
-Object.defineProperty(exports, "__esModule", {
-  value: true,
-});
-// Simple doubly linked list (https://en.wikipedia.org/wiki/Doubly_linked_list) implementation
-// used for queues. This implementation assumes that the node provided by the user can be modified
-// to adjust the next and last properties. We implement only the minimal functionality
-// for queue support.
-class DLL {
+class DoublyLinkedList {
   constructor() {
     this.head = this.tail = null;
     this.length = 0;
@@ -70,7 +66,7 @@ class DLL {
   }
 
   *[Symbol.iterator]() {
-    var cur = this.head;
+    let cur = this.head;
     while (cur) {
       yield cur.data;
       cur = cur.next;
@@ -78,9 +74,9 @@ class DLL {
   }
 
   remove(testFn) {
-    var curr = this.head;
+    let curr = this.head;
     while (curr) {
-      var { next } = curr;
+      const { next } = curr;
       if (testFn(curr)) {
         this.removeLink(curr);
       }
@@ -90,9 +86,4 @@ class DLL {
   }
 }
 
-exports.default = DLL;
-function setInitial(dll, node) {
-  dll.length = 1;
-  dll.head = dll.tail = node;
-}
-module.exports = exports.default;
+export { DoublyLinkedList };

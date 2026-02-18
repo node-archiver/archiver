@@ -1,9 +1,17 @@
-var _queue = require("./queue");
+import { queue as _queue } from "./internal/queue.js";
 
-var _queue2 = _interopRequireDefault(_queue);
+import { wrapAsync } from "./internal/wrapAsync.js";
 
-function _interopRequireDefault(obj) {
-  return obj && obj.__esModule ? obj : { default: obj };
+function queue(worker, concurrency) {
+  const _worker = (0, wrapAsync)(worker);
+
+  return (0, _queue)(
+    (items, cb) => {
+      _worker(items[0], cb);
+    },
+    concurrency,
+    1,
+  );
 }
 
-exports.queue = _queue2.default;
+export { queue };

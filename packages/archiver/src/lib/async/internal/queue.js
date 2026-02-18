@@ -1,29 +1,10 @@
-"use strict";
+import { onlyOnce } from "./onlyOnce.js";
 
-Object.defineProperty(exports, "__esModule", {
-  value: true,
-});
-exports.default = queue;
+import { _setImmediate as setImmediate } from "./setImmediate.js";
 
-var _onlyOnce = require("./onlyOnce.js");
+import { DoublyLinkedList } from "./DoublyLinkedList.js";
 
-var _onlyOnce2 = _interopRequireDefault(_onlyOnce);
-
-var _setImmediate = require("./setImmediate.js");
-
-var _setImmediate2 = _interopRequireDefault(_setImmediate);
-
-var _DoublyLinkedList = require("./DoublyLinkedList.js");
-
-var _DoublyLinkedList2 = _interopRequireDefault(_DoublyLinkedList);
-
-var _wrapAsync = require("./wrapAsync.js");
-
-var _wrapAsync2 = _interopRequireDefault(_wrapAsync);
-
-function _interopRequireDefault(obj) {
-  return obj && obj.__esModule ? obj : { default: obj };
-}
+import { wrapAsync } from "./wrapAsync.js";
 
 function queue(worker, concurrency, payload) {
   if (concurrency == null) {
@@ -32,9 +13,9 @@ function queue(worker, concurrency, payload) {
     throw new RangeError("Concurrency must not be zero");
   }
 
-  var _worker = (0, _wrapAsync2.default)(worker);
-  var numRunning = 0;
-  var workersList = [];
+  const _worker = (0, wrapAsync)(worker);
+  let numRunning = 0;
+  const workersList = [];
   const events = {
     error: [],
     drain: [],
@@ -65,14 +46,14 @@ function queue(worker, concurrency, payload) {
     events[event].forEach((handler) => handler(...args));
   }
 
-  var processingScheduled = false;
+  let processingScheduled = false;
   function _insert(data, insertAtFront, rejectOnError, callback) {
     if (callback != null && typeof callback !== "function") {
       throw new Error("task callback must be a function");
     }
     q.started = true;
 
-    var res, rej;
+    let res, rej;
     function promiseCallback(err, ...args) {
       // we don't care about the error, let the global error handler
       // deal with it
@@ -81,7 +62,7 @@ function queue(worker, concurrency, payload) {
       res(args);
     }
 
-    var item = q._createTaskItem(
+    const item = q._createTaskItem(
       data,
       rejectOnError ? promiseCallback : callback || promiseCallback,
     );
@@ -94,7 +75,7 @@ function queue(worker, concurrency, payload) {
 
     if (!processingScheduled) {
       processingScheduled = true;
-      (0, _setImmediate2.default)(() => {
+      (0, setImmediate)(() => {
         processingScheduled = false;
         q.process();
       });
@@ -112,10 +93,10 @@ function queue(worker, concurrency, payload) {
     return function (err, ...args) {
       numRunning -= 1;
 
-      for (var i = 0, l = tasks.length; i < l; i++) {
-        var task = tasks[i];
+      for (let i = 0, l = tasks.length; i < l; i++) {
+        const task = tasks[i];
 
-        var index = workersList.indexOf(task);
+        const index = workersList.indexOf(task);
         if (index === 0) {
           workersList.shift();
         } else if (index > 0) {
@@ -143,7 +124,7 @@ function queue(worker, concurrency, payload) {
   function _maybeDrain(data) {
     if (data.length === 0 && q.idle()) {
       // call drain immediately if there are no tasks
-      (0, _setImmediate2.default)(() => trigger("drain"));
+      (0, setImmediate)(() => trigger("drain"));
       return true;
     }
     return false;
@@ -162,9 +143,9 @@ function queue(worker, concurrency, payload) {
     on(name, handler);
   };
 
-  var isProcessing = false;
-  var q = {
-    _tasks: new _DoublyLinkedList2.default(),
+  let isProcessing = false;
+  const q = {
+    _tasks: new DoublyLinkedList(),
     _createTaskItem(data, callback) {
       return {
         data,
@@ -222,12 +203,12 @@ function queue(worker, concurrency, payload) {
       }
       isProcessing = true;
       while (!q.paused && numRunning < q.concurrency && q._tasks.length) {
-        var tasks = [],
+        const tasks = [],
           data = [];
-        var l = q._tasks.length;
+        let l = q._tasks.length;
         if (q.payload) l = Math.min(l, q.payload);
-        for (var i = 0; i < l; i++) {
-          var node = q._tasks.shift();
+        for (let i = 0; i < l; i++) {
+          const node = q._tasks.shift();
           tasks.push(node);
           workersList.push(node);
           data.push(node.data);
@@ -243,7 +224,7 @@ function queue(worker, concurrency, payload) {
           trigger("saturated");
         }
 
-        var cb = (0, _onlyOnce2.default)(_createCB(tasks));
+        const cb = (0, onlyOnce)(_createCB(tasks));
         _worker(data, cb);
       }
       isProcessing = false;
@@ -268,7 +249,7 @@ function queue(worker, concurrency, payload) {
         return;
       }
       q.paused = false;
-      (0, _setImmediate2.default)(q.process);
+      (0, setImmediate)(q.process);
     },
   };
   // define these as fixed properties, so people get useful errors when updating
@@ -296,4 +277,5 @@ function queue(worker, concurrency, payload) {
   });
   return q;
 }
-module.exports = exports.default;
+
+export { queue };
