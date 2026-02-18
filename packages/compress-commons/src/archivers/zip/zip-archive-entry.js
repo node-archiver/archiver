@@ -14,7 +14,7 @@ import {
   ZIP64_MAGIC,
 } from "./constants.js";
 import GeneralPurposeBit from "./general-purpose-bit.js";
-import UnixStat from "./unix-stat.js";
+import * as UnixStat from "./unix-stat.js";
 import { dateToDos, dosToDate, normalizePath } from "./util.js";
 
 export default class ZipArchiveEntry extends ArchiveEntry {

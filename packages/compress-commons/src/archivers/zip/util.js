@@ -33,9 +33,7 @@ export function dosToDate(dos) {
     (dos & 0x1f) << 1,
   );
 }
-export function fromDosTime(buf) {
-  return dosToDate(buf.readUInt32LE(0));
-}
+
 export function getEightBytes(v) {
   const buf = Buffer.alloc(8);
   buf.writeUInt32LE(v % 0x0100000000, 0);
@@ -55,12 +53,7 @@ export function getLongBytes(v) {
   buf.writeUInt32LE((v & 0xffffffff) >>> 0, 0);
   return buf;
 }
-export function getLongBytesValue(buf, offset) {
-  return buf.readUInt32LE(offset);
-}
-export function toDosTime(d) {
-  return getLongBytes(util.dateToDos(d));
-}
+
 export function normalizePath(path, stripTrailing) {
   if (typeof path !== "string") {
     throw new TypeError("expected path to be a string");
