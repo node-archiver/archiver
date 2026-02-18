@@ -17,10 +17,12 @@ import {
   sanitizePath,
   trailingSlashIt,
 } from "./utils.js";
+
 const { ReaddirGlob } = readdirGlob;
+
 const win32 = process.platform === "win32";
 
-export default class Archiver extends Transform {
+export class Archiver extends Transform {
   _supportsDirectory = false;
   _supportsSymlink = false;
 
@@ -166,48 +168,44 @@ export default class Archiver extends Transform {
       callback();
       return;
     }
-    this._module.append(
-      source,
-      data,
-      function (err) {
-        this._task = null;
-        if (this._state.aborted) {
-          this._shutdown();
-          return;
-        }
-        if (err) {
-          this.emit("error", err);
-          setImmediate(callback);
-          return;
-        }
-        /**
-         * Fires when the entry's input has been processed and appended to the archive.
-         *
-         * @event Archiver#entry
-         * @type {EntryData}
-         */
-        this.emit("entry", data);
-        this._entriesProcessedCount++;
-        if (data.stats && data.stats.size) {
-          this._fsEntriesProcessedBytes += data.stats.size;
-        }
-        /**
-         * @event Archiver#progress
-         * @type {ProgressData}
-         */
-        this.emit("progress", {
-          entries: {
-            total: this._entriesCount,
-            processed: this._entriesProcessedCount,
-          },
-          fs: {
-            totalBytes: this._fsEntriesTotalBytes,
-            processedBytes: this._fsEntriesProcessedBytes,
-          },
-        });
+    this._module.append(source, data, (err) => {
+      this._task = null;
+      if (this._state.aborted) {
+        this._shutdown();
+        return;
+      }
+      if (err) {
+        this.emit("error", err);
         setImmediate(callback);
-      }.bind(this),
-    );
+        return;
+      }
+      /**
+       * Fires when the entry's input has been processed and appended to the archive.
+       *
+       * @event Archiver#entry
+       * @type {EntryData}
+       */
+      this.emit("entry", data);
+      this._entriesProcessedCount++;
+      if (data.stats && data.stats.size) {
+        this._fsEntriesProcessedBytes += data.stats.size;
+      }
+      /**
+       * @event Archiver#progress
+       * @type {ProgressData}
+       */
+      this.emit("progress", {
+        entries: {
+          total: this._entriesCount,
+          processed: this._entriesProcessedCount,
+        },
+        fs: {
+          totalBytes: this._fsEntriesTotalBytes,
+          processedBytes: this._fsEntriesProcessedBytes,
+        },
+      });
+      setImmediate(callback);
+    });
   }
   /**
    * Finalizes the module.
