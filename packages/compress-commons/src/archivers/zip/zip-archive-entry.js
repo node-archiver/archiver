@@ -1,5 +1,3 @@
-import normalizePath from "normalize-path";
-
 import ArchiveEntry from "../archive-entry.js";
 import {
   EMPTY,
@@ -17,7 +15,7 @@ import {
 } from "./constants.js";
 import GeneralPurposeBit from "./general-purpose-bit.js";
 import UnixStat from "./unix-stat.js";
-import { dateToDos, dosToDate } from "./util.js";
+import { dateToDos, dosToDate, normalizePath } from "./util.js";
 
 export default class ZipArchiveEntry extends ArchiveEntry {
   constructor(name) {
