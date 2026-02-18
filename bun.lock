@@ -26,6 +26,19 @@
         "yauzl": "3.2.0",
       },
     },
+    "packages/compress-commons": {
+      "name": "@archiver/compress-commons",
+      "version": "0.0.0",
+      "dependencies": {
+        "crc-32": "^1.2.0",
+        "crc32-stream": "^7.0.1",
+        "is-stream": "^4.0.0",
+        "normalize-path": "^3.0.0",
+      },
+      "devDependencies": {
+        "tsdown": "catalog:",
+      },
+    },
     "packages/zip-stream": {
       "name": "@archiver/zip-stream",
       "version": "0.0.0",
@@ -42,6 +55,8 @@
   },
   "packages": {
     "@archiver/archiver": ["@archiver/archiver@workspace:packages/archiver"],
+
+    "@archiver/compress-commons": ["@archiver/compress-commons@workspace:packages/compress-commons"],
 
     "@archiver/zip-stream": ["@archiver/zip-stream@workspace:packages/zip-stream"],
 
