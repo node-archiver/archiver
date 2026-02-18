@@ -3,7 +3,7 @@ import { onlyOnce } from "./onlyOnce.js";
 import { _setImmediate as setImmediate } from "./setImmediate.js";
 import { wrapAsync } from "./wrapAsync.js";
 
-function queue(worker, concurrency, payload) {
+function queue(worker, concurrency: number, payload) {
   if (concurrency == null) {
     concurrency = 1;
   } else if (concurrency === 0) {
