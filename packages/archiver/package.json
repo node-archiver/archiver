@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "stream-bench": "0.1.2",
-    "tar": "6.2.1",
+    "tar": "7.5.9",
     "yauzl": "3.2.0"
   }
 }

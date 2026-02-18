@@ -7,7 +7,7 @@ import {
   WriteStream,
   mkdirSync,
 } from "node:fs";
-import tar from "tar";
+import * as tar from "tar";
 import yauzl from "yauzl";
 import { TarArchive, ZipArchive } from "../src/index.js";
 import { binaryBuffer } from "./helpers/index.js";
@@ -49,7 +49,7 @@ describe("plugins", () => {
 
     beforeAll((done) => {
       archive = new TarArchive();
-      const testStream = new tar.Parse();
+      const testStream = new tar.Parser();
 
       testStream.on("entry", (entry) => {
         actual.push(entry.path);
