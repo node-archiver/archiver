@@ -1,7 +1,7 @@
 import { createReadStream, lstat, readlinkSync, Stats } from "fs";
 import { isStream } from "is-stream";
 import readdirGlob from "readdir-glob";
-import { Readable } from "lazystream";
+import { Readable } from "./lazystream";
 import { queue } from "async";
 import {
   dirname,
