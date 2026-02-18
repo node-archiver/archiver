@@ -1,7 +1,7 @@
 import { Transform, isReadable, isWritable } from "node:stream";
 
 import { normalizeInputSource } from "../util/index.js";
-import ArchiveEntry from "./archive-entry.js";
+import { ArchiveEntry } from "./archive-entry.js";
 
 export default class ArchiveOutputStream extends Transform {
   constructor(options) {

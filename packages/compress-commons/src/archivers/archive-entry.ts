@@ -1,6 +1,8 @@
-export default class ArchiveEntry {
+abstract class ArchiveEntry {
   getName() {}
   getSize() {}
   getLastModifiedDate() {}
   isDirectory() {}
 }
+
+export { ArchiveEntry };

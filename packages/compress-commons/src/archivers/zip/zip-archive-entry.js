@@ -1,4 +1,4 @@
-import ArchiveEntry from "../archive-entry.js";
+import { ArchiveEntry } from "../archive-entry.js";
 import {
   EMPTY,
   MIN_VERSION_INITIAL,

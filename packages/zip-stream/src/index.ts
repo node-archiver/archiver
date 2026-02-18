@@ -47,10 +47,6 @@ export default class ZipStream extends ZipArchiveOutputStream {
 
   /**
    * Normalizes entry data with fallbacks for key properties.
-   *
-   * @private
-   * @param  {Object} data
-   * @return {Object}
    */
   _normalizeFileData(data) {
     data = {
@@ -146,12 +142,9 @@ export default class ZipStream extends ZipArchiveOutputStream {
   }
 
   /**
-   * Finalizes the instance and prevents further appending to the archive
-   * structure (queue will continue til drained).
-   *
-   * @return void
+   * Finalizes the instance and prevents further appending to the archive structure (queue will continue til drained).
    */
-  finalize() {
+  finalize(): void {
     this.finish();
   }
 }
