@@ -9,10 +9,3 @@ export {
   ArchiveOutputStream,
   ZipArchiveOutputStream,
 };
-
-export default {
-  ArchiveEntry,
-  ZipArchiveEntry,
-  ArchiveOutputStream,
-  ZipArchiveOutputStream,
-};
