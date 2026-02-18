@@ -1,6 +1,5 @@
-import { writeFileSync } from "fs";
+import { writeFileSync, mkdirSync } from "node:fs";
 
-import { sync } from "mkdirp";
 import streamBench from "stream-bench";
 
 import * as archiver from "../../src/index";
@@ -31,7 +30,7 @@ if (process.argv[2]) {
 var archive = new archiver.ZipArchive({ zlib: { level: level } });
 
 if (file === false) {
-  sync("tmp");
+  mkdirSync("tmp", { recursive: true });
 
   file = "tmp/20mb.dat";
   writeFileSync(file, binaryBuffer(BITS_IN_MBYTE * 20));

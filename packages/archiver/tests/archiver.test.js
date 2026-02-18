@@ -2,31 +2,23 @@ import {
   WriteStream,
   chmodSync,
   createReadStream,
-  createWriteStream,
   statSync,
   symlinkSync,
   unlinkSync,
   writeFileSync,
-} from "fs";
-import { PassThrough } from "node:stream";
+  mkdirSync,
+} from "node:fs";
 import { Readable } from "node:stream";
-import { mkdirp } from "mkdirp";
-import {
-  binaryBuffer,
-  readJSON,
-  UnBufferedStream,
-  WriteHashStream,
-} from "./helpers/index.js";
+import { binaryBuffer, readJSON } from "./helpers/index.js";
 import { JsonArchive } from "../src/index.js";
 
 const testBuffer = binaryBuffer(1024 * 16);
 const testDate = new Date("Jan 03 2013 14:26:38 GMT");
-const testDate2 = new Date("Feb 10 2013 10:24:42 GMT");
 const win32 = process.platform === "win32";
 
 describe("archiver", () => {
   beforeAll(() => {
-    mkdirp.sync("tmp");
+    mkdirSync("tmp", { recursive: true });
     if (!win32) {
       chmodSync("tests/fixtures/executable.sh", 511); // 0777
       chmodSync("tests/fixtures/directory/subdir/", 493); // 0755
@@ -148,7 +140,10 @@ describe("archiver", () => {
         expect(entries).toHaveProperty(["buffer.txt"]);
         expect(entries["buffer.txt"]).toHaveProperty("name", "buffer.txt");
         expect(entries["buffer.txt"]).toHaveProperty("type", "file");
-        expect(entries["buffer.txt"]).toHaveProperty("date", "2013-01-03T14:26:38.000Z");
+        expect(entries["buffer.txt"]).toHaveProperty(
+          "date",
+          "2013-01-03T14:26:38.000Z",
+        );
         expect(entries["buffer.txt"]).toHaveProperty("mode", 420);
         expect(entries["buffer.txt"]).toHaveProperty("crc32", 3893830384);
         expect(entries["buffer.txt"]).toHaveProperty("size", 16384);
@@ -158,7 +153,10 @@ describe("archiver", () => {
         expect(entries).toHaveProperty(["stream.txt"]);
         expect(entries["stream.txt"]).toHaveProperty("name", "stream.txt");
         expect(entries["stream.txt"]).toHaveProperty("type", "file");
-        expect(entries["stream.txt"]).toHaveProperty("date", "2013-01-03T14:26:38.000Z");
+        expect(entries["stream.txt"]).toHaveProperty(
+          "date",
+          "2013-01-03T14:26:38.000Z",
+        );
         expect(entries["stream.txt"]).toHaveProperty("mode", 420);
         expect(entries["stream.txt"]).toHaveProperty("crc32", 585446183);
         expect(entries["stream.txt"]).toHaveProperty("size", 19);
@@ -166,9 +164,15 @@ describe("archiver", () => {
 
       it("should append stream-like source", () => {
         expect(entries).toHaveProperty(["stream-like.txt"]);
-        expect(entries["stream-like.txt"]).toHaveProperty("name", "stream-like.txt");
+        expect(entries["stream-like.txt"]).toHaveProperty(
+          "name",
+          "stream-like.txt",
+        );
         expect(entries["stream-like.txt"]).toHaveProperty("type", "file");
-        expect(entries["stream-like.txt"]).toHaveProperty("date", "2013-01-03T14:26:38.000Z");
+        expect(entries["stream-like.txt"]).toHaveProperty(
+          "date",
+          "2013-01-03T14:26:38.000Z",
+        );
         expect(entries["stream-like.txt"]).toHaveProperty("mode", 420);
         expect(entries["stream-like.txt"]).toHaveProperty("crc32", 3632233996);
         expect(entries["stream-like.txt"]).toHaveProperty("size", 4);
@@ -178,7 +182,10 @@ describe("archiver", () => {
         expect(entries).toHaveProperty("directory/");
         expect(entries["directory/"]).toHaveProperty("name", "directory/");
         expect(entries["directory/"]).toHaveProperty("type", "directory");
-        expect(entries["directory/"]).toHaveProperty("date", "2013-01-03T14:26:38.000Z");
+        expect(entries["directory/"]).toHaveProperty(
+          "date",
+          "2013-01-03T14:26:38.000Z",
+        );
         expect(entries["directory/"]).toHaveProperty("mode", 493);
         expect(entries["directory/"]).toHaveProperty("crc32", 0);
         expect(entries["directory/"]).toHaveProperty("size", 0);
@@ -203,7 +210,9 @@ describe("archiver", () => {
         archive.pipe(testStream);
         archive
           .directory("tests/fixtures/directory", null, { date: testDate })
-          .directory("tests/fixtures/directory", "Win\\DS\\", { date: testDate })
+          .directory("tests/fixtures/directory", "Win\\DS\\", {
+            date: testDate,
+          })
           .directory("tests/fixtures/directory", "directory", function (data) {
             if (data.name === "ignore.txt") {
               return false;
@@ -218,11 +227,23 @@ describe("archiver", () => {
         expect(Array.isArray(actual)).toBe(true);
         expect(entries).toHaveProperty(["tests/fixtures/directory/level0.txt"]);
         expect(entries).toHaveProperty("tests/fixtures/directory/subdir/");
-        expect(entries).toHaveProperty(["tests/fixtures/directory/subdir/level1.txt"]);
-        expect(entries).toHaveProperty("tests/fixtures/directory/subdir/subsub/");
-        expect(entries).toHaveProperty(["tests/fixtures/directory/subdir/subsub/level2.txt"]);
-        expect(entries["tests/fixtures/directory/level0.txt"]).toHaveProperty("date", "2013-01-03T14:26:38.000Z");
-        expect(entries["tests/fixtures/directory/subdir/"]).toHaveProperty("date", "2013-01-03T14:26:38.000Z");
+        expect(entries).toHaveProperty([
+          "tests/fixtures/directory/subdir/level1.txt",
+        ]);
+        expect(entries).toHaveProperty(
+          "tests/fixtures/directory/subdir/subsub/",
+        );
+        expect(entries).toHaveProperty([
+          "tests/fixtures/directory/subdir/subsub/level2.txt",
+        ]);
+        expect(entries["tests/fixtures/directory/level0.txt"]).toHaveProperty(
+          "date",
+          "2013-01-03T14:26:38.000Z",
+        );
+        expect(entries["tests/fixtures/directory/subdir/"]).toHaveProperty(
+          "date",
+          "2013-01-03T14:26:38.000Z",
+        );
         expect(entries).toHaveProperty(["directory/level0.txt"]);
         expect(entries).toHaveProperty("directory/subdir/");
         expect(entries).toHaveProperty(["directory/subdir/level1.txt"]);
@@ -232,7 +253,10 @@ describe("archiver", () => {
 
       it("should support setting data properties via function", () => {
         expect(entries).toHaveProperty(["directory/level0.txt"]);
-        expect(entries["directory/level0.txt"]).toHaveProperty("funcProp", true);
+        expect(entries["directory/level0.txt"]).toHaveProperty(
+          "funcProp",
+          true,
+        );
       });
 
       it("should support ignoring matches via function", () => {
@@ -244,12 +268,16 @@ describe("archiver", () => {
       });
 
       it("should retain symlinks", () => {
-        expect(entries).toHaveProperty(["tests/fixtures/directory/subdir/level0link.txt"]);
+        expect(entries).toHaveProperty([
+          "tests/fixtures/directory/subdir/level0link.txt",
+        ]);
         expect(entries).toHaveProperty(["directory/subdir/level0link.txt"]);
       });
 
       it("should retain directory symlink", () => {
-        expect(entries).toHaveProperty("tests/fixtures/directory/subdir/subsublink");
+        expect(entries).toHaveProperty(
+          "tests/fixtures/directory/subdir/subsublink",
+        );
         expect(entries).toHaveProperty("directory/subdir/subsublink");
       });
 
@@ -289,7 +317,10 @@ describe("archiver", () => {
       it("should append filepath", () => {
         expect(entries).toHaveProperty(["test.txt"]);
         expect(entries["test.txt"]).toHaveProperty("name", "test.txt");
-        expect(entries["test.txt"]).toHaveProperty("date", "2013-01-03T14:26:38.000Z");
+        expect(entries["test.txt"]).toHaveProperty(
+          "date",
+          "2013-01-03T14:26:38.000Z",
+        );
         expect(entries["test.txt"]).toHaveProperty("crc32", 585446183);
         expect(entries["test.txt"]).toHaveProperty("size", 19);
       });
@@ -300,10 +331,22 @@ describe("archiver", () => {
 
       it("should fallback to file stats when applicable", () => {
         expect(entries).toHaveProperty(["tests/fixtures/executable.sh"]);
-        expect(entries["tests/fixtures/executable.sh"]).toHaveProperty("name", "tests/fixtures/executable.sh");
-        expect(entries["tests/fixtures/executable.sh"]).toHaveProperty("mode", 511);
-        expect(entries["tests/fixtures/executable.sh"]).toHaveProperty("crc32", 3957348457);
-        expect(entries["tests/fixtures/executable.sh"]).toHaveProperty("size", 11);
+        expect(entries["tests/fixtures/executable.sh"]).toHaveProperty(
+          "name",
+          "tests/fixtures/executable.sh",
+        );
+        expect(entries["tests/fixtures/executable.sh"]).toHaveProperty(
+          "mode",
+          511,
+        );
+        expect(entries["tests/fixtures/executable.sh"]).toHaveProperty(
+          "crc32",
+          3957348457,
+        );
+        expect(entries["tests/fixtures/executable.sh"]).toHaveProperty(
+          "size",
+          11,
+        );
       });
     });
 
@@ -427,8 +470,12 @@ describe("archiver", () => {
       expect(Array.isArray(actual)).toBe(true);
       expect(entries).toHaveProperty("file-a");
       expect(entries).toHaveProperty("directory-a/symlink-to-file-a");
-      expect(entries).toHaveProperty("directory-b/directory-c/symlink-to-directory-a");
-      expect(entries["directory-b/directory-c/symlink-to-directory-a"]).toHaveProperty("mode", 493);
+      expect(entries).toHaveProperty(
+        "directory-b/directory-c/symlink-to-directory-a",
+      );
+      expect(
+        entries["directory-b/directory-c/symlink-to-directory-a"],
+      ).toHaveProperty("mode", 493);
     });
   });
 });

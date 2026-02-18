@@ -8,4 +8,4 @@ function binaryBuffer(n) {
   return buffer;
 }
 
-module.exports.binaryBuffer = binaryBuffer;
+export { binaryBuffer };

@@ -22,7 +22,6 @@
     "@archiver/zip-stream": "workspace:*"
   },
   "devDependencies": {
-    "mkdirp": "3.0.1",
     "stream-bench": "0.1.2",
     "tar": "6.2.1",
     "yauzl": "3.2.0"

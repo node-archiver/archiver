@@ -5,8 +5,8 @@ import {
   unlinkSync,
   writeFileSync,
   WriteStream,
-} from "fs";
-import { mkdirp } from "mkdirp";
+  mkdirSync,
+} from "node:fs";
 import tar from "tar";
 import yauzl from "yauzl";
 import { TarArchive, ZipArchive } from "../src/index.js";
@@ -19,7 +19,7 @@ const win32 = process.platform === "win32";
 
 describe("plugins", () => {
   beforeAll(() => {
-    mkdirp.sync("tmp");
+    mkdirSync("tmp", { recursive: true });
     if (!win32) {
       chmodSync("tests/fixtures/executable.sh", 511); // 0777
       chmodSync("tests/fixtures/directory/subdir/", 493); // 0755

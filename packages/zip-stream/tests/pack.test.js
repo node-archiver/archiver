@@ -1,5 +1,4 @@
-import { createReadStream, createWriteStream } from "fs";
-import { mkdirp } from "mkdirp";
+import { createReadStream, createWriteStream, mkdirSync } from "node:fs";
 import { Readable } from "node:stream";
 import { binaryBuffer, fileBuffer } from "./helpers/index.js";
 import Packer from "../src/index.js";
@@ -12,7 +11,7 @@ const testDateUnderflow = new Date("Dec 30 1979 23:59:58 GMT");
 
 describe("pack", () => {
   beforeAll(() => {
-    mkdirp.sync("tmp");
+    mkdirSync("tmp", { recursive: true });
   });
 
   describe("#entry", () => {
