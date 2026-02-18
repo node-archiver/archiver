@@ -1,9 +1,5 @@
-import { createReadStream, lstat, readlinkSync, Stats } from "node:fs";
-import {
-  dirname,
-  relative as relativePath,
-  resolve as resolvePath,
-} from "node:path";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { Transform, isReadable, isWritable } from "node:stream";
 
 import readdirGlob from "readdir-glob";
@@ -26,11 +22,7 @@ export class Archiver extends Transform {
   _supportsDirectory = false;
   _supportsSymlink = false;
 
-  /**
-   * @constructor
-   * @param {(CoreOptions|TransformOptions)} options See also {@link ZipOptions} and {@link TarOptions}.
-   */
-  constructor(options) {
+  constructor(options?: CoreOptions | TransformOptions) {
     options = {
       highWaterMark: 1024 * 1024,
       statConcurrency: 4,
@@ -97,7 +89,7 @@ export class Archiver extends Transform {
     data.sourcePath = filepath;
     task.data = data;
     this._entriesCount++;
-    if (data.stats && data.stats instanceof Stats) {
+    if (data.stats && data.stats instanceof fs.Stats) {
       task = this._updateQueueTaskWithStats(task, data.stats);
       if (task) {
         if (data.stats.size) {
@@ -387,7 +379,7 @@ export class Archiver extends Transform {
       callback();
       return;
     }
-    lstat(
+    fs.lstat(
       task.filepath,
       function (err, stats) {
         if (this._state.aborted) {
@@ -448,12 +440,12 @@ export class Archiver extends Transform {
    * @param  {Stats} stats
    * @return {Object}
    */
-  _updateQueueTaskWithStats(task, stats) {
+  _updateQueueTaskWithStats(task, stats: fs.Stats) {
     if (stats.isFile()) {
       task.data.type = "file";
       task.data.sourceType = "stream";
       task.source = new Readable(function () {
-        return createReadStream(task.filepath);
+        return fs.createReadStream(task.filepath);
       });
     } else if (stats.isDirectory() && this._supportsDirectory) {
       task.data.name = trailingSlashIt(task.data.name);
@@ -462,12 +454,12 @@ export class Archiver extends Transform {
       task.data.sourceType = "buffer";
       task.source = Buffer.concat([]);
     } else if (stats.isSymbolicLink() && this._supportsSymlink) {
-      const linkPath = readlinkSync(task.filepath);
-      const dirName = dirname(task.filepath);
+      const linkPath = fs.readlinkSync(task.filepath);
+      const dirName = path.dirname(task.filepath);
       task.data.type = "symlink";
-      task.data.linkname = relativePath(
+      task.data.linkname = path.relative(
         dirName,
-        resolvePath(dirName, linkPath),
+        path.resolve(dirName, linkPath),
       );
       task.data.sourceType = "buffer";
       task.source = Buffer.concat([]);
@@ -789,12 +781,37 @@ export class Archiver extends Transform {
   }
 }
 
+interface CoreOptions {
+  /** Sets the number of workers used to process the internal fs stat queue. */
+  statConcurrency?: number;
+}
+
 /**
  * @typedef {Object} CoreOptions
  * @global
  * @property {Number} [statConcurrency=4] Sets the number of workers used to
  * process the internal fs stat queue.
  */
+
+interface TransformOptions {
+  /** If set to false, then the stream will automatically end the readable side when the writable side ends and vice versa. */
+  allowHalfOpen?: boolean;
+  /** Sets objectMode for readable side of the stream. Has no effect if objectMode is true */
+  readableObjectMode?: boolean;
+  /** Sets objectMode for writable side of the stream. Has no effect if objectMode is true */
+  writableObjectMode?: boolean;
+  /** Sets objectMode for writable side of the stream. Has no effect if objectMode is true */
+  decodeStrings?: boolean;
+  /** If specified, then buffers will be decoded to strings using the specified encoding */
+  encoding?: BufferEncoding;
+  /** The maximum number of bytes to store in the internal buffer before ceasing to read from the underlying resource. */
+  highWaterMark?: number;
+  /**
+   * Whether this stream should behave as a stream of objects.
+   * Meaning that stream.read(n) returns a single value instead of a Buffer of size n.
+   */
+  objectMode?: boolean;
+}
 
 /**
  * @typedef {Object} TransformOptions
@@ -807,8 +824,7 @@ export class Archiver extends Transform {
  * side of the stream. Has no effect if objectMode is true.
  * @property {Boolean} [decodeStrings=true] Whether or not to decode strings
  * into Buffers before passing them to _write(). `Writable`
- * @property {String} [encoding=NULL] If specified, then buffers will be decoded
- * to strings using the specified encoding. `Readable`
+ * @property {String} [encoding=NULL] . `Readable`
  * @property {Number} [highWaterMark=16kb] The maximum number of bytes to store
  * in the internal buffer before ceasing to read from the underlying resource.
  * `Readable` `Writable`
