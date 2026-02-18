@@ -1,5 +1,3 @@
-import { inherits } from "node:util";
-
 import crc32 from "crc-32";
 import { CRC32Stream, DeflateCRC32Stream } from "crc32-stream";
 
@@ -23,9 +21,7 @@ import {
   ZIP64_MAGIC_SHORT,
   ZLIB_BEST_SPEED,
 } from "./constants.js";
-import GeneralPurposeBit from "./general-purpose-bit.js";
 import { getEightBytes, getLongBytes, getShortBytes } from "./util.js";
-import ZipArchiveEntry from "./zip-archive-entry.js";
 
 function _defaults(o) {
   if (typeof o !== "object") {
