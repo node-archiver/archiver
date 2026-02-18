@@ -9,10 +9,14 @@
   },
   "exports": "./src/index.js",
   "scripts": {
+    "build": "tsdown",
     "test": "bun test --reporter dot"
   },
   "dependencies": {
     "compress-commons": "^7.0.0",
     "normalize-path": "^3.0.0"
+  },
+  "devDependencies": {
+    "tsdown": "catalog:"
   }
 }

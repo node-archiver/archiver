@@ -1,8 +1,8 @@
-import { createReadStream, lstat, readlinkSync, Stats } from "fs";
+import { createReadStream, lstat, readlinkSync, Stats } from "node:fs";
 import { isStream } from "is-stream";
 import readdirGlob from "readdir-glob";
 import { Readable } from "./lazystream";
-import { queue } from "async";
+import { queue } from "./async";
 import {
   dirname,
   relative as relativePath,
