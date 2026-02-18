@@ -1,4 +1,7 @@
-import { ZipArchiveOutputStream, ZipArchiveEntry } from "compress-commons";
+import {
+  ZipArchiveOutputStream,
+  ZipArchiveEntry,
+} from "@archiver/compress-commons";
 
 import { dateify, sanitizePath } from "./utils.js";
 

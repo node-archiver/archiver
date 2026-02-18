@@ -13,7 +13,7 @@
     "test": "bun test --reporter dot"
   },
   "dependencies": {
-    "compress-commons": "^7.0.0"
+    "@archiver/compress-commons": "workspace:*"
   },
   "devDependencies": {
     "tsdown": "catalog:"
