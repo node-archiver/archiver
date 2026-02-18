@@ -334,7 +334,7 @@ export default class ZipArchiveEntry extends ArchiveEntry {
    */
   setUnixMode(mode) {
     mode |= this.isDirectory() ? S_IFDIR : S_IFREG;
-    var extattr = 0;
+    let extattr = 0;
     extattr |= (mode << SHORT_SHIFT) | (this.isDirectory() ? S_DOS_D : S_DOS_A);
     this.setExternalAttributes(extattr);
     this.mode = mode & MODE_MASK;

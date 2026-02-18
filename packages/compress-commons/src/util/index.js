@@ -9,7 +9,7 @@ export function normalizeInputSource(source) {
     (isReadable(source) || isWritable(source)) &&
     !source._readableState
   ) {
-    var normalized = new PassThrough();
+    const normalized = new PassThrough();
     source.pipe(normalized);
     return normalized;
   }

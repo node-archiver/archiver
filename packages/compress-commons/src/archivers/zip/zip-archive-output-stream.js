@@ -1,4 +1,4 @@
-import { inherits } from "util";
+import { inherits } from "node:util";
 
 import crc32 from "crc-32";
 import { CRC32Stream, DeflateCRC32Stream } from "crc32-stream";
@@ -77,7 +77,7 @@ export default class ZipArchiveOutputStream extends ArchiveOutputStream {
     if (source.length === 0) {
       ae.setMethod(METHOD_STORED);
     }
-    var method = ae.getMethod();
+    const method = ae.getMethod();
     if (method === METHOD_STORED) {
       ae.setSize(source.length);
       ae.setCompressedSize(source.length);
@@ -102,7 +102,7 @@ export default class ZipArchiveOutputStream extends ArchiveOutputStream {
     ae.getGeneralPurposeBit().useDataDescriptor(true);
     ae.setVersionNeededToExtract(MIN_VERSION_DATA_DESCRIPTOR);
     this._writeLocalFileHeader(ae);
-    var smart = this._smartStream(ae, callback);
+    const smart = this._smartStream(ae, callback);
     source.once("error", function (err) {
       smart.emit("error", err);
       smart.end();
@@ -147,13 +147,13 @@ export default class ZipArchiveOutputStream extends ArchiveOutputStream {
   }
 
   _smartStream(ae, callback) {
-    var deflate = ae.getMethod() === METHOD_DEFLATED;
-    var process = deflate
+    const deflate = ae.getMethod() === METHOD_DEFLATED;
+    const process = deflate
       ? new DeflateCRC32Stream(this.options.zlib)
       : new CRC32Stream();
-    var error = null;
+    let error = null;
     function handleStuff() {
-      var digest = process.digest().readUInt32BE(0);
+      const digest = process.digest().readUInt32BE(0);
       ae.setCrc(digest);
       ae.setSize(process.size());
       ae.setCompressedSize(process.size(true));
@@ -169,9 +169,9 @@ export default class ZipArchiveOutputStream extends ArchiveOutputStream {
   }
 
   _writeCentralDirectoryEnd() {
-    var records = this._entries.length;
-    var size = this._archive.centralLength;
-    var offset = this._archive.centralOffset;
+    let records = this._entries.length;
+    let size = this._archive.centralLength;
+    let offset = this._archive.centralOffset;
     if (this.isZip64()) {
       records = ZIP64_MAGIC_SHORT;
       size = ZIP64_MAGIC;
@@ -189,8 +189,8 @@ export default class ZipArchiveOutputStream extends ArchiveOutputStream {
     this.write(getLongBytes(size));
     this.write(getLongBytes(offset));
     // archive comment
-    var comment = this.getComment();
-    var commentLength = Buffer.byteLength(comment);
+    const comment = this.getComment();
+    const commentLength = Buffer.byteLength(comment);
     this.write(getShortBytes(commentLength));
     this.write(comment);
   }
@@ -228,17 +228,17 @@ export default class ZipArchiveOutputStream extends ArchiveOutputStream {
   }
 
   _writeCentralFileHeader(ae) {
-    var gpb = ae.getGeneralPurposeBit();
-    var method = ae.getMethod();
-    var fileOffset = ae._offsets.file;
-    var size = ae.getSize();
-    var compressedSize = ae.getCompressedSize();
+    const gpb = ae.getGeneralPurposeBit();
+    const method = ae.getMethod();
+    let fileOffset = ae._offsets.file;
+    let size = ae.getSize();
+    let compressedSize = ae.getCompressedSize();
     if (ae.isZip64() || fileOffset > ZIP64_MAGIC) {
       size = ZIP64_MAGIC;
       compressedSize = ZIP64_MAGIC;
       fileOffset = ZIP64_MAGIC;
       ae.setVersionNeededToExtract(MIN_VERSION_ZIP64);
-      var extraBuf = Buffer.concat(
+      const extraBuf = Buffer.concat(
         [
           getShortBytes(ZIP64_EXTRA_ID),
           getShortBytes(24),
@@ -266,9 +266,9 @@ export default class ZipArchiveOutputStream extends ArchiveOutputStream {
     // sizes
     this.write(getLongBytes(compressedSize));
     this.write(getLongBytes(size));
-    var name = ae.getName();
-    var comment = ae.getComment();
-    var extra = ae.getCentralDirectoryExtra();
+    let name = ae.getName();
+    let comment = ae.getComment();
+    const extra = ae.getCentralDirectoryExtra();
     if (gpb.usesUTF8ForNames()) {
       name = Buffer.from(name);
       comment = Buffer.from(comment);
@@ -311,10 +311,10 @@ export default class ZipArchiveOutputStream extends ArchiveOutputStream {
   }
 
   _writeLocalFileHeader(ae) {
-    var gpb = ae.getGeneralPurposeBit();
-    var method = ae.getMethod();
-    var name = ae.getName();
-    var extra = ae.getLocalFileDataExtra();
+    const gpb = ae.getGeneralPurposeBit();
+    const method = ae.getMethod();
+    let name = ae.getName();
+    const extra = ae.getLocalFileDataExtra();
     if (ae.isZip64()) {
       gpb.useDataDescriptor(true);
       ae.setVersionNeededToExtract(MIN_VERSION_ZIP64);

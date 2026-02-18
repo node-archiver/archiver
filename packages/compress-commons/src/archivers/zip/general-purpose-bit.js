@@ -1,11 +1,11 @@
 import { getShortBytes, getShortBytesValue } from "./util.js";
 
-var DATA_DESCRIPTOR_FLAG = 1 << 3;
-var ENCRYPTION_FLAG = 1 << 0;
-var NUMBER_OF_SHANNON_FANO_TREES_FLAG = 1 << 2;
-var SLIDING_DICTIONARY_SIZE_FLAG = 1 << 1;
-var STRONG_ENCRYPTION_FLAG = 1 << 6;
-var UFT8_NAMES_FLAG = 1 << 11;
+const DATA_DESCRIPTOR_FLAG = 1 << 3;
+const ENCRYPTION_FLAG = 1 << 0;
+const NUMBER_OF_SHANNON_FANO_TREES_FLAG = 1 << 2;
+const SLIDING_DICTIONARY_SIZE_FLAG = 1 << 1;
+const STRONG_ENCRYPTION_FLAG = 1 << 6;
+const UFT8_NAMES_FLAG = 1 << 11;
 
 export default class GeneralPurposeBit {
   constructor() {
@@ -26,8 +26,8 @@ export default class GeneralPurposeBit {
     );
   }
   static parse(buf, offset) {
-    var flag = getShortBytesValue(buf, offset);
-    var gbp = new GeneralPurposeBit();
+    const flag = getShortBytesValue(buf, offset);
+    const gbp = new GeneralPurposeBit();
     gbp.useDataDescriptor((flag & DATA_DESCRIPTOR_FLAG) !== 0);
     gbp.useUTF8ForNames((flag & UFT8_NAMES_FLAG) !== 0);
     gbp.useStrongEncryption((flag & STRONG_ENCRYPTION_FLAG) !== 0);
