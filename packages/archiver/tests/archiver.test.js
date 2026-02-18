@@ -8,8 +8,8 @@ import {
   unlinkSync,
   writeFileSync,
 } from "fs";
-import { PassThrough } from "readable-stream";
-import { Readable } from "readable-stream";
+import { PassThrough } from "node:stream";
+import { Readable } from "node:stream";
 import { mkdirp } from "mkdirp";
 import {
   binaryBuffer,

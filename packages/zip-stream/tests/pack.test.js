@@ -1,6 +1,6 @@
 import { createReadStream, createWriteStream } from "fs";
 import { mkdirp } from "mkdirp";
-import { Readable } from "readable-stream";
+import { Readable } from "node:stream";
 import { binaryBuffer, fileBuffer } from "./helpers/index.js";
 import Packer from "../src/index.js";
 

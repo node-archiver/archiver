@@ -1,5 +1,5 @@
 import normalizePath from "normalize-path";
-import { PassThrough } from "readable-stream";
+import { PassThrough } from "node:stream";
 import { isStream } from "is-stream";
 
 export function collectStream(source, callback) {

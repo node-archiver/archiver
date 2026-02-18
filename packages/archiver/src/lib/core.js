@@ -9,7 +9,7 @@ import {
   resolve as resolvePath,
 } from "path";
 import { ArchiverError } from "./error.js";
-import { Transform } from "readable-stream";
+import { Transform } from "node:stream";
 import {
   dateify,
   normalizeInputSource,
