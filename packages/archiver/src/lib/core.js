@@ -4,9 +4,8 @@ import {
   relative as relativePath,
   resolve as resolvePath,
 } from "node:path";
-import { Transform } from "node:stream";
+import { Transform, isReadable, isWritable } from "node:stream";
 
-import { isStream } from "is-stream";
 import readdirGlob from "readdir-glob";
 
 import { queue } from "./async";
@@ -544,7 +543,7 @@ export default class Archiver extends Transform {
     source = normalizeInputSource(source);
     if (Buffer.isBuffer(source)) {
       data.sourceType = "buffer";
-    } else if (isStream(source)) {
+    } else if (isReadable(source) || isWritable(source)) {
       data.sourceType = "stream";
     } else {
       this.emit(

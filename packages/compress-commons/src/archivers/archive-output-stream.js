@@ -1,6 +1,4 @@
-import { Transform } from "node:stream";
-
-import { isStream } from "is-stream";
+import { Transform, isReadable, isWritable } from "node:stream";
 
 import { normalizeInputSource } from "../util/index.js";
 import ArchiveEntry from "./archive-entry.js";
@@ -66,7 +64,7 @@ export default class ArchiveOutputStream extends Transform {
     source = normalizeInputSource(source);
     if (Buffer.isBuffer(source)) {
       this._appendBuffer(ae, source, callback);
-    } else if (isStream(source)) {
+    } else if (isReadable(source) || isWritable(source)) {
       this._appendStream(ae, source, callback);
     } else {
       this._archive.processing = false;

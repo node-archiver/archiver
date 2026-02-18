@@ -4,6 +4,10 @@
   "description": "a library that defines a common interface for working with archive formats within node",
   "license": "MIT",
   "type": "module",
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "build": "tsdown",
     "test": "bun test --reporter dot"
@@ -11,7 +15,6 @@
   "dependencies": {
     "crc-32": "^1.2.0",
     "crc32-stream": "^7.0.1",
-    "is-stream": "^4.0.0",
     "normalize-path": "^3.0.0"
   },
   "devDependencies": {
@@ -19,9 +22,5 @@
   },
   "engines": {
     "node": ">=22"
-  },
-  "exports": {
-    ".": "./dist/index.mjs",
-    "./package.json": "./package.json"
   }
 }

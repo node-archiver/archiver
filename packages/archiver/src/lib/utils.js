@@ -1,6 +1,4 @@
-import { PassThrough } from "node:stream";
-
-import { isStream } from "is-stream";
+import { PassThrough, isReadable, isWritable } from "node:stream";
 
 export function collectStream(source, callback) {
   const collection = [];
@@ -47,7 +45,7 @@ export function normalizeInputSource(source) {
     return Buffer.alloc(0);
   } else if (typeof source === "string") {
     return Buffer.from(source);
-  } else if (isStream(source)) {
+  } else if (isReadable(source) || isWritable(source)) {
     // Always pipe through a PassThrough stream to guarantee pausing the stream if it's already flowing,
     // since it will only be processed in a (distant) future iteration of the event loop, and will lose
     // data if already flowing now.
