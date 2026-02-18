@@ -1,39 +1,30 @@
 import zlib from "node:zlib";
 
-import engine from "tar-stream";
+import TarStream from "tar-stream";
 
 import { collectStream } from "../utils.js";
 
 export default class Tar {
   /**
-   * @constructor
    * @param {TarOptions} options
    */
   constructor(options) {
-    options = this.options = {
-      gzip: false,
-      ...options,
-    };
+    options = this.options = { gzip: false, ...options };
     if (typeof options.gzipOptions !== "object") {
       options.gzipOptions = {};
     }
-    this.engine = engine.pack(options);
+    this.engine = TarStream.pack(options);
     this.compressor = false;
     if (options.gzip) {
       this.compressor = zlib.createGzip(options.gzipOptions);
       this.compressor.on("error", this._onCompressorError.bind(this));
     }
   }
-  /**
-   * [_onCompressorError description]
-   *
-   * @private
-   * @param  {Error} err
-   * @return void
-   */
-  _onCompressorError(err) {
+
+  private _onCompressorError(err: Error): void {
     this.engine.emit("error", err);
   }
+
   /**
    * [append description]
    *
@@ -74,22 +65,20 @@ export default class Tar {
   finalize() {
     this.engine.finalize();
   }
+
   /**
-   * [on description]
-   *
    * @return this.engine
    */
   on() {
     return this.engine.on.apply(this.engine, arguments);
   }
+
   /**
-   * [pipe description]
-   *
    * @param  {String} destination
    * @param  {Object} options
    * @return this.engine
    */
-  pipe(destination, options) {
+  pipe(destination: string, options) {
     if (this.compressor) {
       return this.engine.pipe
         .apply(this.engine, [this.compressor])
@@ -98,9 +87,8 @@ export default class Tar {
       return this.engine.pipe.apply(this.engine, arguments);
     }
   }
+
   /**
-   * [unpipe description]
-   *
    * @return this.engine
    */
   unpipe() {

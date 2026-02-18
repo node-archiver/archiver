@@ -1,4 +1,4 @@
-import engine from "@archiver/zip-stream";
+import ZipStream from "@archiver/zip-stream";
 
 export default class Zip {
   /**
@@ -19,7 +19,7 @@ export default class Zip {
       store: false,
       ...options,
     };
-    this.engine = new engine(options);
+    this.engine = new ZipStream(options);
   }
   /**
    * @param  {(Buffer|Stream)} source
