@@ -1,9 +1,24 @@
 import { Transform, isReadable, isWritable } from "node:stream";
 
-import { normalizeInputSource } from "../util/index.js";
-import { ArchiveEntry } from "./archive-entry.js";
+import { ArchiveEntry } from "./archive-entry";
 
-export default class ArchiveOutputStream extends Transform {
+function normalizeInputSource(source) {
+  if (source === null) {
+    return Buffer.alloc(0);
+  } else if (typeof source === "string") {
+    return Buffer.from(source);
+  } else if (
+    (isReadable(source) || isWritable(source)) &&
+    !source._readableState
+  ) {
+    const normalized = new PassThrough();
+    source.pipe(normalized);
+    return normalized;
+  }
+  return source;
+}
+
+class ArchiveOutputStream extends Transform {
   constructor(options) {
     super(options);
 
@@ -95,3 +110,4 @@ export default class ArchiveOutputStream extends Transform {
     return super.write(chunk, cb);
   }
 }
+export { ArchiveOutputStream };

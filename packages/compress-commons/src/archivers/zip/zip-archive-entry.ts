@@ -13,11 +13,11 @@ import {
   SHORT_SHIFT,
   ZIP64_MAGIC,
 } from "./constants.js";
-import GeneralPurposeBit from "./general-purpose-bit.js";
-import * as UnixStat from "./unix-stat.js";
-import { dateToDos, dosToDate, normalizePath } from "./util.js";
+import { GeneralPurposeBit } from "./general-purpose-bit";
+import * as UnixStat from "./unix-stat";
+import { dateToDos, dosToDate, normalizePath } from "./util";
 
-export default class ZipArchiveEntry extends ArchiveEntry {
+class ZipArchiveEntry extends ArchiveEntry {
   constructor(name) {
     super();
     this.platform = PLATFORM_FAT;
@@ -376,3 +376,5 @@ export default class ZipArchiveEntry extends ArchiveEntry {
     return this.csize > ZIP64_MAGIC || this.size > ZIP64_MAGIC;
   }
 }
+
+export { ZipArchiveEntry };
