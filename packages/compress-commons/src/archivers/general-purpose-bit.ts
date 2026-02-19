@@ -1,13 +1,20 @@
 import { getShortBytes, getShortBytesValue } from "../util";
 
-const DATA_DESCRIPTOR_FLAG = 1 << 3;
 const ENCRYPTION_FLAG = 1 << 0;
-const NUMBER_OF_SHANNON_FANO_TREES_FLAG = 1 << 2;
 const SLIDING_DICTIONARY_SIZE_FLAG = 1 << 1;
+const NUMBER_OF_SHANNON_FANO_TREES_FLAG = 1 << 2;
+const DATA_DESCRIPTOR_FLAG = 1 << 3;
 const STRONG_ENCRYPTION_FLAG = 1 << 6;
 const UFT8_NAMES_FLAG = 1 << 11;
 
 class GeneralPurposeBit {
+  descriptor: boolean;
+  encryption: boolean;
+  utf8: boolean;
+  numberOfShannonFanoTrees: number;
+  strongEncryption: boolean;
+  slidingDictionarySize: number;
+
   constructor() {
     this.descriptor = false;
     this.encryption = false;
@@ -17,7 +24,7 @@ class GeneralPurposeBit {
     this.slidingDictionarySize = 0;
   }
 
-  encode() {
+  encode(): Buffer<ArrayBuffer> {
     return getShortBytes(
       (this.descriptor ? DATA_DESCRIPTOR_FLAG : 0) |
         (this.utf8 ? UFT8_NAMES_FLAG : 0) |
@@ -26,7 +33,10 @@ class GeneralPurposeBit {
     );
   }
 
-  static parse(buf, offset) {
+  static parse(
+    buf: Buffer<ArrayBufferLike>,
+    offset: number,
+  ): GeneralPurposeBit {
     const flag = getShortBytesValue(buf, offset);
     const gbp = new GeneralPurposeBit();
     gbp.useDataDescriptor((flag & DATA_DESCRIPTOR_FLAG) !== 0);
@@ -42,51 +52,51 @@ class GeneralPurposeBit {
     return gbp;
   }
 
-  setNumberOfShannonFanoTrees(n) {
+  setNumberOfShannonFanoTrees(n: number): void {
     this.numberOfShannonFanoTrees = n;
   }
 
-  getNumberOfShannonFanoTrees() {
+  getNumberOfShannonFanoTrees(): number {
     return this.numberOfShannonFanoTrees;
   }
 
-  setSlidingDictionarySize(n) {
+  setSlidingDictionarySize(n: number): void {
     this.slidingDictionarySize = n;
   }
 
-  getSlidingDictionarySize() {
+  getSlidingDictionarySize(): number {
     return this.slidingDictionarySize;
   }
 
-  useDataDescriptor(b) {
+  useDataDescriptor(b: boolean): void {
     this.descriptor = b;
   }
 
-  usesDataDescriptor() {
+  usesDataDescriptor(): boolean {
     return this.descriptor;
   }
 
-  useEncryption(b) {
+  useEncryption(b: boolean): void {
     this.encryption = b;
   }
 
-  usesEncryption() {
+  usesEncryption(): boolean {
     return this.encryption;
   }
 
-  useStrongEncryption(b) {
+  useStrongEncryption(b: boolean): void {
     this.strongEncryption = b;
   }
 
-  usesStrongEncryption() {
+  usesStrongEncryption(): boolean {
     return this.strongEncryption;
   }
 
-  useUTF8ForNames(b) {
+  useUTF8ForNames(b: boolean): void {
     this.utf8 = b;
   }
 
-  usesUTF8ForNames() {
+  usesUTF8ForNames(): boolean {
     return this.utf8;
   }
 }
