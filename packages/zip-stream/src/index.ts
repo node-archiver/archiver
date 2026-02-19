@@ -35,7 +35,9 @@ interface ZipOptions {
 }
 
 class ZipStream extends ZipArchiveOutputStream {
-  constructor(options: Partial<ZipOptions> = {}) {
+  constructor(options?: Partial<ZipOptions>) {
+    options ??= {};
+
     options.zlib = options.zlib || {};
 
     if (typeof options.level === "number" && options.level >= 0) {

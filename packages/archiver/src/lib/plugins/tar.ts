@@ -1,5 +1,5 @@
 import type { Stream } from "node:stream";
-import zlib from "node:zlib";
+import { type Gzip, type ZlibOptions, createGzip } from "node:zlib";
 
 import * as TarStream from "@archiver/tar-stream";
 
@@ -7,21 +7,23 @@ import { collectStream } from "../utils";
 
 type Pack = ReturnType<typeof TarStream.pack>;
 
-export interface TarOptions {}
+interface TarOptions {
+  gzip: boolean;
+  gzipOptions?: ZlibOptions;
+}
 
-export default class Tar {
+class Tar {
   engine: Pack;
-  compressor: zlib.Gzip | null;
+  compressor: Gzip | null;
+  options: TarOptions;
 
-  constructor(optionsParam: TarOptions) {
-    const options = (this.options = { gzip: false, ...optionsParam });
-    if (typeof options.gzipOptions !== "object") {
-      options.gzipOptions = {};
-    }
-    this.engine = TarStream.pack(options);
+  constructor(options?: Partial<TarOptions>) {
+    const normalizedOptions = (this.options = { gzip: false, ...options });
+
+    this.engine = TarStream.pack(normalizedOptions);
     this.compressor = null;
-    if (options.gzip) {
-      this.compressor = zlib.createGzip(options.gzipOptions);
+    if (normalizedOptions.gzip) {
+      this.compressor = createGzip(normalizedOptions.gzipOptions);
       this.compressor.on("error", this._onCompressorError.bind(this));
     }
   }
@@ -51,7 +53,7 @@ export default class Tar {
       });
       source.pipe(entry);
     } else if (data.sourceType === "stream") {
-      collectStream(source, append);
+      collectStream(source as Stream, append);
     }
   }
   /**
@@ -91,3 +93,5 @@ export default class Tar {
     }
   }
 }
+
+export { type TarOptions, Tar };

@@ -1,6 +1,6 @@
 import { Archiver, type ArchiverOptions } from "./lib/core";
-import Json from "./lib/plugins/json";
-import Tar from "./lib/plugins/tar";
+import { Json } from "./lib/plugins/json";
+import { Tar, type TarOptions } from "./lib/plugins/tar";
 import { Zip, type ZipOptions } from "./lib/plugins/zip";
 
 interface ZipArchiveOptions
@@ -16,7 +16,7 @@ class ZipArchive extends Archiver {
   }
 }
 
-interface TarArchiveOptions extends ArchiverOptions {}
+interface TarArchiveOptions extends ArchiverOptions, TarOptions {}
 
 class TarArchive extends Archiver {
   constructor(options?: TarArchiveOptions) {

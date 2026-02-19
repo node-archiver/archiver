@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { WriteStream } from "node:fs";
 
-export function binaryBuffer(n) {
+function binaryBuffer(n) {
   const buffer = Buffer.alloc(n);
   for (let i = 0; i < n; i++) {
     buffer.writeUInt8(i & 255, i);
@@ -9,7 +9,7 @@ export function binaryBuffer(n) {
   return buffer;
 }
 
-export class WriteHashStream extends WriteStream {
+class WriteHashStream extends WriteStream {
   constructor(path, options) {
     super(path, options);
     this.hash = crypto.createHash("sha1");
@@ -26,3 +26,5 @@ export class WriteHashStream extends WriteStream {
     return super.write(chunk);
   }
 }
+
+export { WriteHashStream, binaryBuffer };

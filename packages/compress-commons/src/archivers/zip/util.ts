@@ -24,7 +24,7 @@ function dateToDos(d, forceLocalTime) {
   );
 }
 
-function dosToDate(dos) {
+function dosToDate(dos: number): Date {
   return new Date(
     ((dos >> 25) & 0x7f) + 1980,
     ((dos >> 21) & 0x0f) - 1,

@@ -18,6 +18,10 @@ import * as UnixStat from "./unix-stat";
 import { dateToDos, dosToDate, normalizePath } from "./util";
 
 class ZipArchiveEntry extends ArchiveEntry {
+  minver: number;
+  comment: null;
+  time: number;
+
   constructor(name: string) {
     super();
     this.platform = PLATFORM_FAT;
@@ -146,10 +150,8 @@ class ZipArchiveEntry extends ArchiveEntry {
 
   /**
    * Returns a date object representing the last modified date of the entry.
-   *
-   * @returns {number|Date}
    */
-  getTime() {
+  getTime(): -1 | Date {
     return this.time !== -1 ? dosToDate(this.time) : -1;
   }
 
@@ -284,6 +286,7 @@ class ZipArchiveEntry extends ArchiveEntry {
   setPlatform(platform) {
     this.platform = platform;
   }
+
   /**
    * Sets the size of the entry.
    *
@@ -295,18 +298,17 @@ class ZipArchiveEntry extends ArchiveEntry {
     }
     this.size = size;
   }
+
   /**
    * Sets the time of the entry.
-   *
-   * @param time
-   * @param forceLocalTime
    */
-  setTime(time, forceLocalTime) {
+  setTime(time: Date, forceLocalTime) {
     if (!(time instanceof Date)) {
       throw new Error("invalid entry time");
     }
     this.time = dateToDos(time, forceLocalTime);
   }
+
   /**
    * Sets the UNIX file permissions for the entry.
    *
@@ -320,30 +322,27 @@ class ZipArchiveEntry extends ArchiveEntry {
     this.mode = mode & MODE_MASK;
     this.platform = PLATFORM_UNIX;
   }
+
   /**
    * Sets the version of ZIP needed to extract this entry.
-   *
-   * @param minver
    */
-  setVersionNeededToExtract(minver) {
+  setVersionNeededToExtract(minver): void {
     this.minver = minver;
   }
+
   /**
    * Returns true if this entry represents a directory.
-   *
-   * @returns {boolean}
    */
-  isDirectory() {
+  isDirectory(): boolean {
     return this.getName().slice(-1) === "/";
   }
+
   /**
    * Returns true if this entry represents a unix symlink,
    * in which case the entry's content contains the target path
    * for the symlink.
-   *
-   * @returns {boolean}
    */
-  isUnixSymlink() {
+  isUnixSymlink(): boolean {
     return (
       (this.getUnixMode() & UnixStat.FILE_TYPE_FLAG) === UnixStat.LINK_FLAG
     );
@@ -351,10 +350,8 @@ class ZipArchiveEntry extends ArchiveEntry {
 
   /**
    * Returns true if this entry is using the ZIP64 extension of ZIP.
-   *
-   * @returns {boolean}
    */
-  isZip64() {
+  isZip64(): boolean {
     return this.csize > ZIP64_MAGIC || this.size > ZIP64_MAGIC;
   }
 }

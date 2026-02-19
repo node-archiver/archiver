@@ -1,4 +1,10 @@
-import { PassThrough, isReadable, isWritable, type Stream } from "node:stream";
+import {
+  PassThrough,
+  isReadable,
+  // @ts-expect-error
+  isWritable,
+  type Stream,
+} from "node:stream";
 
 export function collectStream(
   source: Stream,
