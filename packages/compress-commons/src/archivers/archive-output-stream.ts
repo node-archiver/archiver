@@ -56,7 +56,7 @@ class ArchiveOutputStream extends Transform {
     // scaffold only
   }
 
-  _emitErrorCallback(err) {
+  _emitErrorCallback(err: Error): void {
     if (err) {
       this.emit("error", err);
     }
@@ -74,7 +74,7 @@ class ArchiveOutputStream extends Transform {
     callback(null, chunk);
   }
 
-  entry(ae: ArchiveEntry, source, callback?): this {
+  entry(ae: ArchiveEntry, source, callback?: (error: Error) => void): this {
     source = source || null;
 
     if (typeof callback !== "function") {
@@ -123,7 +123,8 @@ class ArchiveOutputStream extends Transform {
     return this.offset;
   }
 
-  write(chunk, callback?: (error: Error) => void) {
+  // @ts-expect-error
+  write(chunk: string | Buffer, callback?: (error: Error) => void): boolean {
     if (chunk) {
       this.offset += chunk.length;
     }

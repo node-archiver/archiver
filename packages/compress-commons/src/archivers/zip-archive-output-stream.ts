@@ -145,7 +145,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     source.pipe(smart);
   }
 
-  _finish() {
+  _finish(): void {
     this._archive.centralOffset = this.offset;
     this._entries.forEach(
       function (ae) {
@@ -163,7 +163,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     this.end();
   }
 
-  _normalizeEntry(ae) {
+  _normalizeEntry(ae: ZipArchiveEntry): void {
     if (ae.getMethod() === -1) {
       ae.setMethod(METHOD_DEFLATED);
     }
@@ -181,14 +181,18 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     };
   }
 
-  _smartStream(ae, callback) {
+  _smartStream(
+    ae: ZipArchiveEntry,
+    callback,
+  ): CRC32Stream | DeflateCRC32Stream {
     const deflate = ae.getMethod() === METHOD_DEFLATED;
     const process = deflate
       ? new DeflateCRC32Stream(this.options.zlib)
       : new CRC32Stream();
-    let error = null;
+
+    let error: Error | null = null;
     function handleStuff() {
-      const digest = process.digest().readUInt32BE(0);
+      const digest = process.digest<Buffer>().readUInt32BE(0);
       ae.setCrc(digest);
       ae.setSize(process.size());
       ae.setCompressedSize(process.size(true));
@@ -196,7 +200,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
       callback(error, ae);
     }
     process.once("end", handleStuff.bind(this));
-    process.once("error", function (err) {
+    process.once("error", (err) => {
       error = err;
     });
     process.pipe(this, { end: false });
