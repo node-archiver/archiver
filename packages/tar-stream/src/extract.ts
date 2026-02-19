@@ -1,10 +1,9 @@
-import * as b4a from "b4a";
 import FIFO from "fast-fifo";
 import { Writable, Readable, getStreamError } from "streamx";
 
 import * as headers from "./headers";
 
-const EMPTY = b4a.alloc(0);
+const EMPTY = Buffer.alloc(0);
 
 class BufferList {
   constructor() {
@@ -39,7 +38,7 @@ class BufferList {
       chunks.push(chunk);
     }
 
-    return b4a.concat(chunks);
+    return Buffer.concat(chunks);
   }
 
   _next(size) {
