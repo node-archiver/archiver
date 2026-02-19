@@ -11,8 +11,8 @@ export default class Tar {
   engine: Pack;
   compressor: zlib.Gzip | null;
 
-  constructor(options) {
-    options = this.options = { gzip: false, ...options };
+  constructor(optionsParam) {
+    const options = (this.options = { gzip: false, ...optionsParam });
     if (typeof options.gzipOptions !== "object") {
       options.gzipOptions = {};
     }

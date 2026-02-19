@@ -8,9 +8,8 @@ import { crc32 } from "node:zlib";
 import { collectStream } from "../utils.js";
 
 export default class Json extends Transform {
-  /**
-   * @constructor
-   */
+  files: unknown[];
+
   constructor(options: TransformOptions) {
     super({ ...options });
     this.files = [];

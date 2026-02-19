@@ -24,6 +24,85 @@ const { ReaddirGlob } = readdirGlob;
 
 const win32 = process.platform === "win32";
 
+interface CoreOptions {
+  /** Sets the number of workers used to process the internal fs stat queue. */
+  statConcurrency: number;
+}
+
+interface TransformOptions {
+  /** If set to false, then the stream will automatically end the readable side when the writable side ends and vice versa. */
+  allowHalfOpen?: boolean;
+  /** Sets objectMode for readable side of the stream. Has no effect if objectMode is true */
+  readableObjectMode?: boolean;
+  /** Sets objectMode for writable side of the stream. Has no effect if objectMode is true */
+  writableObjectMode?: boolean;
+  /** Sets objectMode for writable side of the stream. Has no effect if objectMode is true */
+  decodeStrings?: boolean;
+  /** If specified, then buffers will be decoded to strings using the specified encoding */
+  encoding?: BufferEncoding;
+  /** The maximum number of bytes to store in the internal buffer before ceasing to read from the underlying resource. */
+  highWaterMark?: number;
+  /**
+   * Whether this stream should behave as a stream of objects.
+   * Meaning that stream.read(n) returns a single value instead of a Buffer of size n.
+   */
+  objectMode?: boolean;
+}
+
+interface EntryData {
+  /** Sets the entry name including internal path. */
+  name: string;
+  /** Sets the entry date. */
+  date?: Date | string;
+  /** Sets the entry permissions. */
+  mode?: number;
+  /**
+   * Sets a path prefix for the entry name.
+   * Useful when working with methods like `directory` or `glob`.
+   **/
+  prefix?: string;
+  /** Sets the fs stat data for this entry allowing for reduction of fs stat calls when stat data is already known. */
+  stats?: fs.Stats;
+}
+
+/**
+ * @typedef {Object} EntryData
+ * @property {String} name Sets the entry name including internal path.
+ * @property {(String|Date)} [date=NOW()] Sets the entry date.
+ * @property {Number} [mode=D:0755/F:0644] Sets the entry permissions.
+ * @property {String} [prefix] Sets a path prefix for the entry name. Useful
+ * when working with methods like `directory` or `glob`.
+ * @property {fs.Stats} [stats] Sets the fs stat data for this entry allowing
+ * for reduction of fs stat calls when stat data is already known.
+ */
+
+interface ErrorData {
+  /** The message of the error. */
+  message: string;
+  /** The error code assigned to this error. */
+  code: string;
+  /** Additional data provided for reporting or debugging (where available). */
+  data: string;
+}
+
+/**
+ * @typedef {Object} ErrorData
+ * @property {String} message The message of the error.
+ * @property {String} code The error code assigned to this error.
+ * @property {String} data Additional data provided for reporting or debugging (where available).
+ */
+
+interface ProgressData {
+  entries: {
+    total: number;
+    processed: number;
+  };
+  fs: {
+    totalBytes: number;
+    processedBytes: number;
+  };
+}
+
 type ArchiverOptions = CoreOptions & TransformOptions;
 
 export class Archiver extends Transform {
@@ -32,7 +111,10 @@ export class Archiver extends Transform {
 
   options: ArchiverOptions;
 
+  _module: Archiver;
+
   private _pointer: number;
+  private _pending: number;
 
   constructor(optionsParam?: Partial<CoreOptions> & TransformOptions) {
     const options = {
@@ -166,6 +248,7 @@ export class Archiver extends Transform {
       callback();
       return;
     }
+
     this._module.append(source, data, (err) => {
       this._task = null;
       if (this._state.aborted) {
@@ -177,19 +260,13 @@ export class Archiver extends Transform {
         setImmediate(callback);
         return;
       }
-      /**
-       * Fires when the entry's input has been processed and appended to the archive.
-       *
-       * @type {EntryData}
-       */
+
       this.emit("entry", data);
       this._entriesProcessedCount++;
       if (data.stats && data.stats.size) {
         this._fsEntriesProcessedBytes += data.stats.size;
       }
-      /**
-       * @type {ProgressData}
-       */
+
       this.emit("progress", {
         entries: {
           total: this._entriesCount,
@@ -199,7 +276,7 @@ export class Archiver extends Transform {
           totalBytes: this._fsEntriesTotalBytes,
           processedBytes: this._fsEntriesProcessedBytes,
         },
-      });
+      } satisfies ProgressData);
       setImmediate(callback);
     });
   }
@@ -457,6 +534,7 @@ export class Archiver extends Transform {
     task.data = this._normalizeEntryData(task.data, stats);
     return task;
   }
+
   /**
    * Aborts the archiving process, taking a best-effort approach, by:
    *
@@ -474,16 +552,18 @@ export class Archiver extends Transform {
     this._abort();
     return this;
   }
+
   /**
    * Appends an input source (text string, buffer, or stream) to the instance.
    *
    * When the instance has received, processed, and emitted the input, the `entry`
    * event is fired.
-   *
-   * @param  {(Buffer|Stream|String)} source The input source.
-   * @param  {EntryData} data See also {@link ZipEntryData} and {@link TarEntryData}.
    */
-  append(source: Buffer | Stream | string, data: EntryData): this {
+  append(
+    source: Buffer | Stream | string,
+    data: EntryData,
+    _callback?: unknown,
+  ): this {
     if (this._state.finalize || this._state.aborted) {
       this.emit("error", new ArchiverError("QUEUECLOSED"));
       return this;
@@ -742,81 +822,3 @@ export class Archiver extends Transform {
     return this._pointer;
   }
 }
-
-interface CoreOptions {
-  /** Sets the number of workers used to process the internal fs stat queue. */
-  statConcurrency: number;
-}
-
-interface TransformOptions {
-  /** If set to false, then the stream will automatically end the readable side when the writable side ends and vice versa. */
-  allowHalfOpen?: boolean;
-  /** Sets objectMode for readable side of the stream. Has no effect if objectMode is true */
-  readableObjectMode?: boolean;
-  /** Sets objectMode for writable side of the stream. Has no effect if objectMode is true */
-  writableObjectMode?: boolean;
-  /** Sets objectMode for writable side of the stream. Has no effect if objectMode is true */
-  decodeStrings?: boolean;
-  /** If specified, then buffers will be decoded to strings using the specified encoding */
-  encoding?: BufferEncoding;
-  /** The maximum number of bytes to store in the internal buffer before ceasing to read from the underlying resource. */
-  highWaterMark?: number;
-  /**
-   * Whether this stream should behave as a stream of objects.
-   * Meaning that stream.read(n) returns a single value instead of a Buffer of size n.
-   */
-  objectMode?: boolean;
-}
-
-interface EntryData {
-  /** Sets the entry name including internal path. */
-  name: string;
-  /** Sets the entry date. */
-  date?: Date | string;
-  /** Sets the entry permissions. */
-  mode?: number;
-  /**
-   * Sets a path prefix for the entry name.
-   * Useful when working with methods like `directory` or `glob`.
-   **/
-  prefix?: string;
-  /** Sets the fs stat data for this entry allowing for reduction of fs stat calls when stat data is already known. */
-  stats?: fs.Stats;
-}
-
-/**
- * @typedef {Object} EntryData
- * @property {String} name Sets the entry name including internal path.
- * @property {(String|Date)} [date=NOW()] Sets the entry date.
- * @property {Number} [mode=D:0755/F:0644] Sets the entry permissions.
- * @property {String} [prefix] Sets a path prefix for the entry name. Useful
- * when working with methods like `directory` or `glob`.
- * @property {fs.Stats} [stats] Sets the fs stat data for this entry allowing
- * for reduction of fs stat calls when stat data is already known.
- */
-
-interface ErrorData {
-  /** The message of the error. */
-  message: string;
-  /** The error code assigned to this error. */
-  code: string;
-  /** Additional data provided for reporting or debugging (where available). */
-  data: string;
-}
-
-/**
- * @typedef {Object} ErrorData
- * @property {String} message The message of the error.
- * @property {String} code The error code assigned to this error.
- * @property {String} data Additional data provided for reporting or debugging (where available).
- */
-
-/**
- * @typedef {Object} ProgressData
- * @property {Object} entries
- * @property {Number} entries.total Number of entries that have been appended.
- * @property {Number} entries.processed Number of entries that have been processed.
- * @property {Object} fs
- * @property {Number} fs.totalBytes Number of bytes that have been appended. Calculated asynchronously and might not be accurate: it growth while entries are added. (based on fs.Stats)
- * @property {Number} fs.processedBytes Number of bytes that have been processed. (based on fs.Stats)
- */
