@@ -18,7 +18,7 @@ describe("ZipArchiveOutputStream", () => {
       const archive = new ZipArchiveOutputStream();
       const testStream = new WriteHashStream("tmp/zip-buffer.zip");
 
-      const promise = new Promise((resolve) => {
+      const promise = new Promise<void>((resolve) => {
         testStream.on("close", resolve);
       });
 
@@ -32,7 +32,7 @@ describe("ZipArchiveOutputStream", () => {
       const archive = new ZipArchiveOutputStream();
       const testStream = new WriteHashStream("tmp/zip-stream.zip");
 
-      const promise = new Promise((resolve) => {
+      const promise = new Promise<void>((resolve) => {
         testStream.on("close", resolve);
       });
 

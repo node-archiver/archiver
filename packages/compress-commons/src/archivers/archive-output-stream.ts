@@ -70,12 +70,13 @@ class ArchiveOutputStream extends Transform {
     // scaffold only
   }
 
-  _transform(chunk, encoding, callback) {
+  _transform(chunk, encoding, callback): void {
     callback(null, chunk);
   }
 
-  entry(ae: ArchiveEntry, source, callback?) {
+  entry(ae: ArchiveEntry, source, callback?): this {
     source = source || null;
+
     if (typeof callback !== "function") {
       callback = this._emitErrorCallback.bind(this);
     }
@@ -91,6 +92,7 @@ class ArchiveOutputStream extends Transform {
       callback(new Error("already processing an entry"));
       return;
     }
+
     this._archive.processing = true;
     this._normalizeEntry(ae);
     this._entry = ae;
@@ -109,7 +111,7 @@ class ArchiveOutputStream extends Transform {
     return this;
   }
 
-  finish() {
+  finish(): void {
     if (this._archive.processing) {
       this._archive.finish = true;
       return;
@@ -117,15 +119,15 @@ class ArchiveOutputStream extends Transform {
     this._finish();
   }
 
-  getBytesWritten() {
+  getBytesWritten(): number {
     return this.offset;
   }
 
-  write(chunk, cb?) {
+  write(chunk, callback?: (error: Error) => void) {
     if (chunk) {
       this.offset += chunk.length;
     }
-    return super.write(chunk, cb);
+    return super.write(chunk, callback);
   }
 }
 

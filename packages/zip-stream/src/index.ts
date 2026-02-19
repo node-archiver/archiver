@@ -7,9 +7,11 @@ import {
 
 import { dateify, sanitizePath } from "./utils.js";
 
-interface ZlibOptions {}
+interface ZlibOptions {
+  level?: number;
+}
 
-interface ZipOptions {
+interface ZipOptions extends ZlibOptions {
   /**
    * Sets the zip archive comment.
    * @default ""

@@ -50,7 +50,7 @@ interface ZipOptions {
    * @default false
    */
   store: boolean;
-  zlib?: ZlibOptions;
+  zlib?: Partial<ZlibOptions>;
 }
 
 function normalizeOptions(o?: Partial<ZipOptions>) {
@@ -203,7 +203,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     return process;
   }
 
-  _writeCentralDirectoryEnd() {
+  _writeCentralDirectoryEnd(): void {
     let records = this._entries.length;
     let size = this._archive.centralLength;
     let offset = this._archive.centralOffset;
@@ -230,7 +230,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     this.write(comment);
   }
 
-  _writeCentralDirectoryZip64() {
+  _writeCentralDirectoryZip64(): void {
     // signature
     this.write(getLongBytes(SIG_ZIP64_EOCD));
     // size of the ZIP64 EOCD record
@@ -262,7 +262,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     this.write(getLongBytes(1));
   }
 
-  _writeCentralFileHeader(ae) {
+  _writeCentralFileHeader(ae): void {
     const gpb = ae.getGeneralPurposeBit();
     const method = ae.getMethod();
     let fileOffset = ae._offsets.file;
@@ -330,7 +330,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     this.write(comment);
   }
 
-  _writeDataDescriptor(ae) {
+  _writeDataDescriptor(ae): void {
     // signature
     this.write(getLongBytes(SIG_DD));
     // crc32 checksum
@@ -345,7 +345,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     }
   }
 
-  _writeLocalFileHeader(ae) {
+  _writeLocalFileHeader(ae): void {
     const gpb = ae.getGeneralPurposeBit();
     const method = ae.getMethod();
     let name = ae.getName();
@@ -389,11 +389,11 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     ae._offsets.contents = this.offset;
   }
 
-  getComment() {
+  getComment(): string {
     return this._archive.comment !== null ? this._archive.comment : "";
   }
 
-  isZip64() {
+  isZip64(): boolean {
     return (
       this._archive.forceZip64 ||
       this._entries.length > ZIP64_MAGIC_SHORT ||
@@ -402,7 +402,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     );
   }
 
-  setComment(comment) {
+  setComment(comment: string): void {
     this._archive.comment = comment;
   }
 }
