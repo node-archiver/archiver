@@ -1,4 +1,4 @@
-import { EventEmitter } from "events-universal";
+import { EventEmitter } from "node:events";
 const STREAM_DESTROYED = new Error("Stream was destroyed");
 const PREMATURE_CLOSE = new Error("Premature close");
 
