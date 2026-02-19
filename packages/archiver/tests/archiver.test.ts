@@ -12,6 +12,7 @@ import {
 import { Readable } from "node:stream";
 
 import { JsonArchive } from "../src/index.js";
+import { normalizeEntryData } from "../src/lib/core.js";
 import { binaryBuffer, readJSON } from "./helpers/index.js";
 
 const testBuffer = binaryBuffer(1024 * 16);
@@ -47,17 +48,15 @@ describe("archiver", () => {
   });
 
   describe("core", () => {
-    const archive = new JsonArchive();
-
-    describe("#_normalizeEntryData", () => {
+    describe("normalizeEntryData", () => {
       it("should support prefix of the entry name", () => {
-        const prefix1 = archive._normalizeEntryData({
+        const prefix1 = normalizeEntryData({
           name: "entry.txt",
           prefix: "prefix/",
         });
         expect(prefix1).toHaveProperty("name", "prefix/entry.txt");
 
-        const prefix2 = archive._normalizeEntryData({
+        const prefix2 = normalizeEntryData({
           name: "entry.txt",
           prefix: "",
         });
@@ -66,7 +65,7 @@ describe("archiver", () => {
 
       it("should support special bits on unix", () => {
         if (!win32) {
-          const mode = archive._normalizeEntryData({
+          const mode = normalizeEntryData({
             name: "executable.sh",
             mode: statSync("tests/fixtures/executable.sh").mode,
           });

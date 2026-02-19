@@ -24,6 +24,65 @@ const { ReaddirGlob } = readdirGlob;
 
 const win32 = process.platform === "win32";
 
+/**
+ * Normalizes entry data with fallbacks for key properties.
+ */
+function normalizeEntryData(data, stats?: fs.Stats) {
+  data = {
+    type: "file",
+    name: null,
+    date: null,
+    mode: null,
+    prefix: null,
+    sourcePath: null,
+    stats: false,
+    ...data,
+  };
+  if (stats && data.stats === false) {
+    data.stats = stats;
+  }
+  let isDir = data.type === "directory";
+  if (data.name) {
+    if (typeof data.prefix === "string" && "" !== data.prefix) {
+      data.name = data.prefix + "/" + data.name;
+      data.prefix = null;
+    }
+    data.name = sanitizePath(data.name);
+    if (data.type !== "symlink" && data.name.slice(-1) === "/") {
+      isDir = true;
+      data.type = "directory";
+    } else if (isDir) {
+      data.name += "/";
+    }
+  }
+  // 511 === 0777; 493 === 0755; 438 === 0666; 420 === 0644
+  if (typeof data.mode === "number") {
+    if (win32) {
+      data.mode &= 511;
+    } else {
+      data.mode &= 4095;
+    }
+  } else if (data.stats && data.mode === null) {
+    if (win32) {
+      data.mode = data.stats.mode & 511;
+    } else {
+      data.mode = data.stats.mode & 4095;
+    }
+    // stat isn't reliable on windows; force 0755 for dir
+    if (win32 && isDir) {
+      data.mode = 493;
+    }
+  } else if (data.mode === null) {
+    data.mode = isDir ? 493 : 420;
+  }
+  if (data.stats && data.date === null) {
+    data.date = data.stats.mtime;
+  } else {
+    data.date = dateify(data.date);
+  }
+  return data;
+}
+
 interface CoreOptions {
   /** Sets the number of workers used to process the internal fs stat queue. */
   statConcurrency: number;
@@ -76,9 +135,9 @@ interface ProgressData {
   };
 }
 
-export type ArchiverOptions = CoreOptions & TransformOptions;
+interface ArchiverOptions extends CoreOptions, TransformOptions {}
 
-export class Archiver extends Transform {
+class Archiver extends Transform {
   _supportsDirectory = false;
   _supportsSymlink = false;
 
@@ -89,15 +148,24 @@ export class Archiver extends Transform {
   private _pointer: number;
   private _pending: number;
 
-  constructor(
-    options: ArchiverOptions = {
+  private _state: {
+    aborted: boolean;
+    finalize: boolean;
+    finalizing: boolean;
+    finalized: boolean;
+    modulePiped: boolean;
+  };
+
+  constructor(options?: Partial<ArchiverOptions>) {
+    const normalizedOptions = {
       highWaterMark: 1024 * 1024,
       statConcurrency: 4,
-    },
-  ) {
-    super(options);
+      ...options,
+    };
 
-    this.options = options;
+    super(normalizedOptions);
+
+    this.options = normalizedOptions;
 
     this._module = null;
 
@@ -111,7 +179,7 @@ export class Archiver extends Transform {
     this._queue.drain(this._onQueueDrain.bind(this));
     this._statQueue = queue(
       this._onStatQueueTask.bind(this),
-      options.statConcurrency,
+      normalizedOptions.statConcurrency,
     );
     this._statQueue.drain(this._onQueueDrain.bind(this));
     this._state = {
@@ -163,13 +231,11 @@ export class Archiver extends Transform {
       this._statQueue.push(task);
     }
   }
+
   /**
    * Internal logic for `finalize`.
-   *
-   * @private
-   * @return void
    */
-  _finalize() {
+  private _finalize(): void {
     if (
       this._state.finalizing ||
       this._state.finalized ||
@@ -182,13 +248,11 @@ export class Archiver extends Transform {
     this._state.finalizing = false;
     this._state.finalized = true;
   }
+
   /**
    * Checks the various state variables to determine if we can `finalize`.
-   *
-   * @private
-   * @return {Boolean}
    */
-  _maybeFinalize() {
+  protected _maybeFinalize(): boolean {
     if (
       this._state.finalizing ||
       this._state.finalized ||
@@ -252,13 +316,11 @@ export class Archiver extends Transform {
       setImmediate(callback);
     });
   }
+
   /**
    * Finalizes the module.
-   *
-   * @private
-   * @return void
    */
-  _moduleFinalize() {
+  private _moduleFinalize(): void {
     if (typeof this._module.finalize === "function") {
       this._module.finalize();
     } else if (typeof this._module.end === "function") {
@@ -283,65 +345,6 @@ export class Archiver extends Transform {
   protected _moduleUnpipe(): void {
     this._module.unpipe(this);
     this._state.modulePiped = false;
-  }
-
-  /**
-   * Normalizes entry data with fallbacks for key properties.
-   */
-  private _normalizeEntryData(data, stats: fs.Stats) {
-    data = {
-      type: "file",
-      name: null,
-      date: null,
-      mode: null,
-      prefix: null,
-      sourcePath: null,
-      stats: false,
-      ...data,
-    };
-    if (stats && data.stats === false) {
-      data.stats = stats;
-    }
-    let isDir = data.type === "directory";
-    if (data.name) {
-      if (typeof data.prefix === "string" && "" !== data.prefix) {
-        data.name = data.prefix + "/" + data.name;
-        data.prefix = null;
-      }
-      data.name = sanitizePath(data.name);
-      if (data.type !== "symlink" && data.name.slice(-1) === "/") {
-        isDir = true;
-        data.type = "directory";
-      } else if (isDir) {
-        data.name += "/";
-      }
-    }
-    // 511 === 0777; 493 === 0755; 438 === 0666; 420 === 0644
-    if (typeof data.mode === "number") {
-      if (win32) {
-        data.mode &= 511;
-      } else {
-        data.mode &= 4095;
-      }
-    } else if (data.stats && data.mode === null) {
-      if (win32) {
-        data.mode = data.stats.mode & 511;
-      } else {
-        data.mode = data.stats.mode & 4095;
-      }
-      // stat isn't reliable on windows; force 0755 for dir
-      if (win32 && isDir) {
-        data.mode = 493;
-      }
-    } else if (data.mode === null) {
-      data.mode = isDir ? 493 : 420;
-    }
-    if (data.stats && data.date === null) {
-      data.date = data.stats.mtime;
-    } else {
-      data.date = dateify(data.date);
-    }
-    return data;
   }
 
   /**
@@ -492,7 +495,7 @@ export class Archiver extends Transform {
       }
       return null;
     }
-    task.data = this._normalizeEntryData(task.data, stats);
+    task.data = normalizeEntryData(task.data, stats);
     return task;
   }
 
@@ -529,7 +532,7 @@ export class Archiver extends Transform {
       this.emit("error", new ArchiverError("QUEUECLOSED"));
       return this;
     }
-    data = this._normalizeEntryData(data);
+    data = normalizeEntryData(data);
     if (typeof data.name !== "string" || data.name.length === 0) {
       this.emit("error", new ArchiverError("ENTRYNAMEREQUIRED"));
       return this;
@@ -563,11 +566,12 @@ export class Archiver extends Transform {
 
   /**
    * Appends a directory and its files, recursively, given its dirpath.
-   *
-   * @param  {(EntryData|Function)} data See also [ZipEntryData]{@link ZipEntryData} and
-   * [TarEntryData]{@link TarEntryData}.
    */
-  directory(dirpath: string, destpath: string, data): this {
+  directory(
+    dirpath: string,
+    destpath: string,
+    data: EntryData | ((entryData: EntryData) => EntryData),
+  ): this {
     if (this._state.finalize || this._state.aborted) {
       this.emit("error", new ArchiverError("QUEUECLOSED"));
       return this;
@@ -641,7 +645,7 @@ export class Archiver extends Transform {
    *
    * When the instance has received, processed, and emitted the file, the `entry` event is fired.
    */
-  file(filepath: string, data: EntryData): this {
+  file(filepath: string, data?: EntryData): this {
     if (this._state.finalize || this._state.aborted) {
       this.emit("error", new ArchiverError("QUEUECLOSED"));
       return this;
@@ -656,8 +660,6 @@ export class Archiver extends Transform {
 
   /**
    * Appends multiple files that match a glob pattern.
-   *
-   * @param  {Object} options See [node-readdir-glob]{@link https://github.com/yqnn/node-readdir-glob#options}.
    */
   glob(pattern: string, options, data: EntryData): this {
     this._pending++;
@@ -773,3 +775,5 @@ export class Archiver extends Transform {
     return this._pointer;
   }
 }
+
+export { Archiver, type ArchiverOptions, normalizeEntryData };

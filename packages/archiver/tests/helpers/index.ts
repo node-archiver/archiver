@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 
-export function binaryBuffer(n) {
+function binaryBuffer(n) {
   const buffer = Buffer.alloc(n);
   for (let i = 0; i < n; i++) {
     buffer.writeUInt8(i & 255, i);
@@ -8,7 +8,7 @@ export function binaryBuffer(n) {
   return buffer;
 }
 
-export function readJSON(filepath) {
+function readJSON(filepath) {
   let contents;
   try {
     contents = readFileSync(String(filepath));
@@ -18,3 +18,5 @@ export function readJSON(filepath) {
   }
   return contents;
 }
+
+export { readJSON, binaryBuffer };
