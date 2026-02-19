@@ -1,6 +1,6 @@
-const b4a = require("../../b4a");
+import * as b4a from "../b4a";
 
-module.exports = class PassThroughDecoder {
+class PassThroughDecoder {
   constructor(encoding) {
     this.encoding = encoding;
   }
@@ -16,4 +16,6 @@ module.exports = class PassThroughDecoder {
   flush() {
     return "";
   }
-};
+}
+
+export { PassThroughDecoder };

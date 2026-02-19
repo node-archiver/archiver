@@ -1,9 +1,9 @@
-const b4a = require("../../b4a");
+import * as b4a from "../b4a";
 
 /**
  * https://encoding.spec.whatwg.org/#utf-8-decoder
  */
-module.exports = class UTF8Decoder {
+class UTF8Decoder {
   constructor() {
     this._reset();
   }
@@ -121,7 +121,7 @@ module.exports = class UTF8Decoder {
     this.lowerBoundary = 0x80;
     this.upperBoundary = 0xbf;
   }
-};
+}
 
 function trailingIncomplete(data, start) {
   const len = data.byteLength;
@@ -183,3 +183,5 @@ function trailingBytesSeen(data) {
 
   return 0;
 }
+
+export { UTF8Decoder };
