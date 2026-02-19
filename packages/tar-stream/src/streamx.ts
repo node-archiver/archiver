@@ -1,6 +1,6 @@
 import { EventEmitter } from "node:events";
+
 const STREAM_DESTROYED = new Error("Stream was destroyed");
-const PREMATURE_CLOSE = new Error("Premature close");
 
 import FIFO from "fast-fifo";
 
@@ -491,14 +491,6 @@ class ReadableState {
   }
 }
 
-class TransformState {
-  constructor(stream) {
-    this.data = null;
-    this.afterTransform = afterTransform.bind(stream);
-    this.afterFinal = null;
-  }
-}
-
 class Pipeline {
   constructor(src, dst, cb) {
     this.from = src;
@@ -667,11 +659,6 @@ function afterOpen(err) {
   if (stream._readableState !== null) {
     stream._readableState.updateCallback();
   }
-}
-
-function afterTransform(err, data) {
-  if (data !== undefined && data !== null) this.push(data);
-  this._writableState.afterWrite(err);
 }
 
 function newListener(name) {
@@ -1066,148 +1053,6 @@ class Duplex extends Readable {
   }
 }
 
-class Transform extends Duplex {
-  constructor(opts) {
-    super(opts);
-    this._transformState = new TransformState(this);
-
-    if (opts) {
-      if (opts.transform) this._transform = opts.transform;
-      if (opts.flush) this._flush = opts.flush;
-    }
-  }
-
-  _write(data, cb) {
-    if (this._readableState.buffered >= this._readableState.highWaterMark) {
-      this._transformState.data = data;
-    } else {
-      this._transform(data, this._transformState.afterTransform);
-    }
-  }
-
-  _read(cb) {
-    if (this._transformState.data !== null) {
-      const data = this._transformState.data;
-      this._transformState.data = null;
-      cb(null);
-      this._transform(data, this._transformState.afterTransform);
-    } else {
-      cb(null);
-    }
-  }
-
-  destroy(err) {
-    super.destroy(err);
-    if (this._transformState.data !== null) {
-      this._transformState.data = null;
-      this._transformState.afterTransform();
-    }
-  }
-
-  _transform(data, cb) {
-    cb(null, data);
-  }
-
-  _flush(cb) {
-    cb(null);
-  }
-
-  _final(cb) {
-    this._transformState.afterFinal = cb;
-    this._flush(transformAfterFlush.bind(this));
-  }
-}
-
-class PassThrough extends Transform {}
-
-function transformAfterFlush(err, data) {
-  const cb = this._transformState.afterFinal;
-  if (err) return cb(err);
-  if (data !== null && data !== undefined) this.push(data);
-  this.push(null);
-  cb(null);
-}
-
-function pipelinePromise(...streams) {
-  return new Promise((resolve, reject) => {
-    return pipeline(...streams, (err) => {
-      if (err) return reject(err);
-      resolve();
-    });
-  });
-}
-
-function pipeline(stream, ...streams) {
-  const all = Array.isArray(stream)
-    ? [...stream, ...streams]
-    : [stream, ...streams];
-  const done =
-    all.length && typeof all[all.length - 1] === "function" ? all.pop() : null;
-
-  if (all.length < 2) throw new Error("Pipeline requires at least 2 streams");
-
-  let src = all[0];
-  let dest = null;
-  let error = null;
-
-  for (let i = 1; i < all.length; i++) {
-    dest = all[i];
-
-    if (isStreamx(src)) {
-      src.pipe(dest, onerror);
-    } else {
-      errorHandle(src, true, i > 1, onerror);
-      src.pipe(dest);
-    }
-
-    src = dest;
-  }
-
-  if (done) {
-    let fin = false;
-
-    const autoDestroy =
-      isStreamx(dest) ||
-      !!(dest._writableState && dest._writableState.autoDestroy);
-
-    dest.on("error", (err) => {
-      if (error === null) error = err;
-    });
-
-    dest.on("finish", () => {
-      fin = true;
-      if (!autoDestroy) done(error);
-    });
-
-    if (autoDestroy) {
-      dest.on("close", () => done(error || (fin ? null : PREMATURE_CLOSE)));
-    }
-  }
-
-  return dest;
-
-  function errorHandle(s, rd, wr, onerror) {
-    s.on("error", onerror);
-    s.on("close", onclose);
-
-    function onclose() {
-      if (rd && s._readableState && !s._readableState.ended)
-        return onerror(PREMATURE_CLOSE);
-      if (wr && s._writableState && !s._writableState.ended)
-        return onerror(PREMATURE_CLOSE);
-    }
-  }
-
-  function onerror(err) {
-    if (!err || error) return;
-    error = err;
-
-    for (const s of all) {
-      s.destroy(err);
-    }
-  }
-}
-
 function echo(s) {
   return s;
 }
@@ -1218,14 +1063,6 @@ function isStream(stream) {
 
 function isStreamx(stream) {
   return typeof stream._duplexState === "number" && isStream(stream);
-}
-
-function isEnded(stream) {
-  return !!stream._readableState && stream._readableState.ended;
-}
-
-function isFinished(stream) {
-  return !!stream._writableState && stream._writableState.ended;
 }
 
 function getStreamError(stream, opts = {}) {
@@ -1239,13 +1076,6 @@ function getStreamError(stream, opts = {}) {
 
 function isReadStreamx(stream) {
   return isStreamx(stream) && stream.readable;
-}
-
-function isDisturbed(stream) {
-  return (
-    (stream._duplexState & OPENING) !== OPENING ||
-    (stream._duplexState & ACTIVE_OR_TICKING) !== 0
-  );
 }
 
 function isTypedArray(data) {
