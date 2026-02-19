@@ -1,7 +1,7 @@
 import { FixedFIFO } from "./fixed-size";
 
 class FastFIFO {
-  constructor(hwm) {
+  constructor(hwm?) {
     this.hwm = hwm || 16;
     this.head = new FixedFIFO(this.hwm);
     this.tail = this.head;
