@@ -21,11 +21,22 @@ function toBuffer(buffer) {
   return Buffer.from(buffer.buffer, buffer.byteOffset, buffer.byteLength);
 }
 
-function toString(buffer, encoding, start, end) {
+function toString(
+  buffer,
+  encoding?: BufferEncoding,
+  start?: number,
+  end?: number,
+) {
   return toBuffer(buffer).toString(encoding, start, end);
 }
 
-function write(buffer, string, offset, length, encoding) {
+function write(
+  buffer,
+  string: string,
+  offset: number,
+  length: number,
+  encoding?: BufferEncoding,
+) {
   return toBuffer(buffer).write(string, offset, length, encoding);
 }
 

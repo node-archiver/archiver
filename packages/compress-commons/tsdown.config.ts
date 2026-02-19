@@ -1,6 +1,7 @@
 import { defineConfig } from "tsdown";
 
 export default defineConfig({
-  dts: false,
+  entry: ["src/index.ts", "src/constants.ts", "src/util.ts"],
+  dts: true,
   exports: true,
 });

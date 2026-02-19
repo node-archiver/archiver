@@ -1,8 +1,8 @@
 import { expect, it, beforeEach, describe } from "bun:test";
 
-import { GeneralPurposeBit } from "../src/archivers/zip/general-purpose-bit.js";
-import * as UnixStat from "../src/archivers/zip/unix-stat.js";
-import { ZipArchiveEntry } from "../src/index.js";
+import { GeneralPurposeBit } from "../src/archivers/general-purpose-bit";
+import * as UnixStat from "../src/archivers/unix-stat";
+import { ZipArchiveEntry } from "../src/index";
 
 let entry;
 // Jan 03 2013 14:26:38 GMT
@@ -13,10 +13,6 @@ beforeEach(() => {
 });
 
 describe("ZipArchiveEntry", () => {
-  describe("#getCentralDirectoryExtra", () => {
-    it.todo("should be tested");
-  });
-
   describe("#getComment", () => {
     it("should return the comment", () => {
       entry.setComment("file comment");
@@ -45,10 +41,6 @@ describe("ZipArchiveEntry", () => {
     });
   });
 
-  describe("#getExtra", () => {
-    it.todo("should be tested");
-  });
-
   describe("#getGeneralPurposeBit", () => {
     it("should return the general purpose bit flag", () => {
       const gpb = new GeneralPurposeBit();
@@ -63,14 +55,6 @@ describe("ZipArchiveEntry", () => {
       entry.inattr = 2180972576;
       expect(entry.getInternalAttributes()).toBe(2180972576);
     });
-  });
-
-  describe("#getLastModifiedDate", () => {
-    it.todo("should be tested");
-  });
-
-  describe("#getLocalFileDataExtra", () => {
-    it.todo("should be tested");
   });
 
   describe("#getMethod", () => {
@@ -133,12 +117,6 @@ describe("ZipArchiveEntry", () => {
     });
   });
 
-  describe("#getVersionNeededToExtract", () => {
-    it.todo("should be tested");
-  });
-
-  // ── Setters ────────────────────────────────────────────────
-
   describe("#setComment", () => {
     it("should set internal variable", () => {
       entry.setComment("file comment");
@@ -170,10 +148,6 @@ describe("ZipArchiveEntry", () => {
       entry.setExternalAttributes(2180972576);
       expect(entry).toHaveProperty("exattr", 2180972576);
     });
-  });
-
-  describe("#setExtra", () => {
-    it.todo("should be tested");
   });
 
   describe("#setGeneralPurposeBit", () => {
@@ -272,10 +246,6 @@ describe("ZipArchiveEntry", () => {
       expect(entry).toHaveProperty("mode", 493); // 0755
       expect(entry.getUnixMode()).toBe(41453); // 0120755
     });
-  });
-
-  describe("#setVersionNeededToExtract", () => {
-    it.todo("should be tested");
   });
 
   describe("#isDirectory", () => {

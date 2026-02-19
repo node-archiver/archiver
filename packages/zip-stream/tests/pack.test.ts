@@ -1,7 +1,8 @@
+import { describe, beforeAll, it } from "bun:test";
 import { createReadStream, createWriteStream, mkdirSync } from "node:fs";
 import { Readable } from "node:stream";
 
-import Packer from "../src/index.js";
+import { ZipStream as Packer } from "../src/index.js";
 import { binaryBuffer, fileBuffer } from "./helpers/index.js";
 
 const testBuffer = binaryBuffer(1024 * 16);

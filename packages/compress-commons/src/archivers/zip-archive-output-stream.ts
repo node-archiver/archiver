@@ -1,6 +1,6 @@
-import { crc32 } from "node:zlib";
+import type { Stream, TransformOptions } from "node:stream";
+import { crc32, type ZlibOptions } from "node:zlib";
 
-import { ArchiveOutputStream } from "../archive-output-stream.js";
 import {
   LONG_ZERO,
   METHOD_DEFLATED,
@@ -19,30 +19,53 @@ import {
   ZIP64_MAGIC,
   ZIP64_MAGIC_SHORT,
   ZLIB_BEST_SPEED,
-} from "./constants.js";
+} from "../constants";
+import { getEightBytes, getLongBytes, getShortBytes } from "../util";
+import { ArchiveOutputStream } from "./archive-output-stream";
 import { CRC32Stream, DeflateCRC32Stream } from "./crc32-stream";
-import { getEightBytes, getLongBytes, getShortBytes } from "./util.js";
+import type { ZipArchiveEntry } from "./zip-archive-entry";
 
-function _defaults(o) {
-  if (typeof o !== "object") {
-    o = {};
+interface ZipOptions extends Partial<TransformOptions> {
+  /** Forces the archive to contain local file times instead of UTC. */
+  forceLocalTime?: boolean;
+  /** Forces the archive to contain ZIP64 headers. */
+  forceZip64?: boolean;
+  zlib?: Partial<ZlibOptions>;
+}
+
+function normalizeOptions(options?: Partial<ZipOptions>) {
+  if (typeof options !== "object") {
+    options = {};
   }
-  if (typeof o.zlib !== "object") {
-    o.zlib = {};
+  if (typeof options.zlib !== "object") {
+    options.zlib = {};
   }
-  if (typeof o.zlib.level !== "number") {
-    o.zlib.level = ZLIB_BEST_SPEED;
+  if (typeof options.zlib.level !== "number") {
+    options.zlib.level = ZLIB_BEST_SPEED;
   }
-  o.forceZip64 = !!o.forceZip64;
-  o.forceLocalTime = !!o.forceLocalTime;
-  return o;
+  return options;
 }
 
 class ZipArchiveOutputStream extends ArchiveOutputStream {
-  constructor(options) {
-    const _options = _defaults(options);
-    super(_options);
-    this.options = _options;
+  options: Partial<ZipOptions>;
+
+  private _entries: ZipArchiveEntry[];
+
+  declare protected _archive: {
+    centralLength: number;
+    centralOffset: number;
+    comment: string;
+    finish: boolean;
+    finished: boolean;
+    processing: boolean;
+    forceZip64: boolean;
+    forceLocalTime: boolean;
+  };
+
+  constructor(options?: Partial<ZipOptions>) {
+    const normalizedOptions = normalizeOptions(options);
+    super(normalizedOptions);
+    this.options = normalizedOptions;
     this._entry = null;
     this._entries = [];
     this._archive = {
@@ -52,12 +75,12 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
       finish: false,
       finished: false,
       processing: false,
-      forceZip64: _options.forceZip64,
-      forceLocalTime: _options.forceLocalTime,
+      forceZip64: normalizedOptions.forceZip64,
+      forceLocalTime: normalizedOptions.forceLocalTime,
     };
   }
 
-  _afterAppend(ae) {
+  _afterAppend(ae: ZipArchiveEntry): void {
     this._entries.push(ae);
     if (ae.getGeneralPurposeBit().usesDataDescriptor()) {
       this._writeDataDescriptor(ae);
@@ -69,7 +92,11 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     }
   }
 
-  _appendBuffer(ae, source: Buffer, callback) {
+  _appendBuffer(
+    ae: ZipArchiveEntry,
+    source: Buffer,
+    callback: (error: Error | null, ae?: ZipArchiveEntry) => void,
+  ): void {
     if (source.length === 0) {
       ae.setMethod(METHOD_STORED);
     }
@@ -89,12 +116,16 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
       this._smartStream(ae, callback).end(source);
       return;
     } else {
-      callback(new Error("compression method " + method + " not implemented"));
+      callback(new Error(`compression method ${method} not implemented`));
       return;
     }
   }
 
-  _appendStream(ae, source, callback) {
+  _appendStream(
+    ae: ZipArchiveEntry,
+    source: Stream,
+    callback: (error: Error, ae: ZipArchiveEntry) => void,
+  ): void {
     ae.getGeneralPurposeBit().useDataDescriptor(true);
     ae.setVersionNeededToExtract(MIN_VERSION_DATA_DESCRIPTOR);
     this._writeLocalFileHeader(ae);
@@ -106,7 +137,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     source.pipe(smart);
   }
 
-  _finish() {
+  _finish(): void {
     this._archive.centralOffset = this.offset;
     this._entries.forEach(
       function (ae) {
@@ -124,7 +155,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     this.end();
   }
 
-  _normalizeEntry(ae) {
+  _normalizeEntry(ae: ZipArchiveEntry): void {
     if (ae.getMethod() === -1) {
       ae.setMethod(METHOD_DEFLATED);
     }
@@ -142,14 +173,18 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     };
   }
 
-  _smartStream(ae, callback) {
+  _smartStream(
+    ae: ZipArchiveEntry,
+    callback: (error: Error, ae: ZipArchiveEntry) => void,
+  ): CRC32Stream | DeflateCRC32Stream {
     const deflate = ae.getMethod() === METHOD_DEFLATED;
     const process = deflate
       ? new DeflateCRC32Stream(this.options.zlib)
       : new CRC32Stream();
-    let error = null;
+
+    let error: Error | null = null;
     function handleStuff() {
-      const digest = process.digest().readUInt32BE(0);
+      const digest = process.digest<Buffer>().readUInt32BE(0);
       ae.setCrc(digest);
       ae.setSize(process.size());
       ae.setCompressedSize(process.size(true));
@@ -157,14 +192,14 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
       callback(error, ae);
     }
     process.once("end", handleStuff.bind(this));
-    process.once("error", function (err) {
+    process.once("error", (err) => {
       error = err;
     });
     process.pipe(this, { end: false });
     return process;
   }
 
-  _writeCentralDirectoryEnd() {
+  _writeCentralDirectoryEnd(): void {
     let records = this._entries.length;
     let size = this._archive.centralLength;
     let offset = this._archive.centralOffset;
@@ -191,7 +226,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     this.write(comment);
   }
 
-  _writeCentralDirectoryZip64() {
+  _writeCentralDirectoryZip64(): void {
     // signature
     this.write(getLongBytes(SIG_ZIP64_EOCD));
     // size of the ZIP64 EOCD record
@@ -223,7 +258,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     this.write(getLongBytes(1));
   }
 
-  _writeCentralFileHeader(ae) {
+  _writeCentralFileHeader(ae: ZipArchiveEntry): void {
     const gpb = ae.getGeneralPurposeBit();
     const method = ae.getMethod();
     let fileOffset = ae._offsets.file;
@@ -291,7 +326,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     this.write(comment);
   }
 
-  _writeDataDescriptor(ae) {
+  _writeDataDescriptor(ae: ZipArchiveEntry): void {
     // signature
     this.write(getLongBytes(SIG_DD));
     // crc32 checksum
@@ -306,7 +341,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     }
   }
 
-  _writeLocalFileHeader(ae) {
+  _writeLocalFileHeader(ae: ZipArchiveEntry): void {
     const gpb = ae.getGeneralPurposeBit();
     const method = ae.getMethod();
     let name = ae.getName();
@@ -350,11 +385,11 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     ae._offsets.contents = this.offset;
   }
 
-  getComment(comment) {
+  getComment(): string {
     return this._archive.comment !== null ? this._archive.comment : "";
   }
 
-  isZip64() {
+  isZip64(): boolean {
     return (
       this._archive.forceZip64 ||
       this._entries.length > ZIP64_MAGIC_SHORT ||
@@ -363,7 +398,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     );
   }
 
-  setComment(comment) {
+  setComment(comment: string): void {
     this._archive.comment = comment;
   }
 }

@@ -3,8 +3,8 @@ import { createReadStream, mkdirSync } from "node:fs";
 import { Transform } from "node:stream";
 import { Readable } from "node:stream";
 
-import { ZipArchiveEntry, ZipArchiveOutputStream } from "../src/index.js";
-import { WriteHashStream, binaryBuffer } from "./helpers/index.js";
+import { ZipArchiveEntry, ZipArchiveOutputStream } from "../src/index";
+import { WriteHashStream, binaryBuffer } from "./helpers/index";
 
 const testBuffer = binaryBuffer(1024 * 16);
 
@@ -18,7 +18,7 @@ describe("ZipArchiveOutputStream", () => {
       const archive = new ZipArchiveOutputStream();
       const testStream = new WriteHashStream("tmp/zip-buffer.zip");
 
-      const promise = new Promise((resolve) => {
+      const promise = new Promise<void>((resolve) => {
         testStream.on("close", resolve);
       });
 
@@ -32,7 +32,7 @@ describe("ZipArchiveOutputStream", () => {
       const archive = new ZipArchiveOutputStream();
       const testStream = new WriteHashStream("tmp/zip-stream.zip");
 
-      const promise = new Promise((resolve) => {
+      const promise = new Promise<void>((resolve) => {
         testStream.on("close", resolve);
       });
 
@@ -51,7 +51,7 @@ describe("ZipArchiveOutputStream", () => {
       const archive = new ZipArchiveOutputStream();
       const testStream = new WriteHashStream("tmp/zip-stream-like.zip");
 
-      const promise = new Promise((resolve) => {
+      const promise = new Promise<void>((resolve) => {
         testStream.on("close", resolve);
       });
 
@@ -100,7 +100,7 @@ describe("ZipArchiveOutputStream", () => {
       const archive = new ZipArchiveOutputStream();
       const testStream = new WriteHashStream("tmp/zip-multiple.zip");
 
-      const promise = new Promise((resolve) => {
+      const promise = new Promise<void>((resolve) => {
         testStream.on("close", resolve);
       });
 
@@ -146,12 +146,10 @@ describe("ZipArchiveOutputStream", () => {
     });
 
     it("should force ZIP64", async () => {
-      const archive = new ZipArchiveOutputStream({
-        forceZip64: true,
-      });
+      const archive = new ZipArchiveOutputStream({ forceZip64: true });
       const testStream = new WriteHashStream("tmp/zip-stream64.zip");
 
-      const promise = new Promise((resolve) => {
+      const promise = new Promise<void>((resolve) => {
         testStream.on("close", resolve);
       });
 

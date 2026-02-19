@@ -1,18 +1,22 @@
-import { Transform } from "node:stream";
-import { DeflateRaw } from "node:zlib";
+import { Transform, type TransformCallback } from "node:stream";
+import { DeflateRaw, type ZlibOptions } from "node:zlib";
 import { crc32 } from "node:zlib";
 
 class CRC32Stream extends Transform {
   checksum: number;
   rawSize: number;
 
-  constructor(options?) {
-    super(options);
+  constructor() {
+    super();
     this.checksum = 0;
     this.rawSize = 0;
   }
 
-  _transform(chunk, encoding, callback) {
+  _transform(
+    chunk: string | Buffer,
+    encoding: string,
+    callback: (error?: Error | null, data?: string | Buffer) => void,
+  ): void {
     if (chunk) {
       this.checksum = crc32(chunk, this.checksum) >>> 0;
       this.rawSize += chunk.length;
@@ -20,15 +24,17 @@ class CRC32Stream extends Transform {
     callback(null, chunk);
   }
 
-  digest(encoding) {
+  digest<T extends string | Buffer>(encoding?: "hex"): T {
     const checksum = Buffer.allocUnsafe(4);
     checksum.writeUInt32BE(this.checksum >>> 0, 0);
-    return encoding ? checksum.toString(encoding) : checksum;
+    return (encoding ? checksum.toString(encoding) : checksum) as T;
   }
-  hex() {
-    return this.digest("hex").toUpperCase();
+
+  hex(): string {
+    return this.digest<string>("hex").toUpperCase();
   }
-  size() {
+
+  size(): number {
     return this.rawSize;
   }
 }
@@ -38,20 +44,25 @@ class DeflateCRC32Stream extends DeflateRaw {
   rawSize: number;
   compressedSize: number;
 
-  constructor(options) {
+  constructor(options?: ZlibOptions) {
     super(options);
     this.checksum = 0;
     this.rawSize = 0;
     this.compressedSize = 0;
   }
 
-  push(chunk, encoding) {
+  push(chunk: string | Buffer, encoding?: BufferEncoding): boolean {
     if (chunk) {
       this.compressedSize += chunk.length;
     }
     return super.push(chunk, encoding);
   }
-  _transform(chunk, encoding, callback) {
+
+  _transform(
+    chunk: string | Buffer,
+    encoding: BufferEncoding,
+    callback: TransformCallback,
+  ): void {
     if (chunk) {
       this.checksum = crc32(chunk, this.checksum) >>> 0;
       this.rawSize += chunk.length;
@@ -65,11 +76,11 @@ class DeflateCRC32Stream extends DeflateRaw {
     return (encoding ? checksum.toString(encoding) : checksum) as T;
   }
 
-  hex() {
+  hex(): string {
     return this.digest<string>("hex").toUpperCase();
   }
 
-  size(compressed = false) {
+  size(compressed: boolean = false): number {
     if (compressed) {
       return this.compressedSize;
     } else {

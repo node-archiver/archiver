@@ -7,20 +7,48 @@ import {
 
 import { dateify, sanitizePath } from "./utils.js";
 
-export default class ZipStream extends ZipArchiveOutputStream {
+interface ZlibOptions {
+  level?: number;
+}
+
+interface ZipOptions extends ZlibOptions {
   /**
-   * @constructor
-   * @extends external:ZipArchiveOutputStream
-   * @param {Object} [options]
-   * @param {String} [options.comment] Sets the zip archive comment.
-   * @param {Boolean} [options.forceLocalTime=false] Forces the archive to contain local file times instead of UTC.
-   * @param {Boolean} [options.forceZip64=false] Forces the archive to contain ZIP64 headers.
-   * @param {Boolean} [options.store=false] Sets the compression method to STORE.
-   * @param {Object} [options.zlib] Passed to [zlib]{@link https://nodejs.org/api/zlib.html#zlib_class_options}
-   * to control compression.
+   * Sets the zip archive comment.
+   * @default ""
    */
-  constructor(options) {
-    options = options || {};
+  comment: string;
+  /** @default false */
+  forceUTC: boolean;
+  /** Forces the archive to contain local file times instead of UTC. */
+  forceLocalTime?: boolean;
+  /** Forces the archive to contain ZIP64 headers. */
+  forceZip64?: boolean;
+  /**
+   * Prepends a forward slash to archive file paths.
+   * @default false
+   */
+  namePrependSlash: boolean;
+  /**
+   * Sets the compression method to STORE.
+   * @default false
+   */
+  store: boolean;
+  zlib?: ZlibOptions;
+}
+
+interface EntryData {
+  name: string;
+  comment?: string;
+  date?: string | Date;
+  mode?: number;
+  store?: boolean;
+  type?: string;
+}
+
+class ZipStream extends ZipArchiveOutputStream {
+  constructor(options?: Partial<ZipOptions>) {
+    options ??= {};
+
     options.zlib = options.zlib || {};
 
     if (typeof options.level === "number" && options.level >= 0) {
@@ -80,17 +108,12 @@ export default class ZipStream extends ZipArchiveOutputStream {
 
   /**
    * Appends an entry given an input source (text string, buffer, or stream).
-   *
-   * @param  {Object} data
-   * @param  {String} data.name Sets the entry name including internal path.
-   * @param  {String} [data.comment] Sets the entry comment.
-   * @param  {(String|Date)} [data.date=NOW()] Sets the entry date.
-   * @param  {Number} [data.mode=D:0755/F:0644] Sets the entry permissions.
-   * @param  {Boolean} [data.store=options.store] Sets the compression method to STORE.
-   * @param  {String} [data.type=file] Sets the entry type. Defaults to `directory` if name ends with trailing slash.
-   * @param  {Function} callback
    */
-  entry(source: Buffer | Stream | string, data, callback): this {
+  entry(
+    source: Buffer | Stream | string,
+    data: EntryData,
+    callback: (error: Error) => void,
+  ): this {
     if (typeof callback !== "function") {
       callback = this._emitErrorCallback.bind(this);
     }
@@ -148,3 +171,5 @@ export default class ZipStream extends ZipArchiveOutputStream {
     this.finish();
   }
 }
+
+export { ZipStream, type ZipOptions };

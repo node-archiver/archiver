@@ -414,6 +414,8 @@ function overflow(size) {
   return size && 512 - size;
 }
 
-export function extract(opts?) {
+function extract(opts?) {
   return new Extract(opts);
 }
+
+export { extract, type Extract };

@@ -1,45 +1,52 @@
 import type { Stream } from "node:stream";
 
-import ZipStream from "@archiver/zip-stream";
+import { ZipStream } from "@archiver/zip-stream";
+
+interface ZipEntryData {}
+
+interface ZlibOptions {}
 
 interface ZipOptions {
-  /** Sets the zip archive comment. */
-  comment?: string;
+  /**
+   * Sets the zip archive comment.
+   * @default ""
+   */
+  comment: string;
+  /** @default false */
+  forceUTC: boolean;
   /** Forces the archive to contain local file times instead of UTC. */
   forceLocalTime?: boolean;
   /** Forces the archive to contain ZIP64 headers. */
   forceZip64?: boolean;
-  /** Prepends a forward slash to archive file paths. */
-  namePrependSlash?: boolean;
-  /** Sets the compression method to STORE. */
-  store?: boolean;
+  /**
+   * Prepends a forward slash to archive file paths.
+   * @default false
+   */
+  namePrependSlash: boolean;
+  /**
+   * Sets the compression method to STORE.
+   * @default false
+   */
+  store: boolean;
+  zlib?: ZlibOptions;
 }
 
-interface ZipEntryData {}
-
-export default class Zip {
+class Zip {
   engine: ZipStream;
+  options: ZipOptions;
 
-  /**
-   * @constructor
-   * @param {ZipOptions} [options]
-   * @param {String} [options.comment] Sets the zip archive comment.
-   * @param {Boolean} [options.forceLocalTime=false] Forces the archive to contain local file times instead of UTC.
-   * @param {Boolean} [options.forceZip64=false] Forces the archive to contain ZIP64 headers.
-   * @param {Boolean} [options.namePrependSlash=false] Prepends a forward slash to archive file paths.
-   * @param {Boolean} [options.store=false] Sets the compression method to STORE.
-   * @param {Object} [options.zlib] Passed to [zlib]{@link https://nodejs.org/api/zlib.html#zlib_class_options}
-   */
-  constructor(optionsParam?: ZipOptions) {
-    const options = (this.options = {
+  constructor(options?: Partial<ZipOptions>) {
+    const normalizedOptions = {
       comment: "",
       forceUTC: false,
       namePrependSlash: false,
       store: false,
-      ...optionsParam,
-    });
-    this.engine = new ZipStream(options);
+      ...options,
+    };
+    this.options = normalizedOptions;
+    this.engine = new ZipStream(normalizedOptions);
   }
+
   /**
    * @param  {ZipEntryData} data
    * @param  {String} data.name Sets the entry name including internal path.
@@ -79,3 +86,5 @@ export default class Zip {
     return this.engine.unpipe.apply(this.engine, arguments);
   }
 }
+
+export { Zip, type ZipOptions };

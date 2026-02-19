@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import {
   Transform,
-  TransformCallback,
+  type TransformCallback,
   isReadable,
   isWritable,
   type Stream,
@@ -23,6 +23,65 @@ import {
 const { ReaddirGlob } = readdirGlob;
 
 const win32 = process.platform === "win32";
+
+/**
+ * Normalizes entry data with fallbacks for key properties.
+ */
+function normalizeEntryData(data, stats?: fs.Stats) {
+  data = {
+    type: "file",
+    name: null,
+    date: null,
+    mode: null,
+    prefix: null,
+    sourcePath: null,
+    stats: false,
+    ...data,
+  };
+  if (stats && data.stats === false) {
+    data.stats = stats;
+  }
+  let isDir = data.type === "directory";
+  if (data.name) {
+    if (typeof data.prefix === "string" && "" !== data.prefix) {
+      data.name = data.prefix + "/" + data.name;
+      data.prefix = null;
+    }
+    data.name = sanitizePath(data.name);
+    if (data.type !== "symlink" && data.name.slice(-1) === "/") {
+      isDir = true;
+      data.type = "directory";
+    } else if (isDir) {
+      data.name += "/";
+    }
+  }
+  // 511 === 0777; 493 === 0755; 438 === 0666; 420 === 0644
+  if (typeof data.mode === "number") {
+    if (win32) {
+      data.mode &= 511;
+    } else {
+      data.mode &= 4095;
+    }
+  } else if (data.stats && data.mode === null) {
+    if (win32) {
+      data.mode = data.stats.mode & 511;
+    } else {
+      data.mode = data.stats.mode & 4095;
+    }
+    // stat isn't reliable on windows; force 0755 for dir
+    if (win32 && isDir) {
+      data.mode = 493;
+    }
+  } else if (data.mode === null) {
+    data.mode = isDir ? 493 : 420;
+  }
+  if (data.stats && data.date === null) {
+    data.date = data.stats.mtime;
+  } else {
+    data.date = dateify(data.date);
+  }
+  return data;
+}
 
 interface CoreOptions {
   /** Sets the number of workers used to process the internal fs stat queue. */
@@ -65,33 +124,6 @@ interface EntryData {
   stats?: fs.Stats;
 }
 
-/**
- * @typedef {Object} EntryData
- * @property {String} name Sets the entry name including internal path.
- * @property {(String|Date)} [date=NOW()] Sets the entry date.
- * @property {Number} [mode=D:0755/F:0644] Sets the entry permissions.
- * @property {String} [prefix] Sets a path prefix for the entry name. Useful
- * when working with methods like `directory` or `glob`.
- * @property {fs.Stats} [stats] Sets the fs stat data for this entry allowing
- * for reduction of fs stat calls when stat data is already known.
- */
-
-interface ErrorData {
-  /** The message of the error. */
-  message: string;
-  /** The error code assigned to this error. */
-  code: string;
-  /** Additional data provided for reporting or debugging (where available). */
-  data: string;
-}
-
-/**
- * @typedef {Object} ErrorData
- * @property {String} message The message of the error.
- * @property {String} code The error code assigned to this error.
- * @property {String} data Additional data provided for reporting or debugging (where available).
- */
-
 interface ProgressData {
   entries: {
     total: number;
@@ -103,9 +135,9 @@ interface ProgressData {
   };
 }
 
-type ArchiverOptions = CoreOptions & TransformOptions;
+interface ArchiverOptions extends CoreOptions, TransformOptions {}
 
-export class Archiver extends Transform {
+class Archiver extends Transform {
   _supportsDirectory = false;
   _supportsSymlink = false;
 
@@ -116,16 +148,24 @@ export class Archiver extends Transform {
   private _pointer: number;
   private _pending: number;
 
-  constructor(optionsParam?: Partial<CoreOptions> & TransformOptions) {
-    const options = {
+  private _state: {
+    aborted: boolean;
+    finalize: boolean;
+    finalizing: boolean;
+    finalized: boolean;
+    modulePiped: boolean;
+  };
+
+  constructor(options?: Partial<ArchiverOptions>) {
+    const normalizedOptions = {
       highWaterMark: 1024 * 1024,
       statConcurrency: 4,
-      ...optionsParam,
+      ...options,
     };
 
-    super(options);
+    super(normalizedOptions);
 
-    this.options = options;
+    this.options = normalizedOptions;
 
     this._module = null;
 
@@ -139,7 +179,7 @@ export class Archiver extends Transform {
     this._queue.drain(this._onQueueDrain.bind(this));
     this._statQueue = queue(
       this._onStatQueueTask.bind(this),
-      options.statConcurrency,
+      normalizedOptions.statConcurrency,
     );
     this._statQueue.drain(this._onQueueDrain.bind(this));
     this._state = {
@@ -191,13 +231,11 @@ export class Archiver extends Transform {
       this._statQueue.push(task);
     }
   }
+
   /**
    * Internal logic for `finalize`.
-   *
-   * @private
-   * @return void
    */
-  _finalize() {
+  private _finalize(): void {
     if (
       this._state.finalizing ||
       this._state.finalized ||
@@ -210,13 +248,11 @@ export class Archiver extends Transform {
     this._state.finalizing = false;
     this._state.finalized = true;
   }
+
   /**
    * Checks the various state variables to determine if we can `finalize`.
-   *
-   * @private
-   * @return {Boolean}
    */
-  _maybeFinalize() {
+  protected _maybeFinalize(): boolean {
     if (
       this._state.finalizing ||
       this._state.finalized ||
@@ -280,13 +316,11 @@ export class Archiver extends Transform {
       setImmediate(callback);
     });
   }
+
   /**
    * Finalizes the module.
-   *
-   * @private
-   * @return void
    */
-  _moduleFinalize() {
+  private _moduleFinalize(): void {
     if (typeof this._module.finalize === "function") {
       this._module.finalize();
     } else if (typeof this._module.end === "function") {
@@ -300,7 +334,7 @@ export class Archiver extends Transform {
    * Pipes the module to our internal stream with error bubbling.
    */
   protected _modulePipe(): void {
-    this._module.on("error", this._onModuleError.bind(this));
+    this._module.on("error", this._onModuleError);
     this._module.pipe(this);
     this._state.modulePiped = true;
   }
@@ -314,71 +348,9 @@ export class Archiver extends Transform {
   }
 
   /**
-   * Normalizes entry data with fallbacks for key properties.
-   */
-  private _normalizeEntryData(data, stats: fs.Stats) {
-    data = {
-      type: "file",
-      name: null,
-      date: null,
-      mode: null,
-      prefix: null,
-      sourcePath: null,
-      stats: false,
-      ...data,
-    };
-    if (stats && data.stats === false) {
-      data.stats = stats;
-    }
-    let isDir = data.type === "directory";
-    if (data.name) {
-      if (typeof data.prefix === "string" && "" !== data.prefix) {
-        data.name = data.prefix + "/" + data.name;
-        data.prefix = null;
-      }
-      data.name = sanitizePath(data.name);
-      if (data.type !== "symlink" && data.name.slice(-1) === "/") {
-        isDir = true;
-        data.type = "directory";
-      } else if (isDir) {
-        data.name += "/";
-      }
-    }
-    // 511 === 0777; 493 === 0755; 438 === 0666; 420 === 0644
-    if (typeof data.mode === "number") {
-      if (win32) {
-        data.mode &= 511;
-      } else {
-        data.mode &= 4095;
-      }
-    } else if (data.stats && data.mode === null) {
-      if (win32) {
-        data.mode = data.stats.mode & 511;
-      } else {
-        data.mode = data.stats.mode & 4095;
-      }
-      // stat isn't reliable on windows; force 0755 for dir
-      if (win32 && isDir) {
-        data.mode = 493;
-      }
-    } else if (data.mode === null) {
-      data.mode = isDir ? 493 : 420;
-    }
-    if (data.stats && data.date === null) {
-      data.date = data.stats.mtime;
-    } else {
-      data.date = dateify(data.date);
-    }
-    return data;
-  }
-
-  /**
    * Error listener that re-emits error on to our internal stream.
    */
   private _onModuleError(err: Error): void {
-    /**
-     * @type {ErrorData}
-     */
     this.emit("error", err);
   }
 
@@ -427,8 +399,6 @@ export class Archiver extends Transform {
 
   /**
    * Performs a file stat and reinjects the task back into the queue.
-   * @param  {Object} task
-   * @param  {Function} callback
    */
   private _onStatQueueTask(task, callback): void {
     if (
@@ -446,9 +416,6 @@ export class Archiver extends Transform {
       }
       if (err) {
         this._entriesCount--;
-        /**
-         * @type {ErrorData}
-         */
         this.emit("warning", err);
         setImmediate(callback);
         return;
@@ -466,11 +433,8 @@ export class Archiver extends Transform {
 
   /**
    * Unpipes the module and ends our internal stream.
-   *
-   * @private
-   * @return void
    */
-  _shutdown() {
+  private _shutdown(): void {
     this._moduleUnpipe();
     this.end();
   }
@@ -478,7 +442,7 @@ export class Archiver extends Transform {
   /**
    * Tracks the bytes emitted by our internal stream.
    */
-  _transform(
+  public _transform(
     chunk: Buffer,
     encoding: BufferEncoding,
     callback: TransformCallback,
@@ -531,7 +495,7 @@ export class Archiver extends Transform {
       }
       return null;
     }
-    task.data = this._normalizeEntryData(task.data, stats);
+    task.data = normalizeEntryData(task.data, stats);
     return task;
   }
 
@@ -568,7 +532,7 @@ export class Archiver extends Transform {
       this.emit("error", new ArchiverError("QUEUECLOSED"));
       return this;
     }
-    data = this._normalizeEntryData(data);
+    data = normalizeEntryData(data);
     if (typeof data.name !== "string" || data.name.length === 0) {
       this.emit("error", new ArchiverError("ENTRYNAMEREQUIRED"));
       return this;
@@ -599,16 +563,15 @@ export class Archiver extends Transform {
     });
     return this;
   }
+
   /**
    * Appends a directory and its files, recursively, given its dirpath.
-   *
-   * @param  {String} dirpath The source directory path.
-   * @param  {String} destpath The destination path within the archive.
-   * @param  {(EntryData|Function)} data See also [ZipEntryData]{@link ZipEntryData} and
-   * [TarEntryData]{@link TarEntryData}.
-   * @return {this}
    */
-  directory(dirpath, destpath, data) {
+  directory(
+    dirpath: string,
+    destpath: string,
+    data: EntryData | ((entryData: EntryData) => EntryData),
+  ): this {
     if (this._state.finalize || this._state.aborted) {
       this.emit("error", new ArchiverError("QUEUECLOSED"));
       return this;
@@ -623,7 +586,7 @@ export class Archiver extends Transform {
     } else if (typeof destpath !== "string") {
       destpath = dirpath;
     }
-    let dataFunction = false;
+    let dataFunction = null;
     if (typeof data === "function") {
       dataFunction = data;
       data = {};
@@ -682,7 +645,7 @@ export class Archiver extends Transform {
    *
    * When the instance has received, processed, and emitted the file, the `entry` event is fired.
    */
-  file(filepath: string, data: EntryData): this {
+  file(filepath: string, data?: EntryData): this {
     if (this._state.finalize || this._state.aborted) {
       this.emit("error", new ArchiverError("QUEUECLOSED"));
       return this;
@@ -697,16 +660,10 @@ export class Archiver extends Transform {
 
   /**
    * Appends multiple files that match a glob pattern.
-   *
-   * @param  {Object} options See [node-readdir-glob]{@link https://github.com/yqnn/node-readdir-glob#options}.
    */
   glob(pattern: string, options, data: EntryData): this {
     this._pending++;
-    options = {
-      stat: true,
-      pattern: pattern,
-      ...options,
-    };
+    options = { stat: true, pattern, ...options };
     function onGlobEnd() {
       this._pending--;
       this._maybeFinalize();
@@ -728,6 +685,7 @@ export class Archiver extends Transform {
     globber.on("end", onGlobEnd.bind(this));
     return this;
   }
+
   /**
    * Finalizes the instance and prevents further appending to the archive
    * structure (queue will continue til drained).
@@ -735,8 +693,6 @@ export class Archiver extends Transform {
    * The `end`, `close` or `finish` events on the destination stream may fire
    * right after calling this method so you should set listeners beforehand to
    * properly detect stream completion.
-   *
-   * @return {Promise}
    */
   finalize() {
     if (this._state.aborted) {
@@ -767,17 +723,13 @@ export class Archiver extends Transform {
       });
     });
   }
+
   /**
    * Appends a symlink to the instance.
    *
    * This does NOT interact with filesystem and is used for programmatically creating symlinks.
-   *
-   * @param  {String} filepath The symlink path (within archive).
-   * @param  {String} target The target path (within archive).
-   * @param  {Number} mode Sets the entry permissions.
-   * @return {this}
    */
-  symlink(filepath, target, mode) {
+  symlink(filepath: string, target: string, mode: number): this {
     if (this._state.finalize || this._state.aborted) {
       this.emit("error", new ArchiverError("QUEUECLOSED"));
       return this;
@@ -815,6 +767,7 @@ export class Archiver extends Transform {
     });
     return this;
   }
+
   /**
    * @returns the current length (in bytes) that has been emitted.
    */
@@ -822,3 +775,5 @@ export class Archiver extends Transform {
     return this._pointer;
   }
 }
+
+export { Archiver, type ArchiverOptions, normalizeEntryData };

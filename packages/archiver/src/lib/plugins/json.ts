@@ -7,11 +7,11 @@ import { crc32 } from "node:zlib";
 
 import { collectStream } from "../utils.js";
 
-export default class Json extends Transform {
+class Json extends Transform {
   files: unknown[];
 
   constructor(options: TransformOptions) {
-    super({ ...options });
+    super(options);
     this.files = [];
   }
 
@@ -55,3 +55,5 @@ export default class Json extends Transform {
     this.end();
   }
 }
+
+export { Json };

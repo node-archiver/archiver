@@ -1,10 +1,13 @@
-import { Archiver } from "./lib/core";
-import Json from "./lib/plugins/json";
-import Tar from "./lib/plugins/tar";
-import Zip from "./lib/plugins/zip";
+import { Archiver, type ArchiverOptions } from "./lib/core";
+import { Json } from "./lib/plugins/json";
+import { Tar, type TarOptions } from "./lib/plugins/tar";
+import { Zip, type ZipOptions } from "./lib/plugins/zip";
+
+interface ZipArchiveOptions
+  extends Partial<ArchiverOptions>, Partial<ZipOptions> {}
 
 class ZipArchive extends Archiver {
-  constructor(options) {
+  constructor(options?: ZipArchiveOptions) {
     super(options);
     this._module = new Zip(options);
     this._supportsDirectory = true;
@@ -13,8 +16,10 @@ class ZipArchive extends Archiver {
   }
 }
 
+interface TarArchiveOptions extends ArchiverOptions, TarOptions {}
+
 class TarArchive extends Archiver {
-  constructor(options) {
+  constructor(options?: TarArchiveOptions) {
     super(options);
     this._module = new Tar(options);
     this._supportsDirectory = true;
@@ -23,12 +28,14 @@ class TarArchive extends Archiver {
   }
 }
 
+interface JsonArchiveOptions extends ArchiverOptions {}
+
 /**
  * @deprecated
  * There is no reason to use this. This will be removed
  */
 class JsonArchive extends Archiver {
-  constructor(options) {
+  constructor(options?: JsonArchiveOptions) {
     super(options);
     this._module = new Json(options);
     this._supportsDirectory = true;

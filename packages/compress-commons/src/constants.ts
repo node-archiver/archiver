@@ -1,8 +1,8 @@
-export const EMPTY = Buffer.alloc(0);
+export const EMPTY: Buffer<ArrayBuffer> = Buffer.alloc(0);
 export const SHORT_MASK = 0xffff;
 export const SHORT_SHIFT = 16;
-export const SHORT_ZERO = Buffer.from(Array(2));
-export const LONG_ZERO = Buffer.from(Array(4));
+export const SHORT_ZERO: Buffer<ArrayBuffer> = Buffer.from(Array(2));
+export const LONG_ZERO: Buffer<ArrayBuffer> = Buffer.from(Array(4));
 export const MIN_VERSION_INITIAL = 10;
 export const MIN_VERSION_DATA_DESCRIPTOR = 20;
 export const MIN_VERSION_ZIP64 = 45;
