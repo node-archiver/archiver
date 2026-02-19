@@ -1,5 +1,4 @@
-import FIFO from "fast-fifo";
-
+import { FastFIFO as FIFO } from "./fifo";
 import * as headers from "./headers";
 import { Writable, Readable, getStreamError } from "./streamx";
 
@@ -102,6 +101,8 @@ class Source extends Readable {
 }
 
 class Extract extends Writable {
+  private _buffer: BufferList;
+
   constructor(opts) {
     super(opts);
 

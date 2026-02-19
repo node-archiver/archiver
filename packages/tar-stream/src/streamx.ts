@@ -2,8 +2,7 @@ import { EventEmitter } from "node:events";
 
 const STREAM_DESTROYED = new Error("Stream was destroyed");
 
-import FIFO from "fast-fifo";
-
+import { FastFIFO as FIFO } from "./fifo";
 import { TextDecoder } from "./td/index";
 
 // if we do a future major, expect queue microtask to be there always, for now a bit defensive

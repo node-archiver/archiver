@@ -1,16 +1,18 @@
-function isBuffer(value) {
+function isBuffer(value: unknown) {
   return Buffer.isBuffer(value) || value instanceof Uint8Array;
 }
 
-function alloc(size, fill, encoding) {
-  return Buffer.alloc(size, fill, encoding);
-}
-
-function copy(source, target, targetStart, start, end) {
+function copy(
+  source: Buffer,
+  target: Uint8Array,
+  targetStart?: number,
+  start?: number,
+  end?: number,
+) {
   return toBuffer(source).copy(target, targetStart, start, end);
 }
 
-function equals(a, b) {
+function equals(a: Buffer, b: Uint8Array) {
   return toBuffer(a).equals(b);
 }
 
@@ -27,4 +29,4 @@ function write(buffer, string, offset, length, encoding) {
   return toBuffer(buffer).write(string, offset, length, encoding);
 }
 
-export { isBuffer, alloc, copy, equals, toString, write };
+export { isBuffer, copy, equals, toString, write };

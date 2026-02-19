@@ -50,7 +50,7 @@ export function decodePax(buf) {
 }
 
 export function encode(opts) {
-  const buf = b4a.alloc(512);
+  const buf = Buffer.alloc(512);
   let name = opts.name;
   let prefix = "";
 
