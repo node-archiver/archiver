@@ -3,14 +3,14 @@
   "version": "0.0.1",
   "description": "a streaming interface for archive generation",
   "license": "MIT",
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "exports": {
     ".": "./dist/index.mjs",
     "./package.json": "./package.json"
   },
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "build": "tsdown",
     "test": "bun test --reporter dot",

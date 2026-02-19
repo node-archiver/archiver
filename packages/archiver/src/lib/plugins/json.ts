@@ -3,8 +3,8 @@ import Stream, {
   TransformCallback,
   TransformOptions,
 } from "node:stream";
+import { crc32 } from "node:zlib";
 
-import * as crc32 from "../buffer-crc32";
 import { collectStream } from "../utils.js";
 
 export default class Json extends Transform {
@@ -39,7 +39,7 @@ export default class Json extends Transform {
       }
 
       data.size = sourceBuffer.length || 0;
-      data.crc32 = crc32.unsigned(sourceBuffer);
+      data.crc32 = crc32(sourceBuffer) >>> 0;
       this.files.push(data);
       callback(null, data);
     };
