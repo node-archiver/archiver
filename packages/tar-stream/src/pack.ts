@@ -1,7 +1,7 @@
 const { Readable, Writable, getStreamError } = require("streamx");
 const b4a = require("b4a");
 
-const constants = require("./constants");
+import { constants } from "node:fs";
 const headers = require("./headers");
 
 const DMODE = 0o755;
@@ -266,10 +266,6 @@ class Pack extends Readable {
   }
 }
 
-module.exports = function pack(opts) {
-  return new Pack(opts);
-};
-
 function modeToType(mode) {
   switch (mode & constants.S_IFMT) {
     case constants.S_IFBLK:
@@ -296,4 +292,8 @@ function overflow(self, size) {
 
 function mapWritable(buf) {
   return b4a.isBuffer(buf) ? buf : b4a.from(buf);
+}
+
+export function pack(opts) {
+  return new Pack(opts);
 }

@@ -406,13 +406,13 @@ class Extract extends Writable {
   }
 }
 
-module.exports = function extract(opts) {
-  return new Extract(opts);
-};
-
 function noop() {}
 
 function overflow(size) {
   size &= 511;
   return size && 512 - size;
+}
+
+export function extract(opts) {
+  return new Extract(opts);
 }
