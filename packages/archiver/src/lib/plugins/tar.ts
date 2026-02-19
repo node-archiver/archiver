@@ -7,11 +7,13 @@ import { collectStream } from "../utils";
 
 type Pack = ReturnType<typeof TarStream.pack>;
 
+export interface TarOptions {}
+
 export default class Tar {
   engine: Pack;
   compressor: zlib.Gzip | null;
 
-  constructor(optionsParam) {
+  constructor(optionsParam: TarOptions) {
     const options = (this.options = { gzip: false, ...optionsParam });
     if (typeof options.gzipOptions !== "object") {
       options.gzipOptions = {};

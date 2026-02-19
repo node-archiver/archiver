@@ -294,6 +294,8 @@ function mapWritable(buf) {
   return b4a.isBuffer(buf) ? buf : Buffer.from(buf);
 }
 
-export function pack(opts?) {
+function pack(opts?) {
   return new Pack(opts);
 }
+
+export { pack, type Pack };

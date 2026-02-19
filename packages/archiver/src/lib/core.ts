@@ -65,33 +65,6 @@ interface EntryData {
   stats?: fs.Stats;
 }
 
-/**
- * @typedef {Object} EntryData
- * @property {String} name Sets the entry name including internal path.
- * @property {(String|Date)} [date=NOW()] Sets the entry date.
- * @property {Number} [mode=D:0755/F:0644] Sets the entry permissions.
- * @property {String} [prefix] Sets a path prefix for the entry name. Useful
- * when working with methods like `directory` or `glob`.
- * @property {fs.Stats} [stats] Sets the fs stat data for this entry allowing
- * for reduction of fs stat calls when stat data is already known.
- */
-
-interface ErrorData {
-  /** The message of the error. */
-  message: string;
-  /** The error code assigned to this error. */
-  code: string;
-  /** Additional data provided for reporting or debugging (where available). */
-  data: string;
-}
-
-/**
- * @typedef {Object} ErrorData
- * @property {String} message The message of the error.
- * @property {String} code The error code assigned to this error.
- * @property {String} data Additional data provided for reporting or debugging (where available).
- */
-
 interface ProgressData {
   entries: {
     total: number;
@@ -103,7 +76,7 @@ interface ProgressData {
   };
 }
 
-type ArchiverOptions = CoreOptions & TransformOptions;
+export type ArchiverOptions = CoreOptions & TransformOptions;
 
 export class Archiver extends Transform {
   _supportsDirectory = false;
@@ -116,13 +89,12 @@ export class Archiver extends Transform {
   private _pointer: number;
   private _pending: number;
 
-  constructor(optionsParam?: Partial<CoreOptions> & TransformOptions) {
-    const options = {
+  constructor(
+    options: ArchiverOptions = {
       highWaterMark: 1024 * 1024,
       statConcurrency: 4,
-      ...optionsParam,
-    };
-
+    },
+  ) {
     super(options);
 
     this.options = options;
@@ -300,7 +272,7 @@ export class Archiver extends Transform {
    * Pipes the module to our internal stream with error bubbling.
    */
   protected _modulePipe(): void {
-    this._module.on("error", this._onModuleError.bind(this));
+    this._module.on("error", this._onModuleError);
     this._module.pipe(this);
     this._state.modulePiped = true;
   }
@@ -376,9 +348,6 @@ export class Archiver extends Transform {
    * Error listener that re-emits error on to our internal stream.
    */
   private _onModuleError(err: Error): void {
-    /**
-     * @type {ErrorData}
-     */
     this.emit("error", err);
   }
 
@@ -427,8 +396,6 @@ export class Archiver extends Transform {
 
   /**
    * Performs a file stat and reinjects the task back into the queue.
-   * @param  {Object} task
-   * @param  {Function} callback
    */
   private _onStatQueueTask(task, callback): void {
     if (
@@ -446,9 +413,6 @@ export class Archiver extends Transform {
       }
       if (err) {
         this._entriesCount--;
-        /**
-         * @type {ErrorData}
-         */
         this.emit("warning", err);
         setImmediate(callback);
         return;
@@ -466,11 +430,8 @@ export class Archiver extends Transform {
 
   /**
    * Unpipes the module and ends our internal stream.
-   *
-   * @private
-   * @return void
    */
-  _shutdown() {
+  private _shutdown(): void {
     this._moduleUnpipe();
     this.end();
   }
@@ -478,7 +439,7 @@ export class Archiver extends Transform {
   /**
    * Tracks the bytes emitted by our internal stream.
    */
-  _transform(
+  public _transform(
     chunk: Buffer,
     encoding: BufferEncoding,
     callback: TransformCallback,
@@ -599,16 +560,14 @@ export class Archiver extends Transform {
     });
     return this;
   }
+
   /**
    * Appends a directory and its files, recursively, given its dirpath.
    *
-   * @param  {String} dirpath The source directory path.
-   * @param  {String} destpath The destination path within the archive.
    * @param  {(EntryData|Function)} data See also [ZipEntryData]{@link ZipEntryData} and
    * [TarEntryData]{@link TarEntryData}.
-   * @return {this}
    */
-  directory(dirpath, destpath, data) {
+  directory(dirpath: string, destpath: string, data): this {
     if (this._state.finalize || this._state.aborted) {
       this.emit("error", new ArchiverError("QUEUECLOSED"));
       return this;
@@ -623,7 +582,7 @@ export class Archiver extends Transform {
     } else if (typeof destpath !== "string") {
       destpath = dirpath;
     }
-    let dataFunction = false;
+    let dataFunction = null;
     if (typeof data === "function") {
       dataFunction = data;
       data = {};
@@ -702,11 +661,7 @@ export class Archiver extends Transform {
    */
   glob(pattern: string, options, data: EntryData): this {
     this._pending++;
-    options = {
-      stat: true,
-      pattern: pattern,
-      ...options,
-    };
+    options = { stat: true, pattern, ...options };
     function onGlobEnd() {
       this._pending--;
       this._maybeFinalize();
@@ -728,6 +683,7 @@ export class Archiver extends Transform {
     globber.on("end", onGlobEnd.bind(this));
     return this;
   }
+
   /**
    * Finalizes the instance and prevents further appending to the archive
    * structure (queue will continue til drained).
@@ -735,8 +691,6 @@ export class Archiver extends Transform {
    * The `end`, `close` or `finish` events on the destination stream may fire
    * right after calling this method so you should set listeners beforehand to
    * properly detect stream completion.
-   *
-   * @return {Promise}
    */
   finalize() {
     if (this._state.aborted) {
@@ -767,17 +721,13 @@ export class Archiver extends Transform {
       });
     });
   }
+
   /**
    * Appends a symlink to the instance.
    *
    * This does NOT interact with filesystem and is used for programmatically creating symlinks.
-   *
-   * @param  {String} filepath The symlink path (within archive).
-   * @param  {String} target The target path (within archive).
-   * @param  {Number} mode Sets the entry permissions.
-   * @return {this}
    */
-  symlink(filepath, target, mode) {
+  symlink(filepath: string, target: string, mode: number): this {
     if (this._state.finalize || this._state.aborted) {
       this.emit("error", new ArchiverError("QUEUECLOSED"));
       return this;
@@ -815,6 +765,7 @@ export class Archiver extends Transform {
     });
     return this;
   }
+
   /**
    * @returns the current length (in bytes) that has been emitted.
    */

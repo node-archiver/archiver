@@ -11,7 +11,7 @@ export default class Json extends Transform {
   files: unknown[];
 
   constructor(options: TransformOptions) {
-    super({ ...options });
+    super(options);
     this.files = [];
   }
 

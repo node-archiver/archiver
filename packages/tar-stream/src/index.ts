@@ -1,4 +1,4 @@
-import { extract } from "./extract";
-import { pack } from "./pack";
+import { extract, type Extract } from "./extract";
+import { pack, type Pack } from "./pack";
 
-export { extract, pack };
+export { extract, pack, type Extract, type Pack };
