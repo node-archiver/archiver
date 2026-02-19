@@ -1,8 +1,7 @@
 import { test, expect } from "bun:test";
 
-import { Readable } from "streamx";
-
-import * as tar from "../src/index.js";
+import * as tar from "../src/index";
+import { Readable } from "../src/streamx";
 
 test("write and read huge archive", () => {
   const pack = tar.pack();

@@ -1,9 +1,8 @@
 import { constants } from "node:fs";
 
-import { Readable, Writable, getStreamError } from "streamx";
-
 import * as b4a from "./b4a";
 import * as headers from "./headers";
+import { Readable, Writable, getStreamError } from "./streamx";
 
 const DMODE = 0o755;
 const FMODE = 0o644;
@@ -141,7 +140,7 @@ class Pack extends Readable {
     this._stream = null;
   }
 
-  entry(header, buffer, callback) {
+  entry(header, buffer, callback?) {
     if (this._finalized || this.destroying)
       throw new Error("already finalized or destroyed");
 
@@ -295,6 +294,6 @@ function mapWritable(buf) {
   return b4a.isBuffer(buf) ? buf : Buffer.from(buf);
 }
 
-export function pack(opts) {
+export function pack(opts?) {
   return new Pack(opts);
 }

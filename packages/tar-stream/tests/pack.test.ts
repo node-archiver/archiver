@@ -2,9 +2,9 @@ import { test, expect } from "bun:test";
 import * as fs from "node:fs";
 
 import concat from "concat-stream";
-import { Writable } from "streamx";
 
-import * as tar from "../src/index.js";
+import * as tar from "../src/index";
+import { Writable } from "../src/streamx";
 import * as fixtures from "./fixtures";
 
 test("one-file", function () {

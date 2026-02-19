@@ -1,7 +1,7 @@
 import FIFO from "fast-fifo";
-import { Writable, Readable, getStreamError } from "streamx";
 
 import * as headers from "./headers";
+import { Writable, Readable, getStreamError } from "./streamx";
 
 const EMPTY = Buffer.alloc(0);
 
@@ -413,6 +413,6 @@ function overflow(size) {
   return size && 512 - size;
 }
 
-export function extract(opts) {
+export function extract(opts?) {
   return new Extract(opts);
 }

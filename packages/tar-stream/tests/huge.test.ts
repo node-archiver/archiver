@@ -2,9 +2,8 @@ import { test, expect } from "bun:test";
 import * as fs from "node:fs";
 import * as zlib from "node:zlib";
 
-import { Writable } from "streamx";
-
 import * as tar from "../src/index";
+import { Writable } from "../src/streamx";
 import * as fixtures from "./fixtures";
 
 const win32 = process.platform === "win32";
