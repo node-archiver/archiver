@@ -3,7 +3,8 @@ const STREAM_DESTROYED = new Error("Stream was destroyed");
 const PREMATURE_CLOSE = new Error("Premature close");
 
 import FIFO from "fast-fifo";
-import TextDecoder from "text-decoder";
+
+import TextDecoder from "./text-decoder/index";
 
 // if we do a future major, expect queue microtask to be there always, for now a bit defensive
 const qmt =
