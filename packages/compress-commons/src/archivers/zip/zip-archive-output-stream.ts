@@ -1,4 +1,4 @@
-import crc32 from "crc-32";
+import { crc32 } from "node:zlib";
 
 import { ArchiveOutputStream } from "../archive-output-stream.js";
 import {
@@ -69,7 +69,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     }
   }
 
-  _appendBuffer(ae, source, callback) {
+  _appendBuffer(ae, source: Buffer, callback) {
     if (source.length === 0) {
       ae.setMethod(METHOD_STORED);
     }
@@ -77,7 +77,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     if (method === METHOD_STORED) {
       ae.setSize(source.length);
       ae.setCompressedSize(source.length);
-      ae.setCrc(crc32.buf(source) >>> 0);
+      ae.setCrc(crc32(source) >>> 0);
     }
     this._writeLocalFileHeader(ae);
     if (method === METHOD_STORED) {

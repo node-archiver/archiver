@@ -108,11 +108,12 @@ class ArchiveOutputStream extends Transform {
     return this.offset;
   }
 
-  write(chunk, cb) {
+  write(chunk, cb?) {
     if (chunk) {
       this.offset += chunk.length;
     }
     return super.write(chunk, cb);
   }
 }
+
 export { ArchiveOutputStream };

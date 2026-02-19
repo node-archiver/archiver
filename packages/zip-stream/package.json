@@ -3,14 +3,14 @@
   "version": "0.0.1",
   "description": "a streaming zip archive generator",
   "license": "MIT",
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "exports": {
     ".": "./dist/index.mjs",
     "./package.json": "./package.json"
   },
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "build": "tsdown",
     "test": "bun test --reporter dot",
