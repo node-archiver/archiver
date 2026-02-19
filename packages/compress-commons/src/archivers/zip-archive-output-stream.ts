@@ -1,5 +1,5 @@
-import type Stream from "node:stream";
-import { crc32 } from "node:zlib";
+import type { Stream, TransformOptions } from "node:stream";
+import { crc32, type ZlibOptions } from "node:zlib";
 
 import {
   LONG_ZERO,
@@ -25,11 +25,7 @@ import { ArchiveOutputStream } from "./archive-output-stream";
 import { CRC32Stream, DeflateCRC32Stream } from "./crc32-stream";
 import type { ZipArchiveEntry } from "./zip-archive-entry";
 
-interface ZlibOptions {
-  level: number;
-}
-
-interface ZipOptions extends Partial<Stream.TransformOptions> {
+interface ZipOptions extends Partial<TransformOptions> {
   /** Forces the archive to contain local file times instead of UTC. */
   forceLocalTime?: boolean;
   /** Forces the archive to contain ZIP64 headers. */
@@ -52,6 +48,8 @@ function normalizeOptions(options?: Partial<ZipOptions>) {
 
 class ZipArchiveOutputStream extends ArchiveOutputStream {
   options: Partial<ZipOptions>;
+
+  private _entries: ZipArchiveEntry[];
 
   declare protected _archive: {
     centralLength: number;

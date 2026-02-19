@@ -21,7 +21,9 @@
     // "noImplicitAny": true,
     // "strictNullChecks": true,
     // "forceConsistentCasingInFileNames": true,
-    "verbatimModuleSyntax": true
+    "verbatimModuleSyntax": true,
+
+    "types": ["node"]
   },
   "include": ["**/src/*.ts"]
 }

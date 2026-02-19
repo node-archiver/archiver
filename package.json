@@ -5,7 +5,8 @@
       "packages/*"
     ],
     "catalog": {
-      "tsdown": "^0.20.3"
+      "tsdown": "^0.20.3",
+      "@types/node": "^25.3.0"
     }
   },
   "scripts": {
@@ -16,6 +17,7 @@
     "test": "bun run --filter='./packages/**' test"
   },
   "devDependencies": {
+    "@types/node": "catalog:",
     "oxfmt": "^0.33.0",
     "oxlint": "^1.48.0",
     "typescript": "^5.9.3"

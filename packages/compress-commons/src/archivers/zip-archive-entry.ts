@@ -18,20 +18,20 @@ import { GeneralPurposeBit } from "./general-purpose-bit";
 import * as UnixStat from "./unix-stat";
 
 class ZipArchiveEntry extends ArchiveEntry {
-  platform: number;
-  method: number;
-  name: string | null;
-  size: number;
-  csize: number;
-  gpb: GeneralPurposeBit;
-  crc: number;
-  time: number;
-  minver: number;
-  mode: number;
-  extra: Buffer | null;
-  exattr: number;
-  inattr: number;
-  comment: string | null;
+  declare platform: number;
+  declare method: number;
+  declare name: string | null;
+  declare size: number;
+  declare csize: number;
+  declare gpb: GeneralPurposeBit;
+  declare crc: number;
+  declare time: number;
+  declare minver: number;
+  declare mode: number;
+  declare extra: Buffer | null;
+  declare exattr: number;
+  declare inattr: number;
+  declare comment: string | null;
 
   constructor(name: string) {
     super();

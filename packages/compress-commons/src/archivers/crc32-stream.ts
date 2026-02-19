@@ -1,10 +1,5 @@
-import {
-  Transform,
-  type TransformCallback,
-  type TransformOptions,
-} from "node:stream";
-// @ts-expect-error
-import { DeflateRaw } from "node:zlib";
+import { Transform, type TransformCallback } from "node:stream";
+import { DeflateRaw, type ZlibOptions } from "node:zlib";
 import { crc32 } from "node:zlib";
 
 class CRC32Stream extends Transform {
@@ -44,14 +39,12 @@ class CRC32Stream extends Transform {
   }
 }
 
-declare class DeflateRaw extends Transform implements DeflateRaw {}
-
 class DeflateCRC32Stream extends DeflateRaw {
   checksum: number;
   rawSize: number;
   compressedSize: number;
 
-  constructor(options?: TransformOptions) {
+  constructor(options?: ZlibOptions) {
     super(options);
     this.checksum = 0;
     this.rawSize = 0;

@@ -1,8 +1,7 @@
 import {
-  Stream,
+  type Stream,
   Transform,
   isReadable,
-  // @ts-expect-error
   isWritable,
   PassThrough,
 } from "node:stream";
