@@ -1,6 +1,6 @@
 import type { Stream } from "node:stream";
 
-import ZipStream from "@archiver/zip-stream";
+import { ZipStream } from "@archiver/zip-stream";
 
 interface ZipEntryData {}
 

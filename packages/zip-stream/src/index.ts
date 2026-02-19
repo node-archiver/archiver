@@ -36,6 +36,15 @@ interface ZipOptions extends ZlibOptions {
   zlib?: ZlibOptions;
 }
 
+interface EntryData {
+  name: string;
+  comment?: string;
+  date?: string | Date;
+  mode?: number;
+  store?: boolean;
+  type?: string;
+}
+
 class ZipStream extends ZipArchiveOutputStream {
   constructor(options?: Partial<ZipOptions>) {
     options ??= {};
@@ -99,17 +108,12 @@ class ZipStream extends ZipArchiveOutputStream {
 
   /**
    * Appends an entry given an input source (text string, buffer, or stream).
-   *
-   * @param  {Object} data
-   * @param  {String} data.name Sets the entry name including internal path.
-   * @param  {String} [data.comment] Sets the entry comment.
-   * @param  {(String|Date)} [data.date=NOW()] Sets the entry date.
-   * @param  {Number} [data.mode=D:0755/F:0644] Sets the entry permissions.
-   * @param  {Boolean} [data.store=options.store] Sets the compression method to STORE.
-   * @param  {String} [data.type=file] Sets the entry type. Defaults to `directory` if name ends with trailing slash.
-   * @param  {Function} callback
    */
-  entry(source: Buffer | Stream | string, data, callback): this {
+  entry(
+    source: Buffer | Stream | string,
+    data: EntryData,
+    callback: (error: Error) => void,
+  ): this {
     if (typeof callback !== "function") {
       callback = this._emitErrorCallback.bind(this);
     }
@@ -168,4 +172,4 @@ class ZipStream extends ZipArchiveOutputStream {
   }
 }
 
-export { ZipStream, ZipStream as default, type ZipOptions };
+export { ZipStream, type ZipOptions };

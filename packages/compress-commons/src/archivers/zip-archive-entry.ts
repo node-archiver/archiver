@@ -18,12 +18,24 @@ import { GeneralPurposeBit } from "./general-purpose-bit";
 import * as UnixStat from "./unix-stat";
 
 class ZipArchiveEntry extends ArchiveEntry {
-  minver: number;
-  comment: null;
+  platform: number;
+  method: number;
+  name: string | null;
+  size: number;
+  csize: number;
+  gpb: GeneralPurposeBit;
+  crc: number;
   time: number;
+  minver: number;
+  mode: number;
+  extra: Buffer | null;
+  exattr: number;
+  inattr: number;
+  comment: string | null;
 
   constructor(name: string) {
     super();
+
     this.platform = PLATFORM_FAT;
     this.method = -1;
     this.name = null;
@@ -212,47 +224,42 @@ class ZipArchiveEntry extends ArchiveEntry {
     }
     this.crc = crc;
   }
+
   /**
    * Sets the external file attributes of the entry.
-   *
-   * @param attr
    */
-  setExternalAttributes(attr) {
+  setExternalAttributes(attr): void {
     this.exattr = attr >>> 0;
   }
+
   /**
    * Sets the extra fields related to the entry.
-   *
-   * @param extra
    */
-  setExtra(extra) {
+  setExtra(extra: Buffer<ArrayBufferLike>): void {
     this.extra = extra;
   }
+
   /**
    * Sets the general purpose bits related to the entry.
-   *
-   * @param gpb
    */
-  setGeneralPurposeBit(gpb) {
+  setGeneralPurposeBit(gpb: GeneralPurposeBit): void {
     if (!(gpb instanceof GeneralPurposeBit)) {
       throw new Error("invalid entry GeneralPurposeBit");
     }
     this.gpb = gpb;
   }
+
   /**
    * Sets the internal file attributes of the entry.
-   *
-   * @param attr
    */
-  setInternalAttributes(attr) {
+  setInternalAttributes(attr: number): void {
     this.inattr = attr;
   }
+
   /**
    * Sets the compression method of the entry.
-   *
-   * @param method
    */
-  setMethod(method) {
+  setMethod(method: number): void {
     if (method < 0) {
       throw new Error("invalid entry compression method");
     }

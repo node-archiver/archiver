@@ -96,7 +96,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     };
   }
 
-  _afterAppend(ae: ZipArchiveEntry) {
+  _afterAppend(ae: ZipArchiveEntry): void {
     this._entries.push(ae);
     if (ae.getGeneralPurposeBit().usesDataDescriptor()) {
       this._writeDataDescriptor(ae);
@@ -108,7 +108,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     }
   }
 
-  _appendBuffer(ae: ZipArchiveEntry, source: Buffer, callback) {
+  _appendBuffer(ae: ZipArchiveEntry, source: Buffer, callback): void {
     if (source.length === 0) {
       ae.setMethod(METHOD_STORED);
     }
@@ -133,7 +133,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     }
   }
 
-  _appendStream(ae, source, callback) {
+  _appendStream(ae: ZipArchiveEntry, source, callback): void {
     ae.getGeneralPurposeBit().useDataDescriptor(true);
     ae.setVersionNeededToExtract(MIN_VERSION_DATA_DESCRIPTOR);
     this._writeLocalFileHeader(ae);
@@ -330,7 +330,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     this.write(comment);
   }
 
-  _writeDataDescriptor(ae): void {
+  _writeDataDescriptor(ae: ZipArchiveEntry): void {
     // signature
     this.write(getLongBytes(SIG_DD));
     // crc32 checksum
@@ -345,7 +345,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     }
   }
 
-  _writeLocalFileHeader(ae): void {
+  _writeLocalFileHeader(ae: ZipArchiveEntry): void {
     const gpb = ae.getGeneralPurposeBit();
     const method = ae.getMethod();
     let name = ae.getName();
