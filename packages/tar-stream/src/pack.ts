@@ -8,7 +8,7 @@ import * as headers from "./headers";
 const DMODE = 0o755;
 const FMODE = 0o644;
 
-const END_OF_TAR = b4a.alloc(1024);
+const END_OF_TAR = Buffer.alloc(1024);
 
 class Sink extends Writable {
   constructor(pack, header, callback) {
@@ -71,7 +71,7 @@ class Sink extends Writable {
   _write(data, cb) {
     if (this._isLinkname) {
       this._linkname = this._linkname
-        ? b4a.concat([this._linkname, data])
+        ? Buffer.concat([this._linkname, data])
         : data;
       return cb(null);
     }
@@ -159,7 +159,7 @@ class Pack extends Readable {
     if (!header.gid) header.gid = 0;
     if (!header.mtime) header.mtime = new Date();
 
-    if (typeof buffer === "string") buffer = b4a.from(buffer);
+    if (typeof buffer === "string") buffer = Buffer.from(buffer);
 
     const sink = new Sink(this, header, callback);
 
@@ -292,7 +292,7 @@ function overflow(self, size) {
 }
 
 function mapWritable(buf) {
-  return b4a.isBuffer(buf) ? buf : b4a.from(buf);
+  return b4a.isBuffer(buf) ? buf : Buffer.from(buf);
 }
 
 export function pack(opts) {
