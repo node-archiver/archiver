@@ -1,6 +1,5 @@
-function dateToDos(d, forceLocalTime) {
-  forceLocalTime = forceLocalTime || false;
-  const year = forceLocalTime ? d.getFullYear() : d.getUTCFullYear();
+function dateToDos(date: Date, forceLocalTime: boolean = false): number {
+  const year = forceLocalTime ? date.getFullYear() : date.getUTCFullYear();
   if (year < 1980) {
     return 2162688; // 1980-1-1 00:00:00
   } else if (year >= 2044) {
@@ -8,11 +7,11 @@ function dateToDos(d, forceLocalTime) {
   }
   const val = {
     year: year,
-    month: forceLocalTime ? d.getMonth() : d.getUTCMonth(),
-    date: forceLocalTime ? d.getDate() : d.getUTCDate(),
-    hours: forceLocalTime ? d.getHours() : d.getUTCHours(),
-    minutes: forceLocalTime ? d.getMinutes() : d.getUTCMinutes(),
-    seconds: forceLocalTime ? d.getSeconds() : d.getUTCSeconds(),
+    month: forceLocalTime ? date.getMonth() : date.getUTCMonth(),
+    date: forceLocalTime ? date.getDate() : date.getUTCDate(),
+    hours: forceLocalTime ? date.getHours() : date.getUTCHours(),
+    minutes: forceLocalTime ? date.getMinutes() : date.getUTCMinutes(),
+    seconds: forceLocalTime ? date.getSeconds() : date.getUTCSeconds(),
   };
   return (
     ((val.year - 1980) << 25) |
@@ -35,30 +34,30 @@ function dosToDate(dos: number): Date {
   );
 }
 
-function getEightBytes(v) {
+function getEightBytes(v: number): Buffer<ArrayBuffer> {
   const buf = Buffer.alloc(8);
   buf.writeUInt32LE(v % 0x0100000000, 0);
   buf.writeUInt32LE((v / 0x0100000000) | 0, 4);
   return buf;
 }
 
-function getShortBytes(v) {
+function getShortBytes(v: number): Buffer<ArrayBuffer> {
   const buf = Buffer.alloc(2);
   buf.writeUInt16LE((v & 0xffff) >>> 0, 0);
   return buf;
 }
 
-function getShortBytesValue(buf, offset) {
+function getShortBytesValue(buf: Buffer, offset?: number): number {
   return buf.readUInt16LE(offset);
 }
 
-function getLongBytes(v) {
+function getLongBytes(v: number): Buffer<ArrayBuffer> {
   const buf = Buffer.alloc(4);
   buf.writeUInt32LE((v & 0xffffffff) >>> 0, 0);
   return buf;
 }
 
-function normalizePath(path, stripTrailing) {
+function normalizePath(path: string, stripTrailing: boolean): string {
   if (typeof path !== "string") {
     throw new TypeError("expected path to be a string");
   }

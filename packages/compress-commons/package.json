@@ -9,6 +9,8 @@
   "type": "module",
   "exports": {
     ".": "./dist/index.mjs",
+    "./constants": "./dist/constants.mjs",
+    "./util": "./dist/util.mjs",
     "./package.json": "./package.json"
   },
   "scripts": {

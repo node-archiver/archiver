@@ -1,4 +1,3 @@
-import { ArchiveEntry } from "../archive-entry.js";
 import {
   EMPTY,
   MIN_VERSION_INITIAL,
@@ -12,10 +11,11 @@ import {
   SHORT_MASK,
   SHORT_SHIFT,
   ZIP64_MAGIC,
-} from "./constants.js";
+} from "../constants";
+import { dateToDos, dosToDate, normalizePath } from "../util";
+import { ArchiveEntry } from "./archive-entry";
 import { GeneralPurposeBit } from "./general-purpose-bit";
 import * as UnixStat from "./unix-stat";
-import { dateToDos, dosToDate, normalizePath } from "./util";
 
 class ZipArchiveEntry extends ArchiveEntry {
   minver: number;

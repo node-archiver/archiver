@@ -1,6 +1,5 @@
 import { crc32 } from "node:zlib";
 
-import { ArchiveOutputStream } from "../archive-output-stream.js";
 import {
   LONG_ZERO,
   METHOD_DEFLATED,
@@ -19,9 +18,11 @@ import {
   ZIP64_MAGIC,
   ZIP64_MAGIC_SHORT,
   ZLIB_BEST_SPEED,
-} from "./constants";
+} from "../constants";
+import { getEightBytes, getLongBytes, getShortBytes } from "../util";
+import { ArchiveOutputStream } from "./archive-output-stream";
 import { CRC32Stream, DeflateCRC32Stream } from "./crc32-stream";
-import { getEightBytes, getLongBytes, getShortBytes } from "./util";
+import type { ZipArchiveEntry } from "./zip-archive-entry";
 
 interface ZlibOptions {
   level: number;
@@ -66,6 +67,17 @@ function normalizeOptions(o?: Partial<ZipOptions>) {
 }
 
 class ZipArchiveOutputStream extends ArchiveOutputStream {
+  declare protected _archive: {
+    centralLength: number;
+    centralOffset: number;
+    comment: string;
+    finish: boolean;
+    finished: boolean;
+    processing: boolean;
+    forceZip64: boolean;
+    forceLocalTime: boolean;
+  };
+
   constructor(options?: Partial<ZipOptions>) {
     const normalizedOptions = normalizeOptions(options);
     super(normalizedOptions);
@@ -84,7 +96,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     };
   }
 
-  _afterAppend(ae) {
+  _afterAppend(ae: ZipArchiveEntry) {
     this._entries.push(ae);
     if (ae.getGeneralPurposeBit().usesDataDescriptor()) {
       this._writeDataDescriptor(ae);
@@ -96,7 +108,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     }
   }
 
-  _appendBuffer(ae, source: Buffer, callback) {
+  _appendBuffer(ae: ZipArchiveEntry, source: Buffer, callback) {
     if (source.length === 0) {
       ae.setMethod(METHOD_STORED);
     }

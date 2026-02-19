@@ -3,8 +3,8 @@ import { createReadStream, mkdirSync } from "node:fs";
 import { Transform } from "node:stream";
 import { Readable } from "node:stream";
 
-import { ZipArchiveEntry, ZipArchiveOutputStream } from "../src/index.js";
-import { WriteHashStream, binaryBuffer } from "./helpers/index.js";
+import { ZipArchiveEntry, ZipArchiveOutputStream } from "../src/index";
+import { WriteHashStream, binaryBuffer } from "./helpers/index";
 
 const testBuffer = binaryBuffer(1024 * 16);
 

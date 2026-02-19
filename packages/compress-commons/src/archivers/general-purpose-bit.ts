@@ -1,4 +1,4 @@
-import { getShortBytes, getShortBytesValue } from "./util.js";
+import { getShortBytes, getShortBytesValue } from "../util";
 
 const DATA_DESCRIPTOR_FLAG = 1 << 3;
 const ENCRYPTION_FLAG = 1 << 0;

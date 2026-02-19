@@ -8,7 +8,7 @@ import {
 } from "node:stream";
 
 import { ArchiveEntry } from "./archive-entry";
-import type { ZipArchiveEntry } from "./zip/zip-archive-entry";
+import type { ZipArchiveEntry } from "./zip-archive-entry";
 
 function normalizeInputSource(source: null | string | Stream) {
   if (source === null) {
@@ -30,7 +30,12 @@ function normalizeInputSource(source: null | string | Stream) {
 
 class ArchiveOutputStream extends Transform {
   offset: number;
-  private _archive: { finish: boolean; finished: boolean; processing: boolean };
+
+  protected _archive: {
+    finish: boolean;
+    finished: boolean;
+    processing: boolean;
+  };
 
   constructor(options?: Stream.TransformOptions) {
     super(options);
