@@ -12,19 +12,25 @@ function normalizeInputSource(source: null | string | Stream) {
   if (source === null) {
     return Buffer.alloc(0);
   }
+
   if (typeof source === "string") {
     return Buffer.from(source);
   }
+
   if ((isReadable(source) || isWritable(source)) && !source._readableState) {
     const normalized = new PassThrough();
     source.pipe(normalized);
     return normalized;
   }
+
   return source;
 }
 
 class ArchiveOutputStream extends Transform {
-  constructor(options) {
+  offset: number;
+  private _archive: { finish: boolean; finished: boolean; processing: boolean };
+
+  constructor(options?: Stream.TransformOptions) {
     super(options);
 
     this.offset = 0;
@@ -49,7 +55,7 @@ class ArchiveOutputStream extends Transform {
     }
   }
 
-  _finish(ae) {
+  _finish(ae?) {
     // scaffold only
   }
 

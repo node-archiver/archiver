@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import {
   Transform,
-  TransformCallback,
+  type TransformCallback,
   isReadable,
   isWritable,
   type Stream,

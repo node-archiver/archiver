@@ -1,4 +1,5 @@
 import { Transform } from "node:stream";
+// @ts-expect-error
 import { DeflateRaw } from "node:zlib";
 import { crc32 } from "node:zlib";
 
@@ -25,14 +26,17 @@ class CRC32Stream extends Transform {
     checksum.writeUInt32BE(this.checksum >>> 0, 0);
     return encoding ? checksum.toString(encoding) : checksum;
   }
+
   hex() {
     return this.digest("hex").toUpperCase();
   }
+
   size() {
     return this.rawSize;
   }
 }
 
+// @ts-expect-error
 class DeflateCRC32Stream extends DeflateRaw {
   checksum: number;
   rawSize: number;

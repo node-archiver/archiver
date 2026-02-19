@@ -15,8 +15,8 @@ class GeneralPurposeBit {
     this.numberOfShannonFanoTrees = 0;
     this.strongEncryption = false;
     this.slidingDictionarySize = 0;
-    return this;
   }
+
   encode() {
     return getShortBytes(
       (this.descriptor ? DATA_DESCRIPTOR_FLAG : 0) |
@@ -25,6 +25,7 @@ class GeneralPurposeBit {
         (this.strongEncryption ? STRONG_ENCRYPTION_FLAG : 0),
     );
   }
+
   static parse(buf, offset) {
     const flag = getShortBytesValue(buf, offset);
     const gbp = new GeneralPurposeBit();
@@ -40,39 +41,51 @@ class GeneralPurposeBit {
     );
     return gbp;
   }
+
   setNumberOfShannonFanoTrees(n) {
     this.numberOfShannonFanoTrees = n;
   }
+
   getNumberOfShannonFanoTrees() {
     return this.numberOfShannonFanoTrees;
   }
+
   setSlidingDictionarySize(n) {
     this.slidingDictionarySize = n;
   }
+
   getSlidingDictionarySize() {
     return this.slidingDictionarySize;
   }
+
   useDataDescriptor(b) {
     this.descriptor = b;
   }
+
   usesDataDescriptor() {
     return this.descriptor;
   }
+
   useEncryption(b) {
     this.encryption = b;
   }
+
   usesEncryption() {
     return this.encryption;
   }
+
   useStrongEncryption(b) {
     this.strongEncryption = b;
   }
+
   usesStrongEncryption() {
     return this.strongEncryption;
   }
+
   useUTF8ForNames(b) {
     this.utf8 = b;
   }
+
   usesUTF8ForNames() {
     return this.utf8;
   }

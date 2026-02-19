@@ -23,6 +23,33 @@ import {
 import { CRC32Stream, DeflateCRC32Stream } from "./crc32-stream";
 import { getEightBytes, getLongBytes, getShortBytes } from "./util.js";
 
+interface ZlibOptions {}
+
+interface ZipOptions {
+  /**
+   * Sets the zip archive comment.
+   * @default ""
+   */
+  comment: string;
+  /** @default false */
+  forceUTC: boolean;
+  /** Forces the archive to contain local file times instead of UTC. */
+  forceLocalTime?: boolean;
+  /** Forces the archive to contain ZIP64 headers. */
+  forceZip64?: boolean;
+  /**
+   * Prepends a forward slash to archive file paths.
+   * @default false
+   */
+  namePrependSlash: boolean;
+  /**
+   * Sets the compression method to STORE.
+   * @default false
+   */
+  store: boolean;
+  zlib?: ZlibOptions;
+}
+
 function _defaults(o) {
   if (typeof o !== "object") {
     o = {};

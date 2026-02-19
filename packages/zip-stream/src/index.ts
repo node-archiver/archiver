@@ -7,20 +7,35 @@ import {
 
 import { dateify, sanitizePath } from "./utils.js";
 
-export default class ZipStream extends ZipArchiveOutputStream {
+interface ZlibOptions {}
+
+interface ZipOptions {
   /**
-   * @constructor
-   * @extends external:ZipArchiveOutputStream
-   * @param {Object} [options]
-   * @param {String} [options.comment] Sets the zip archive comment.
-   * @param {Boolean} [options.forceLocalTime=false] Forces the archive to contain local file times instead of UTC.
-   * @param {Boolean} [options.forceZip64=false] Forces the archive to contain ZIP64 headers.
-   * @param {Boolean} [options.store=false] Sets the compression method to STORE.
-   * @param {Object} [options.zlib] Passed to [zlib]{@link https://nodejs.org/api/zlib.html#zlib_class_options}
-   * to control compression.
+   * Sets the zip archive comment.
+   * @default ""
    */
-  constructor(options) {
-    options = options || {};
+  comment: string;
+  /** @default false */
+  forceUTC: boolean;
+  /** Forces the archive to contain local file times instead of UTC. */
+  forceLocalTime?: boolean;
+  /** Forces the archive to contain ZIP64 headers. */
+  forceZip64?: boolean;
+  /**
+   * Prepends a forward slash to archive file paths.
+   * @default false
+   */
+  namePrependSlash: boolean;
+  /**
+   * Sets the compression method to STORE.
+   * @default false
+   */
+  store: boolean;
+  zlib?: ZlibOptions;
+}
+
+class ZipStream extends ZipArchiveOutputStream {
+  constructor(options: Partial<ZipOptions> = {}) {
     options.zlib = options.zlib || {};
 
     if (typeof options.level === "number" && options.level >= 0) {
@@ -148,3 +163,5 @@ export default class ZipStream extends ZipArchiveOutputStream {
     this.finish();
   }
 }
+
+export { ZipStream, ZipStream as default, type ZipOptions };

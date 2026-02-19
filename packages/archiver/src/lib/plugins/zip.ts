@@ -2,44 +2,24 @@ import type { Stream } from "node:stream";
 
 import ZipStream from "@archiver/zip-stream";
 
-interface ZipOptions {
-  /** Sets the zip archive comment. */
-  comment?: string;
-  /** Forces the archive to contain local file times instead of UTC. */
-  forceLocalTime?: boolean;
-  /** Forces the archive to contain ZIP64 headers. */
-  forceZip64?: boolean;
-  /** Prepends a forward slash to archive file paths. */
-  namePrependSlash?: boolean;
-  /** Sets the compression method to STORE. */
-  store?: boolean;
-}
-
 interface ZipEntryData {}
 
 export default class Zip {
   engine: ZipStream;
+  options: ZipOptions;
 
-  /**
-   * @constructor
-   * @param {ZipOptions} [options]
-   * @param {String} [options.comment] Sets the zip archive comment.
-   * @param {Boolean} [options.forceLocalTime=false] Forces the archive to contain local file times instead of UTC.
-   * @param {Boolean} [options.forceZip64=false] Forces the archive to contain ZIP64 headers.
-   * @param {Boolean} [options.namePrependSlash=false] Prepends a forward slash to archive file paths.
-   * @param {Boolean} [options.store=false] Sets the compression method to STORE.
-   * @param {Object} [options.zlib] Passed to [zlib]{@link https://nodejs.org/api/zlib.html#zlib_class_options}
-   */
-  constructor(optionsParam?: ZipOptions) {
-    const options = (this.options = {
+  constructor(
+    options: ZipOptions = {
       comment: "",
       forceUTC: false,
       namePrependSlash: false,
       store: false,
-      ...optionsParam,
-    });
+    },
+  ) {
+    this.options = options;
     this.engine = new ZipStream(options);
   }
+
   /**
    * @param  {ZipEntryData} data
    * @param  {String} data.name Sets the entry name including internal path.

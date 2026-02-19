@@ -18,7 +18,7 @@ import * as UnixStat from "./unix-stat";
 import { dateToDos, dosToDate, normalizePath } from "./util";
 
 class ZipArchiveEntry extends ArchiveEntry {
-  constructor(name) {
+  constructor(name: string) {
     super();
     this.platform = PLATFORM_FAT;
     this.method = -1;
@@ -34,6 +34,7 @@ class ZipArchiveEntry extends ArchiveEntry {
     this.exattr = 0;
     this.inattr = 0;
     this.comment = null;
+
     if (name) {
       this.setName(name);
     }
@@ -41,100 +42,79 @@ class ZipArchiveEntry extends ArchiveEntry {
 
   /**
    * Returns the extra fields related to the entry.
-   *
-   * @returns {Buffer}
    */
-  getCentralDirectoryExtra() {
+  getCentralDirectoryExtra(): Buffer {
     return this.getExtra();
   }
 
   /**
    * Returns the comment set for the entry.
-   *
-   * @returns {string}
    */
-  getComment() {
+  getComment(): string {
     return this.comment !== null ? this.comment : "";
   }
 
   /**
    * Returns the compressed size of the entry.
-   *
-   * @returns {number}
    */
-  getCompressedSize() {
+  getCompressedSize(): number {
     return this.csize;
   }
 
   /**
    * Returns the CRC32 digest for the entry.
-   *
-   * @returns {number}
    */
-  getCrc() {
+  getCrc(): number {
     return this.crc;
   }
 
   /**
    * Returns the external file attributes for the entry.
-   *
-   * @returns {number}
    */
-  getExternalAttributes = function () {
+  getExternalAttributes(): number {
     return this.exattr;
-  };
+  }
 
   /**
    * Returns the extra fields related to the entry.
-   *
-   * @returns {Buffer}
    */
-  getExtra() {
+  getExtra(): Buffer {
     return this.extra !== null ? this.extra : EMPTY;
   }
 
   /**
    * Returns the general purpose bits related to the entry.
-   *
-   * @returns {GeneralPurposeBit}
    */
-  getGeneralPurposeBit() {
+  getGeneralPurposeBit(): GeneralPurposeBit {
     return this.gpb;
   }
 
   /**
    * Returns the internal file attributes for the entry.
    *
-   * @returns {number}
    */
-  getInternalAttributes() {
+  getInternalAttributes(): number {
     return this.inattr;
   }
 
   /**
    * Returns the last modified date of the entry.
-   *
-   * @returns {number}
    */
-  getLastModifiedDate() {
+  getLastModifiedDate(): number {
     return this.getTime();
   }
 
   /**
    * Returns the extra fields related to the entry.
-   *
-   * @returns {Buffer}
    */
-  getLocalFileDataExtra() {
+  getLocalFileDataExtra(): Buffer {
     return this.getExtra();
   }
 
   /**
    * Returns the compression method used on the entry.
-   *
-   * @returns {number}
    */
-  getMethod() {
+  getMethod(): number {
     return this.method;
   }
 
@@ -163,6 +143,7 @@ class ZipArchiveEntry extends ArchiveEntry {
   getSize() {
     return this.size;
   }
+
   /**
    * Returns a date object representing the last modified date of the entry.
    *
@@ -171,6 +152,7 @@ class ZipArchiveEntry extends ArchiveEntry {
   getTime() {
     return this.time !== -1 ? dosToDate(this.time) : -1;
   }
+
   /**
    * Returns the DOS timestamp for the entry.
    *
@@ -179,24 +161,23 @@ class ZipArchiveEntry extends ArchiveEntry {
   getTimeDos() {
     return this.time !== -1 ? this.time : 0;
   }
+
   /**
    * Returns the UNIX file permissions for the entry.
-   *
-   * @returns {number}
    */
-  getUnixMode() {
+  getUnixMode(): number {
     return this.platform !== PLATFORM_UNIX
       ? 0
       : (this.getExternalAttributes() >> SHORT_SHIFT) & SHORT_MASK;
   }
+
   /**
    * Returns the version of ZIP needed to extract the entry.
-   *
-   * @returns {number}
    */
-  getVersionNeededToExtract() {
+  getVersionNeededToExtract(): number {
     return this.minver;
   }
+
   /**
    * Sets the comment of the entry.
    *
@@ -208,12 +189,11 @@ class ZipArchiveEntry extends ArchiveEntry {
     }
     this.comment = comment;
   }
+
   /**
    * Sets the compressed size of the entry.
-   *
-   * @param size
    */
-  setCompressedSize(size) {
+  setCompressedSize(size: number) {
     if (size < 0) {
       throw new Error("invalid entry compressed size");
     }
@@ -276,24 +256,26 @@ class ZipArchiveEntry extends ArchiveEntry {
     }
     this.method = method;
   }
+
   /**
    * Sets the name of the entry.
-   *
-   * @param name
-   * @param prependSlash
    */
-  setName(name, prependSlash = false) {
+  setName(name: string, prependSlash: boolean = false) {
     name = normalizePath(name, false)
       .replace(/^\w+:/, "")
       .replace(/^(\.\.\/|\/)+/, "");
+
     if (prependSlash) {
       name = `/${name}`;
     }
+
     if (Buffer.byteLength(name) !== name.length) {
       this.getGeneralPurposeBit().useUTF8ForNames(true);
     }
+
     this.name = name;
   }
+
   /**
    * Sets the platform on which the entry was made.
    *

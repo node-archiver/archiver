@@ -1,8 +1,8 @@
 abstract class ArchiveEntry {
-  getName() {}
-  getSize() {}
-  getLastModifiedDate() {}
-  isDirectory() {}
+  abstract getName(): string;
+  abstract getSize(): number;
+  abstract getLastModifiedDate(): number;
+  abstract isDirectory(): boolean;
 }
 
 export { ArchiveEntry };

@@ -1,4 +1,4 @@
-export function dateToDos(d, forceLocalTime) {
+function dateToDos(d, forceLocalTime) {
   forceLocalTime = forceLocalTime || false;
   const year = forceLocalTime ? d.getFullYear() : d.getUTCFullYear();
   if (year < 1980) {
@@ -23,7 +23,8 @@ export function dateToDos(d, forceLocalTime) {
     (val.seconds / 2)
   );
 }
-export function dosToDate(dos) {
+
+function dosToDate(dos) {
   return new Date(
     ((dos >> 25) & 0x7f) + 1980,
     ((dos >> 21) & 0x0f) - 1,
@@ -34,27 +35,30 @@ export function dosToDate(dos) {
   );
 }
 
-export function getEightBytes(v) {
+function getEightBytes(v) {
   const buf = Buffer.alloc(8);
   buf.writeUInt32LE(v % 0x0100000000, 0);
   buf.writeUInt32LE((v / 0x0100000000) | 0, 4);
   return buf;
 }
-export function getShortBytes(v) {
+
+function getShortBytes(v) {
   const buf = Buffer.alloc(2);
   buf.writeUInt16LE((v & 0xffff) >>> 0, 0);
   return buf;
 }
-export function getShortBytesValue(buf, offset) {
+
+function getShortBytesValue(buf, offset) {
   return buf.readUInt16LE(offset);
 }
-export function getLongBytes(v) {
+
+function getLongBytes(v) {
   const buf = Buffer.alloc(4);
   buf.writeUInt32LE((v & 0xffffffff) >>> 0, 0);
   return buf;
 }
 
-export function normalizePath(path, stripTrailing) {
+function normalizePath(path, stripTrailing) {
   if (typeof path !== "string") {
     throw new TypeError("expected path to be a string");
   }
@@ -82,3 +86,13 @@ export function normalizePath(path, stripTrailing) {
   }
   return prefix + segs.join("/");
 }
+
+export {
+  dateToDos,
+  dosToDate,
+  getEightBytes,
+  getShortBytes,
+  getShortBytesValue,
+  getLongBytes,
+  normalizePath,
+};
