@@ -1,22 +1,25 @@
 import { Transform } from "node:stream";
 import { DeflateRaw } from "node:zlib";
-
-import crc32 from "crc-32";
+import { crc32 } from "node:zlib";
 
 class CRC32Stream extends Transform {
-  constructor(options) {
+  checksum: number;
+  rawSize: number;
+
+  constructor(options?) {
     super(options);
-    this.checksum = Buffer.allocUnsafe(4);
-    this.checksum.writeInt32BE(0, 0);
+    this.checksum = 0;
     this.rawSize = 0;
   }
+
   _transform(chunk, encoding, callback) {
     if (chunk) {
-      this.checksum = crc32.buf(chunk, this.checksum) >>> 0;
+      this.checksum = crc32(chunk, this.checksum) >>> 0;
       this.rawSize += chunk.length;
     }
     callback(null, chunk);
   }
+
   digest(encoding) {
     const checksum = Buffer.allocUnsafe(4);
     checksum.writeUInt32BE(this.checksum >>> 0, 0);
@@ -31,13 +34,17 @@ class CRC32Stream extends Transform {
 }
 
 class DeflateCRC32Stream extends DeflateRaw {
+  checksum: number;
+  rawSize: number;
+  compressedSize: number;
+
   constructor(options) {
     super(options);
-    this.checksum = Buffer.allocUnsafe(4);
-    this.checksum.writeInt32BE(0, 0);
+    this.checksum = 0;
     this.rawSize = 0;
     this.compressedSize = 0;
   }
+
   push(chunk, encoding) {
     if (chunk) {
       this.compressedSize += chunk.length;
@@ -46,19 +53,22 @@ class DeflateCRC32Stream extends DeflateRaw {
   }
   _transform(chunk, encoding, callback) {
     if (chunk) {
-      this.checksum = crc32.buf(chunk, this.checksum) >>> 0;
+      this.checksum = crc32(chunk, this.checksum) >>> 0;
       this.rawSize += chunk.length;
     }
     super._transform(chunk, encoding, callback);
   }
-  digest(encoding) {
+
+  digest<T extends string | Buffer>(encoding?: "hex"): T {
     const checksum = Buffer.allocUnsafe(4);
     checksum.writeUInt32BE(this.checksum >>> 0, 0);
-    return encoding ? checksum.toString(encoding) : checksum;
+    return (encoding ? checksum.toString(encoding) : checksum) as T;
   }
+
   hex() {
-    return this.digest("hex").toUpperCase();
+    return this.digest<string>("hex").toUpperCase();
   }
+
   size(compressed = false) {
     if (compressed) {
       return this.compressedSize;
