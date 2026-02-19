@@ -58,7 +58,7 @@ class DeflateCRC32Stream extends DeflateRaw {
     this.compressedSize = 0;
   }
 
-  push(chunk, encoding?: BufferEncoding): boolean {
+  push(chunk: string | Buffer, encoding?: BufferEncoding): boolean {
     if (chunk) {
       this.compressedSize += chunk.length;
     }
@@ -66,7 +66,7 @@ class DeflateCRC32Stream extends DeflateRaw {
   }
 
   _transform(
-    chunk,
+    chunk: string | Buffer,
     encoding: BufferEncoding,
     callback: TransformCallback,
   ): void {

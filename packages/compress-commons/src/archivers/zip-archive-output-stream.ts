@@ -183,7 +183,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
 
   _smartStream(
     ae: ZipArchiveEntry,
-    callback,
+    callback: (error: Error, ae: ZipArchiveEntry) => void,
   ): CRC32Stream | DeflateCRC32Stream {
     const deflate = ae.getMethod() === METHOD_DEFLATED;
     const process = deflate

@@ -116,7 +116,7 @@ class ZipArchiveEntry extends ArchiveEntry {
   /**
    * Returns the last modified date of the entry.
    */
-  getLastModifiedDate(): number {
+  getLastModifiedDate(): -1 | Date {
     return this.getTime();
   }
 
@@ -136,27 +136,22 @@ class ZipArchiveEntry extends ArchiveEntry {
 
   /**
    * Returns the filename of the entry.
-   *
-   * @returns {string}
    */
-  getName() {
+  getName(): string {
     return this.name;
   }
 
   /**
    * Returns the platform on which the entry was made.
-   *
-   * @returns {number}
    */
-  getPlatform() {
+  getPlatform(): number {
     return this.platform;
   }
+
   /**
    * Returns the size of the entry.
-   *
-   * @returns {number}
    */
-  getSize() {
+  getSize(): number {
     return this.size;
   }
 
@@ -169,10 +164,8 @@ class ZipArchiveEntry extends ArchiveEntry {
 
   /**
    * Returns the DOS timestamp for the entry.
-   *
-   * @returns {number}
    */
-  getTimeDos() {
+  getTimeDos(): number {
     return this.time !== -1 ? this.time : 0;
   }
 
@@ -194,10 +187,8 @@ class ZipArchiveEntry extends ArchiveEntry {
 
   /**
    * Sets the comment of the entry.
-   *
-   * @param comment
    */
-  setComment(comment) {
+  setComment(comment: string): void {
     if (Buffer.byteLength(comment) !== comment.length) {
       this.getGeneralPurposeBit().useUTF8ForNames(true);
     }
@@ -207,18 +198,17 @@ class ZipArchiveEntry extends ArchiveEntry {
   /**
    * Sets the compressed size of the entry.
    */
-  setCompressedSize(size: number) {
+  setCompressedSize(size: number): void {
     if (size < 0) {
       throw new Error("invalid entry compressed size");
     }
     this.csize = size;
   }
+
   /**
    * Sets the checksum of the entry.
-   *
-   * @param crc
    */
-  setCrc(crc) {
+  setCrc(crc: number): void {
     if (crc < 0) {
       throw new Error("invalid entry crc32");
     }
@@ -228,7 +218,7 @@ class ZipArchiveEntry extends ArchiveEntry {
   /**
    * Sets the external file attributes of the entry.
    */
-  setExternalAttributes(attr): void {
+  setExternalAttributes(attr: number): void {
     this.exattr = attr >>> 0;
   }
 
@@ -269,7 +259,7 @@ class ZipArchiveEntry extends ArchiveEntry {
   /**
    * Sets the name of the entry.
    */
-  setName(name: string, prependSlash: boolean = false) {
+  setName(name: string, prependSlash: boolean = false): void {
     name = normalizePath(name, false)
       .replace(/^\w+:/, "")
       .replace(/^(\.\.\/|\/)+/, "");
@@ -287,19 +277,15 @@ class ZipArchiveEntry extends ArchiveEntry {
 
   /**
    * Sets the platform on which the entry was made.
-   *
-   * @param platform
    */
-  setPlatform(platform) {
+  setPlatform(platform: number): void {
     this.platform = platform;
   }
 
   /**
    * Sets the size of the entry.
-   *
-   * @param size
    */
-  setSize(size) {
+  setSize(size: number): void {
     if (size < 0) {
       throw new Error("invalid entry size");
     }
@@ -309,7 +295,7 @@ class ZipArchiveEntry extends ArchiveEntry {
   /**
    * Sets the time of the entry.
    */
-  setTime(time: Date, forceLocalTime) {
+  setTime(time: Date, forceLocalTime?: boolean): void {
     if (!(time instanceof Date)) {
       throw new Error("invalid entry time");
     }
@@ -318,10 +304,8 @@ class ZipArchiveEntry extends ArchiveEntry {
 
   /**
    * Sets the UNIX file permissions for the entry.
-   *
-   * @param mode
    */
-  setUnixMode(mode) {
+  setUnixMode(mode: number): void {
     mode |= this.isDirectory() ? S_IFDIR : S_IFREG;
     let extattr = 0;
     extattr |= (mode << SHORT_SHIFT) | (this.isDirectory() ? S_DOS_D : S_DOS_A);
@@ -333,7 +317,7 @@ class ZipArchiveEntry extends ArchiveEntry {
   /**
    * Sets the version of ZIP needed to extract this entry.
    */
-  setVersionNeededToExtract(minver): void {
+  setVersionNeededToExtract(minver: number): void {
     this.minver = minver;
   }
 

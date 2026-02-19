@@ -1,7 +1,7 @@
 abstract class ArchiveEntry {
   abstract getName(): string;
   abstract getSize(): number;
-  abstract getLastModifiedDate(): number;
+  abstract getLastModifiedDate(): -1 | Date;
   abstract isDirectory(): boolean;
 }
 

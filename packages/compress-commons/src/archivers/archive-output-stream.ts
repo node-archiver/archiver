@@ -8,9 +8,14 @@ import {
 } from "node:stream";
 
 import { ArchiveEntry } from "./archive-entry";
-import type { ZipArchiveEntry } from "./zip-archive-entry";
 
-function normalizeInputSource(source: null | string | Stream) {
+const isStream = (source: unknown): source is Stream =>
+  // @ts-expect-error
+  isReadable(source) || isWritable(source);
+
+function normalizeInputSource(
+  source: null | string | Stream | Buffer,
+): Stream | Buffer {
   if (source === null) {
     return Buffer.alloc(0);
   }
@@ -19,7 +24,8 @@ function normalizeInputSource(source: null | string | Stream) {
     return Buffer.from(source);
   }
 
-  if ((isReadable(source) || isWritable(source)) && !source._readableState) {
+  // @ts-expect-error
+  if (isStream(source) && !source._readableState) {
     const normalized = new PassThrough();
     source.pipe(normalized);
     return normalized;
@@ -36,6 +42,7 @@ class ArchiveOutputStream extends Transform {
     finished: boolean;
     processing: boolean;
   };
+  protected _entry: ArchiveEntry;
 
   constructor(options?: Stream.TransformOptions) {
     super(options);
@@ -48,11 +55,19 @@ class ArchiveOutputStream extends Transform {
     };
   }
 
-  _appendBuffer(zae: ZipArchiveEntry, source, callback) {
+  _appendBuffer(
+    ae: ArchiveEntry,
+    source: Buffer,
+    callback: (error: Error) => void,
+  ): void {
     // scaffold only
   }
 
-  _appendStream(zae: ZipArchiveEntry, source, callback) {
+  _appendStream(
+    ae: ArchiveEntry,
+    source: Stream,
+    callback: (error: Error) => void,
+  ): void {
     // scaffold only
   }
 
@@ -62,19 +77,27 @@ class ArchiveOutputStream extends Transform {
     }
   }
 
-  _finish(ae?: ArchiveEntry) {
+  _finish(ae?: ArchiveEntry): void {
     // scaffold only
   }
 
-  _normalizeEntry(ae: ArchiveEntry) {
+  _normalizeEntry(ae: ArchiveEntry): void {
     // scaffold only
   }
 
-  _transform(chunk, encoding, callback): void {
+  _transform(
+    chunk: string | Buffer,
+    encoding: BufferEncoding,
+    callback: (error?: Error | null, data?: string | Buffer) => void,
+  ): void {
     callback(null, chunk);
   }
 
-  entry(ae: ArchiveEntry, source, callback?: (error: Error) => void): this {
+  entry(
+    ae: ArchiveEntry,
+    source: string | Stream | Buffer,
+    callback?: (error: Error) => void,
+  ): this {
     source = source || null;
 
     if (typeof callback !== "function") {
@@ -99,7 +122,7 @@ class ArchiveOutputStream extends Transform {
     source = normalizeInputSource(source);
     if (Buffer.isBuffer(source)) {
       this._appendBuffer(ae, source, callback);
-    } else if (isReadable(source) || isWritable(source)) {
+    } else if (isStream(source)) {
       this._appendStream(ae, source, callback);
     } else {
       this._archive.processing = false;
