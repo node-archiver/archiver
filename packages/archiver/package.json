@@ -18,9 +18,9 @@
     "prepublishOnly": "bun run build"
   },
   "dependencies": {
+    "@archiver/tar-stream": "workspace:*",
     "@archiver/zip-stream": "workspace:*",
-    "readdir-glob": "^1.1.3",
-    "tar-stream": "^3.1.7"
+    "readdir-glob": "^1.1.3"
   },
   "devDependencies": {
     "stream-bench": "0.1.2",

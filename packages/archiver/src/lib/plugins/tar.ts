@@ -1,7 +1,7 @@
 import type { Stream } from "node:stream";
 import zlib from "node:zlib";
 
-import TarStream from "tar-stream";
+import * as TarStream from "@archiver/tar-stream";
 
 import { collectStream } from "../utils";
 
