@@ -2,11 +2,13 @@ import {
   Stream,
   Transform,
   isReadable,
+  // @ts-expect-error
   isWritable,
   PassThrough,
 } from "node:stream";
 
 import { ArchiveEntry } from "./archive-entry";
+import type { ZipArchiveEntry } from "./zip/zip-archive-entry";
 
 function normalizeInputSource(source: null | string | Stream) {
   if (source === null) {
@@ -41,11 +43,11 @@ class ArchiveOutputStream extends Transform {
     };
   }
 
-  _appendBuffer(zae, source, callback) {
+  _appendBuffer(zae: ZipArchiveEntry, source, callback) {
     // scaffold only
   }
 
-  _appendStream(zae, source, callback) {
+  _appendStream(zae: ZipArchiveEntry, source, callback) {
     // scaffold only
   }
 
@@ -55,11 +57,11 @@ class ArchiveOutputStream extends Transform {
     }
   }
 
-  _finish(ae?) {
+  _finish(ae?: ArchiveEntry) {
     // scaffold only
   }
 
-  _normalizeEntry(ae) {
+  _normalizeEntry(ae: ArchiveEntry) {
     // scaffold only
   }
 
@@ -67,7 +69,7 @@ class ArchiveOutputStream extends Transform {
     callback(null, chunk);
   }
 
-  entry(ae, source, callback) {
+  entry(ae: ArchiveEntry, source, callback?) {
     source = source || null;
     if (typeof callback !== "function") {
       callback = this._emitErrorCallback.bind(this);

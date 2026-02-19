@@ -146,9 +146,7 @@ describe("ZipArchiveOutputStream", () => {
     });
 
     it("should force ZIP64", async () => {
-      const archive = new ZipArchiveOutputStream({
-        forceZip64: true,
-      });
+      const archive = new ZipArchiveOutputStream({ forceZip64: true });
       const testStream = new WriteHashStream("tmp/zip-stream64.zip");
 
       const promise = new Promise((resolve) => {

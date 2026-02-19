@@ -19,11 +19,13 @@ import {
   ZIP64_MAGIC,
   ZIP64_MAGIC_SHORT,
   ZLIB_BEST_SPEED,
-} from "./constants.js";
+} from "./constants";
 import { CRC32Stream, DeflateCRC32Stream } from "./crc32-stream";
-import { getEightBytes, getLongBytes, getShortBytes } from "./util.js";
+import { getEightBytes, getLongBytes, getShortBytes } from "./util";
 
-interface ZlibOptions {}
+interface ZlibOptions {
+  level: number;
+}
 
 interface ZipOptions {
   /**
@@ -50,7 +52,7 @@ interface ZipOptions {
   zlib?: ZlibOptions;
 }
 
-function _defaults(o) {
+function normalizeOptions(o?: Partial<ZipOptions>) {
   if (typeof o !== "object") {
     o = {};
   }
@@ -60,16 +62,14 @@ function _defaults(o) {
   if (typeof o.zlib.level !== "number") {
     o.zlib.level = ZLIB_BEST_SPEED;
   }
-  o.forceZip64 = !!o.forceZip64;
-  o.forceLocalTime = !!o.forceLocalTime;
   return o;
 }
 
 class ZipArchiveOutputStream extends ArchiveOutputStream {
-  constructor(options) {
-    const _options = _defaults(options);
-    super(_options);
-    this.options = _options;
+  constructor(options?: Partial<ZipOptions>) {
+    const normalizedOptions = normalizeOptions(options);
+    super(normalizedOptions);
+    this.options = normalizedOptions;
     this._entry = null;
     this._entries = [];
     this._archive = {
@@ -79,8 +79,8 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
       finish: false,
       finished: false,
       processing: false,
-      forceZip64: _options.forceZip64,
-      forceLocalTime: _options.forceLocalTime,
+      forceZip64: normalizedOptions.forceZip64,
+      forceLocalTime: normalizedOptions.forceLocalTime,
     };
   }
 
@@ -377,7 +377,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     ae._offsets.contents = this.offset;
   }
 
-  getComment(comment) {
+  getComment() {
     return this._archive.comment !== null ? this._archive.comment : "";
   }
 
