@@ -1273,20 +1273,4 @@ function isWritev(s) {
   );
 }
 
-export {
-  pipeline,
-  pipelinePromise,
-  isStream,
-  isStreamx,
-  isEnded,
-  isFinished,
-  isDisturbed,
-  getStreamError,
-  Stream,
-  Writable,
-  Readable,
-  Duplex,
-  Transform,
-  // Export PassThrough for compatibility with Node.js core's stream module
-  PassThrough,
-};
+export { getStreamError, Writable, Readable };
