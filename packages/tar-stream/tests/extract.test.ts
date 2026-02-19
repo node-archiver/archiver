@@ -1,8 +1,10 @@
 import { test, expect } from "bun:test";
-const concat = require("concat-stream");
-const fs = require("node:fs");
+import * as fs from "node:fs";
+
+import concat from "concat-stream";
+
 import * as tar from "../src/index.js";
-const fixtures = require("./fixtures");
+import * as fixtures from "./fixtures";
 
 test("one-file", () => {
   const extract = tar.extract();

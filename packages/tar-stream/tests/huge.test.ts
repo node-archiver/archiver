@@ -1,9 +1,11 @@
 import { test, expect } from "bun:test";
-const zlib = require("node:zlib");
-const fs = require("node:fs");
-const { Writable } = require("streamx");
-import * as tar from "../src/index.js";
-const fixtures = require("./fixtures");
+import * as fs from "node:fs";
+import * as zlib from "node:zlib";
+
+import { Writable } from "streamx";
+
+import * as tar from "../src/index";
+import * as fixtures from "./fixtures";
 
 const win32 = process.platform === "win32";
 

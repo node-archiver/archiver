@@ -1,5 +1,7 @@
 import { test, expect } from "bun:test";
-const { Readable } = require("streamx");
+
+import { Readable } from "streamx";
+
 import * as tar from "../src/index.js";
 
 test("write and read huge archive", () => {

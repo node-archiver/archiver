@@ -1,8 +1,9 @@
-const { Readable, Writable, getStreamError } = require("streamx");
-const b4a = require("b4a");
-
 import { constants } from "node:fs";
-const headers = require("./headers");
+
+import * as b4a from "b4a";
+import { Readable, Writable, getStreamError } from "streamx";
+
+import * as headers from "./headers";
 
 const DMODE = 0o755;
 const FMODE = 0o644;

@@ -1,10 +1,12 @@
 import { test, expect } from "bun:test";
-const concat = require("concat-stream");
-const fs = require("node:fs");
-const b4a = require("b4a");
-const { Writable } = require("streamx");
+import * as fs from "node:fs";
+
+import * as b4a from "b4a";
+import concat from "concat-stream";
+import { Writable } from "streamx";
+
 import * as tar from "../src/index.js";
-const fixtures = require("./fixtures");
+import * as fixtures from "./fixtures";
 
 test("one-file", function () {
   const pack = tar.pack();

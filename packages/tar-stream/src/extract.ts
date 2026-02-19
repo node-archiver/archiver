@@ -1,7 +1,8 @@
-const { Writable, Readable, getStreamError } = require("streamx");
-const FIFO = require("fast-fifo");
-const b4a = require("b4a");
-const headers = require("./headers");
+import * as b4a from "b4a";
+import FIFO from "fast-fifo";
+import { Writable, Readable, getStreamError } from "streamx";
+
+import * as headers from "./headers";
 
 const EMPTY = b4a.alloc(0);
 

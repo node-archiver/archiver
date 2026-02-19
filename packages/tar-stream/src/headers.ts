@@ -1,4 +1,4 @@
-const b4a = require("b4a");
+import * as b4a from "b4a";
 
 const ZEROS = "0000000000000000000";
 const SEVENS = "7777777777777777777";
@@ -11,11 +11,11 @@ const MASK = 0o7777;
 const MAGIC_OFFSET = 257;
 const VERSION_OFFSET = 263;
 
-exports.decodeLongPath = function decodeLongPath(buf, encoding) {
+export function decodeLongPath(buf, encoding) {
   return decodeStr(buf, 0, buf.length, encoding);
-};
+}
 
-exports.encodePax = function encodePax(opts) {
+export function encodePax(opts) {
   // TODO: encode more stuff in pax
   let result = "";
   if (opts.name) result += addLength(" path=" + opts.name + "\n");
@@ -27,9 +27,9 @@ exports.encodePax = function encodePax(opts) {
     }
   }
   return b4a.from(result);
-};
+}
 
-exports.decodePax = function decodePax(buf) {
+export function decodePax(buf) {
   const result = {};
 
   while (buf.length) {
@@ -47,9 +47,9 @@ exports.decodePax = function decodePax(buf) {
   }
 
   return result;
-};
+}
 
-exports.encode = function encode(opts) {
+export function encode(opts) {
   const buf = b4a.alloc(512);
   let name = opts.name;
   let prefix = "";
@@ -90,9 +90,9 @@ exports.encode = function encode(opts) {
   b4a.write(buf, encodeOct(cksum(buf), 6), 148);
 
   return buf;
-};
+}
 
-exports.decode = function decode(buf, filenameEncoding, allowUnknownFormat) {
+export function decode(buf, filenameEncoding, allowUnknownFormat) {
   let typeflag = buf[156] === 0 ? 0 : buf[156] - ZERO_OFFSET;
 
   let name = decodeStr(buf, 0, 100, filenameEncoding);
@@ -152,7 +152,7 @@ exports.decode = function decode(buf, filenameEncoding, allowUnknownFormat) {
     devminor,
     pax: null,
   };
-};
+}
 
 function isUSTAR(buf) {
   return b4a.equals(USTAR_MAGIC, buf.subarray(MAGIC_OFFSET, MAGIC_OFFSET + 6));
