@@ -1,7 +1,6 @@
 import { test, expect } from "bun:test";
 import * as fs from "node:fs";
 
-import * as b4a from "b4a";
 import concat from "concat-stream";
 import { Writable } from "streamx";
 
@@ -282,7 +281,7 @@ test("backpressure", function (done) {
         gid: 20,
       };
 
-      const buffer = b4a.alloc(1024);
+      const buffer = Buffer.alloc(1024);
 
       pack.entry(header, buffer, next);
     } else {
