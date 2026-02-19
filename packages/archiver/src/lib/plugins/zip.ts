@@ -1,3 +1,5 @@
+import type { Stream } from "node:stream";
+
 import ZipStream from "@archiver/zip-stream";
 
 interface ZipOptions {
@@ -13,7 +15,11 @@ interface ZipOptions {
   store?: boolean;
 }
 
+interface ZipEntryData {}
+
 export default class Zip {
+  engine: ZipStream;
+
   /**
    * @constructor
    * @param {ZipOptions} [options]
@@ -24,18 +30,17 @@ export default class Zip {
    * @param {Boolean} [options.store=false] Sets the compression method to STORE.
    * @param {Object} [options.zlib] Passed to [zlib]{@link https://nodejs.org/api/zlib.html#zlib_class_options}
    */
-  constructor(options) {
-    options = this.options = {
+  constructor(optionsParam?: ZipOptions) {
+    const options = (this.options = {
       comment: "",
       forceUTC: false,
       namePrependSlash: false,
       store: false,
-      ...options,
-    };
+      ...optionsParam,
+    });
     this.engine = new ZipStream(options);
   }
   /**
-   * @param  {(Buffer|Stream)} source
    * @param  {ZipEntryData} data
    * @param  {String} data.name Sets the entry name including internal path.
    * @param  {(String|Date)} [data.date=NOW()] Sets the entry date.
@@ -46,17 +51,15 @@ export default class Zip {
    * for reduction of fs stat calls when stat data is already known.
    * @param  {Boolean} [data.store=ZipOptions.store] Sets the compression method to STORE.
    * @param  {Function} callback
-   * @return void
    */
-  append(source, data, callback) {
+  append(source: Buffer | Stream, data: ZipEntryData, callback): void {
     this.engine.entry(source, data, callback);
   }
-  /**
-   * @return void
-   */
-  finalize() {
+
+  finalize(): void {
     this.engine.finalize();
   }
+
   /**
    * @return this.engine
    */
