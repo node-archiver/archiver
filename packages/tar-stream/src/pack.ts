@@ -1,8 +1,8 @@
 import { constants } from "node:fs";
 
-import * as b4a from "b4a";
 import { Readable, Writable, getStreamError } from "streamx";
 
+import * as b4a from "./b4a";
 import * as headers from "./headers";
 
 const DMODE = 0o755;
