@@ -1,3 +1,4 @@
+import type Stream from "node:stream";
 import { crc32 } from "node:zlib";
 
 import {
@@ -28,45 +29,30 @@ interface ZlibOptions {
   level: number;
 }
 
-interface ZipOptions {
-  /**
-   * Sets the zip archive comment.
-   * @default ""
-   */
-  comment: string;
-  /** @default false */
-  forceUTC: boolean;
+interface ZipOptions extends Partial<Stream.TransformOptions> {
   /** Forces the archive to contain local file times instead of UTC. */
   forceLocalTime?: boolean;
   /** Forces the archive to contain ZIP64 headers. */
   forceZip64?: boolean;
-  /**
-   * Prepends a forward slash to archive file paths.
-   * @default false
-   */
-  namePrependSlash: boolean;
-  /**
-   * Sets the compression method to STORE.
-   * @default false
-   */
-  store: boolean;
   zlib?: Partial<ZlibOptions>;
 }
 
-function normalizeOptions(o?: Partial<ZipOptions>) {
-  if (typeof o !== "object") {
-    o = {};
+function normalizeOptions(options?: Partial<ZipOptions>) {
+  if (typeof options !== "object") {
+    options = {};
   }
-  if (typeof o.zlib !== "object") {
-    o.zlib = {};
+  if (typeof options.zlib !== "object") {
+    options.zlib = {};
   }
-  if (typeof o.zlib.level !== "number") {
-    o.zlib.level = ZLIB_BEST_SPEED;
+  if (typeof options.zlib.level !== "number") {
+    options.zlib.level = ZLIB_BEST_SPEED;
   }
-  return o;
+  return options;
 }
 
 class ZipArchiveOutputStream extends ArchiveOutputStream {
+  options: Partial<ZipOptions>;
+
   declare protected _archive: {
     centralLength: number;
     centralOffset: number;
@@ -108,7 +94,11 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     }
   }
 
-  _appendBuffer(ae: ZipArchiveEntry, source: Buffer, callback): void {
+  _appendBuffer(
+    ae: ZipArchiveEntry,
+    source: Buffer,
+    callback: (error: Error | null, ae?: ZipArchiveEntry) => void,
+  ): void {
     if (source.length === 0) {
       ae.setMethod(METHOD_STORED);
     }
@@ -128,12 +118,16 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
       this._smartStream(ae, callback).end(source);
       return;
     } else {
-      callback(new Error("compression method " + method + " not implemented"));
+      callback(new Error(`compression method ${method} not implemented`));
       return;
     }
   }
 
-  _appendStream(ae: ZipArchiveEntry, source, callback): void {
+  _appendStream(
+    ae: ZipArchiveEntry,
+    source: Stream,
+    callback: (error: Error, ae: ZipArchiveEntry) => void,
+  ): void {
     ae.getGeneralPurposeBit().useDataDescriptor(true);
     ae.setVersionNeededToExtract(MIN_VERSION_DATA_DESCRIPTOR);
     this._writeLocalFileHeader(ae);
@@ -266,7 +260,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     this.write(getLongBytes(1));
   }
 
-  _writeCentralFileHeader(ae): void {
+  _writeCentralFileHeader(ae: ZipArchiveEntry): void {
     const gpb = ae.getGeneralPurposeBit();
     const method = ae.getMethod();
     let fileOffset = ae._offsets.file;
