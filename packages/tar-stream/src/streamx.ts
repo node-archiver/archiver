@@ -4,7 +4,7 @@ const PREMATURE_CLOSE = new Error("Premature close");
 
 import FIFO from "fast-fifo";
 
-import TextDecoder from "./text-decoder/index";
+import TextDecoder from "./td/index";
 
 // if we do a future major, expect queue microtask to be there always, for now a bit defensive
 const qmt =
