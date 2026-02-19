@@ -1,2 +1,4 @@
-export const extract = require("./extract");
-export const pack = require("./pack");
+import extract from "./extract";
+import pack from "./pack";
+
+export { extract, pack };
