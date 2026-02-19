@@ -1,4 +1,4 @@
-const path = require("path");
+const path = require("node:path");
 
 exports.ONE_FILE_TAR = path.join(__dirname, "one-file.tar");
 exports.MULTI_FILE_TAR = path.join(__dirname, "multi-file.tar");

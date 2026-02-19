@@ -1,6 +1,6 @@
 import { test, expect } from "bun:test";
 const concat = require("concat-stream");
-const fs = require("fs");
+const fs = require("node:fs");
 import * as tar from "../src/index.js";
 const fixtures = require("./fixtures");
 

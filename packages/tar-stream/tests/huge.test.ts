@@ -1,6 +1,6 @@
 import { test, expect } from "bun:test";
-const zlib = require("zlib");
-const fs = require("fs");
+const zlib = require("node:zlib");
+const fs = require("node:fs");
 const { Writable } = require("streamx");
 import * as tar from "../src/index.js";
 const fixtures = require("./fixtures");

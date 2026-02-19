@@ -9,7 +9,7 @@ const constants = {
 };
 
 try {
-  module.exports = require("fs").constants || constants;
+  module.exports = require("node:fs").constants || constants;
 } catch {
   module.exports = constants;
 }

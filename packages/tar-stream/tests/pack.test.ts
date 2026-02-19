@@ -1,6 +1,6 @@
 import { test, expect } from "bun:test";
 const concat = require("concat-stream");
-const fs = require("fs");
+const fs = require("node:fs");
 const b4a = require("b4a");
 const { Writable } = require("streamx");
 import * as tar from "../src/index.js";
