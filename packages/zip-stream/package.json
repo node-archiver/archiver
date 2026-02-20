@@ -3,6 +3,11 @@
   "version": "0.0.2",
   "description": "a streaming zip archive generator",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/node-archiver/archiver.git",
+    "directory": "packages/zip-stream"
+  },
   "files": [
     "dist"
   ],

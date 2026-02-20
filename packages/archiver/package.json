@@ -3,6 +3,11 @@
   "version": "0.0.2",
   "description": "a streaming interface for archive generation",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/node-archiver/archiver.git",
+    "directory": "packages/archiver"
+  },
   "files": [
     "dist"
   ],

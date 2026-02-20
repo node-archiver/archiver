@@ -3,6 +3,11 @@
   "version": "0.0.2",
   "description": "a library that defines a common interface for working with archive formats within node",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/node-archiver/archiver.git",
+    "directory": "packages/compress-commons"
+  },
   "files": [
     "dist"
   ],
