@@ -2,7 +2,10 @@ import { PassThroughDecoder } from "./pass-through-decoder";
 import { UTF8Decoder } from "./utf8-decoder";
 
 class TextDecoder {
-  constructor(encoding = "utf8") {
+  encoding: BufferEncoding;
+  decoder: PassThroughDecoder | UTF8Decoder;
+
+  constructor(encoding: BufferEncoding = "utf8") {
     this.encoding = normalizeEncoding(encoding);
 
     switch (this.encoding) {
@@ -39,7 +42,7 @@ class TextDecoder {
   }
 }
 
-function normalizeEncoding(encoding) {
+function normalizeEncoding(encoding: BufferEncoding): BufferEncoding {
   encoding = encoding.toLowerCase();
 
   switch (encoding) {

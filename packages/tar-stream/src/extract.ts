@@ -210,7 +210,7 @@ class TarExtract extends Writable {
     }
   }
 
-  _decodeLongHeader(buf) {
+  _decodeLongHeader(buf: Buffer): void {
     switch (this._header.type) {
       case "gnu-long-path":
         this._gnuLongPath = headers.decodeLongPath(buf, this._filenameEncoding);
@@ -233,7 +233,7 @@ class TarExtract extends Writable {
     }
   }
 
-  _consumeLongHeader() {
+  _consumeLongHeader(): boolean {
     this._longHeader = false;
     this._missing = overflow(this._header.size);
 
@@ -265,11 +265,11 @@ class TarExtract extends Writable {
     return drained;
   }
 
-  _createStream() {
+  _createStream(): Source {
     return new Source(this, this._header, this._offset);
   }
 
-  _update() {
+  _update(): boolean {
     while (this._buffer.buffered > 0 && !this.destroying) {
       if (this._missing > 0) {
         if (this._stream !== null) {
@@ -295,28 +295,28 @@ class TarExtract extends Writable {
     this._continueWrite(null);
   }
 
-  _continueWrite(err) {
+  _continueWrite(err): void {
     const cb = this._callback;
     this._callback = noop;
     cb(err);
   }
 
-  _write(data, cb) {
+  _write(data, cb): void {
     this._callback = cb;
     this._buffer.push(data);
     this._update();
   }
 
-  _final(cb) {
+  _final(cb): void {
     this._finished = this._missing === 0 && this._buffer.buffered === 0;
     cb(this._finished ? null : new Error("Unexpected end of data"));
   }
 
-  _predestroy() {
+  _predestroy(): void {
     this._continueWrite(null);
   }
 
-  _destroy(cb) {
+  _destroy(cb): void {
     if (this._stream) this._stream.destroy(getStreamError(this));
     cb(null);
   }

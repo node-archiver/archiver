@@ -3,38 +3,13 @@ import type { ReadableOptions } from "node:stream";
 
 import * as b4a from "./b4a";
 import * as headers from "./headers";
+import type { HeaderType, TarHeader } from "./headers";
 import { Readable, Writable, getStreamError } from "./streamx";
 
 const DMODE = 0o755;
 const FMODE = 0o644;
 
 const END_OF_TAR = Buffer.alloc(1024);
-
-type HeaderType =
-  | "symlink"
-  | "file"
-  | "block-device"
-  | "character-device"
-  | "directory"
-  | "fifo"
-  | "contiguous-file"
-  | "pax-header";
-
-interface TarHeader {
-  name: string;
-  mode: number;
-  uid: number;
-  gid: number;
-  pax: null | { path?: string; special: string };
-  size: number;
-  mtime: Date;
-  type: HeaderType;
-  linkname: string;
-  uname: string;
-  gname: string;
-  devmajor: number;
-  devminor: number;
-}
 
 class Sink extends Writable {
   written: number;

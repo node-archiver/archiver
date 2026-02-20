@@ -12,7 +12,7 @@ class UTF8Decoder {
     return this.bytesSeen;
   }
 
-  decode(data) {
+  decode(data): string {
     if (data.byteLength === 0) return "";
 
     if (this.bytesNeeded === 0 && trailingIncomplete(data, 0) === 0) {
@@ -123,7 +123,7 @@ class UTF8Decoder {
   }
 }
 
-function trailingIncomplete(data, start) {
+function trailingIncomplete(data, start: number): number {
   const len = data.byteLength;
   if (len <= start) return 0;
 
@@ -147,7 +147,7 @@ function trailingIncomplete(data, start) {
   return available < needed ? available : 0;
 }
 
-function trailingBytesSeen(data) {
+function trailingBytesSeen(data): 0 | 1 {
   const len = data.byteLength;
   if (len === 0) return 0;
 

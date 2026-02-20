@@ -130,19 +130,20 @@ const WRITE_UPDATE_SYNC_STATUS =
   WRITE_UPDATING | OPEN_STATUS | WRITE_NEXT_TICK | WRITE_PRIMARY;
 const WRITE_DROP_DATA = WRITE_FINISHING | WRITE_DONE | DESTROY_STATUS;
 
+interface WritableStateOptions {}
+
 class WritableState {
   stream: Stream;
 
-  constructor(
-    stream: Stream,
-    {
+  constructor(stream: Stream, options?: WritableStateOptions) {
+    const {
       highWaterMark = 16384,
       map = null,
       mapWritable,
       byteLength,
       byteLengthWritable,
-    } = {},
-  ) {
+    } = { ...options };
+
     this.stream = stream;
     this.queue = new FIFO();
     this.highWaterMark = highWaterMark;
@@ -267,21 +268,26 @@ class WritableState {
   }
 }
 
+interface ReadableStateOptions {
+  highWaterMark: number;
+  map: unknown;
+  mapReadable: unknown;
+}
+
 class ReadableState {
   stream: Stream;
   queue: FIFO;
   readAhead: boolean;
 
-  constructor(
-    stream: Stream,
-    {
+  constructor(stream: Stream, options?: ReadableStateOptions) {
+    const {
       highWaterMark = 16384,
       map = null,
       mapReadable,
       byteLength,
       byteLengthReadable,
-    } = {},
-  ) {
+    } = { ...options };
+
     this.stream = stream;
     this.queue = new FIFO();
     this.highWaterMark = highWaterMark === 0 ? 1 : highWaterMark;
@@ -690,6 +696,8 @@ interface StreamOptions {}
 
 class Stream extends EventEmitter {
   protected _duplexState: number;
+  protected _readableState: ReadableState | null;
+  protected _writableState: WritableState | null;
 
   constructor(opts?: StreamOptions) {
     super();
@@ -764,7 +772,10 @@ class Stream extends EventEmitter {
   }
 }
 
-interface ReadableOptions extends StreamOptions {}
+interface ReadableOptions extends StreamOptions, ReadableStateOptions {
+  encoding?: BufferEncoding;
+  read(cb: unknown): void;
+}
 
 class Readable extends Stream {
   protected _duplexState: number;
@@ -785,7 +796,7 @@ class Readable extends Stream {
     }
   }
 
-  setEncoding(encoding): this {
+  setEncoding(encoding?: BufferEncoding): this {
     const dec = new TextDecoder(encoding);
     const map = this._readableState.map || echo;
     this._readableState.map = mapOrSkip;
@@ -809,17 +820,17 @@ class Readable extends Stream {
     return dest;
   }
 
-  read() {
+  read(): Buffer {
     this._readableState.updateNextTick();
     return this._readableState.read();
   }
 
-  push(data: Buffer) {
+  push(data: Buffer): boolean {
     this._readableState.updateNextTickIfOpen();
     return this._readableState.push(data);
   }
 
-  unshift(data) {
+  unshift(data): void {
     this._readableState.updateNextTickIfOpen();
     return this._readableState.unshift(data);
   }
@@ -1028,54 +1039,6 @@ class Writable extends Stream {
   }
 }
 
-class Duplex extends Readable {
-  // and Writable
-  constructor(opts) {
-    super(opts);
-
-    this._duplexState = OPENING | (this._duplexState & READ_READ_AHEAD);
-    this._writableState = new WritableState(this, opts);
-
-    if (opts) {
-      if (opts.writev) this._writev = opts.writev;
-      if (opts.write) this._write = opts.write;
-      if (opts.final) this._final = opts.final;
-    }
-  }
-
-  cork() {
-    this._duplexState |= WRITE_CORKED;
-  }
-
-  uncork() {
-    this._duplexState &= WRITE_NOT_CORKED;
-    this._writableState.updateNextTick();
-  }
-
-  _writev(batch, cb) {
-    cb(null);
-  }
-
-  _write(data, cb) {
-    this._writableState.autoBatch(data, cb);
-  }
-
-  _final(cb) {
-    cb(null);
-  }
-
-  write(data) {
-    this._writableState.updateNextTick();
-    return this._writableState.push(data);
-  }
-
-  end(data) {
-    this._writableState.updateNextTick();
-    this._writableState.end(data);
-    return this;
-  }
-}
-
 function echo(s) {
   return s;
 }
@@ -1114,10 +1077,7 @@ function defaultByteLength(data) {
 }
 
 function isWritev(s) {
-  return (
-    s._writev !== Writable.prototype._writev &&
-    s._writev !== Duplex.prototype._writev
-  );
+  return s._writev !== Writable.prototype._writev;
 }
 
 export { getStreamError, Writable, Readable };
