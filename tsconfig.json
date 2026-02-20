@@ -20,7 +20,7 @@
     // "noPropertyAccessFromIndexSignature": true,
     // "noImplicitAny": true,
     // "strictNullChecks": true,
-    // "forceConsistentCasingInFileNames": true,
+    "forceConsistentCasingInFileNames": true,
     "verbatimModuleSyntax": true,
 
     "types": ["bun"]

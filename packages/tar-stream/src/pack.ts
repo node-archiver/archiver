@@ -76,27 +76,27 @@ class Sink extends Writable {
     cb(null);
   }
 
-  _write(data, cb) {
+  _write(data, callback): void {
     if (this._isLinkname) {
       this._linkname = this._linkname
         ? Buffer.concat([this._linkname, data])
         : data;
-      return cb(null);
+      return callback(null);
     }
 
     if (this._isVoid) {
       if (data.byteLength > 0) {
-        return cb(new Error("No body allowed for this entry"));
+        return callback(new Error("No body allowed for this entry"));
       }
-      return cb();
+      return callback();
     }
 
     this.written += data.byteLength;
-    if (this._pack.push(data)) return cb();
-    this._pack._drain = cb;
+    if (this._pack.push(data)) return callback();
+    this._pack._drain = callback;
   }
 
-  _finish() {
+  _finish(): void {
     if (this._finished) return;
     this._finished = true;
 
@@ -112,14 +112,14 @@ class Sink extends Writable {
     this._pack._done(this);
   }
 
-  _final(cb) {
+  _final(callback: (err: Error | null) => void): void {
     if (this.written !== this.header.size) {
       // corrupting tar
-      return cb(new Error("Size mismatch"));
+      return callback(new Error("Size mismatch"));
     }
 
     this._finish();
-    cb(null);
+    callback(null);
   }
 
   _getError(): Error {

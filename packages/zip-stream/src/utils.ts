@@ -16,7 +16,7 @@ export function dateify(dateish?: Date | string | number): Date {
   return dateish;
 }
 
-export function sanitizePath(filepath) {
+export function sanitizePath(filepath: string): string {
   return normalizePath(filepath, false)
     .replace(/^\w+:/, "")
     .replace(/^(\.\.\/|\/)+/, "");

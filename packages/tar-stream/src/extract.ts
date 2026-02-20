@@ -9,6 +9,8 @@ class BufferList {
   shifted: number;
   queue: FIFO;
 
+  private _offset: number;
+
   constructor() {
     this.buffered = 0;
     this.shifted = 0;
@@ -17,16 +19,16 @@ class BufferList {
     this._offset = 0;
   }
 
-  push(buffer): void {
+  push(buffer: Buffer): void {
     this.buffered += buffer.byteLength;
     this.queue.push(buffer);
   }
 
-  shiftFirst(size) {
+  shiftFirst(size: number): Buffer {
     return this._buffered === 0 ? null : this._next(size);
   }
 
-  shift(size): Buffer {
+  shift(size: number): Buffer {
     if (size > this.buffered) return null;
     if (size === 0) return EMPTY;
 
@@ -44,7 +46,7 @@ class BufferList {
     return Buffer.concat(chunks);
   }
 
-  _next(size): Buffer {
+  _next(size: number): Buffer {
     const buf = this.queue.peek();
     const rem = buf.byteLength - this._offset;
 
@@ -250,7 +252,7 @@ class TarExtract extends Writable {
     return true;
   }
 
-  _consumeStream() {
+  _consumeStream(): boolean {
     const buf = this._buffer.shiftFirst(this._missing);
     if (buf === null) return false;
 
@@ -340,8 +342,8 @@ class TarExtract extends Writable {
     this.on("close", onclose);
 
     return {
-      [Symbol.asyncIterator]() {
-        return this;
+      [Symbol.asyncIterator](): TarExtract {
+        return extract;
       },
       next() {
         return new Promise(onnext);
@@ -403,7 +405,9 @@ class TarExtract extends Writable {
       promiseResolve = promiseReject = null;
     }
 
-    function destroy(err?: Error): Promise<{ value: undefined; done: true }> {
+    function destroy(
+      err?: Error | null,
+    ): Promise<{ value: undefined; done: true }> {
       extract.destroy(err);
       consumeCallback(err);
 
@@ -421,7 +425,7 @@ class TarExtract extends Writable {
   }
 }
 
-function overflow(size) {
+function overflow(size: number): number {
   size &= 511;
   return size && 512 - size;
 }

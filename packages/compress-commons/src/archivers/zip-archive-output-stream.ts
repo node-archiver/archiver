@@ -397,4 +397,4 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
   }
 }
 
-export { ZipArchiveOutputStream };
+export { ZipArchiveOutputStream, type ZipOptions };

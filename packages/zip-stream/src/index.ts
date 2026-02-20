@@ -3,15 +3,16 @@ import type { Stream } from "node:stream";
 import {
   ZipArchiveOutputStream,
   ZipArchiveEntry,
+  type ZipOptions as ZipArchiveOutputStreamOptions,
 } from "@archiver/compress-commons";
 
-import { dateify, sanitizePath } from "./utils.js";
+import { dateify, sanitizePath } from "./utils";
 
 interface ZlibOptions {
   level?: number;
 }
 
-interface ZipOptions {
+interface ZipOptions extends ZipArchiveOutputStreamOptions, ZlibOptions {
   /**
    * Sets the zip archive comment.
    * @default ""
@@ -19,10 +20,6 @@ interface ZipOptions {
   comment: string;
   /** @default false */
   forceUTC: boolean;
-  /** Forces the archive to contain local file times instead of UTC. */
-  forceLocalTime?: boolean;
-  /** Forces the archive to contain ZIP64 headers. */
-  forceZip64?: boolean;
   /**
    * Prepends a forward slash to archive file paths.
    * @default false
@@ -33,7 +30,6 @@ interface ZipOptions {
    * @default false
    */
   store: boolean;
-  zlib?: ZlibOptions;
 }
 
 interface EntryData {
@@ -48,10 +44,16 @@ interface EntryData {
 }
 
 class ZipStream extends ZipArchiveOutputStream {
+  declare options: ZipOptions;
+
   constructor(options?: Partial<ZipOptions>) {
     options ??= {};
 
     options.zlib ??= {};
+
+    if (typeof options.level === "number") {
+      options.zlib.level = options.level;
+    }
 
     if (!options.forceZip64 && options.zlib.level === 0) {
       options.store = true;
@@ -106,7 +108,7 @@ class ZipStream extends ZipArchiveOutputStream {
   entry(
     source: Buffer | Stream | string,
     data: EntryData,
-    callback: (error: Error) => void,
+    callback?: (error: Error) => void,
   ): this {
     if (typeof callback !== "function") {
       callback = this._emitErrorCallback.bind(this);
