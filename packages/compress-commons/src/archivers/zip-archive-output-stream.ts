@@ -30,19 +30,13 @@ interface ZipOptions extends Partial<TransformOptions> {
   forceLocalTime?: boolean;
   /** Forces the archive to contain ZIP64 headers. */
   forceZip64?: boolean;
-  zlib?: Partial<ZlibOptions>;
+  zlib: ZlibOptions;
 }
 
 function normalizeOptions(options?: Partial<ZipOptions>) {
-  if (typeof options !== "object") {
-    options = {};
-  }
-  if (typeof options.zlib !== "object") {
-    options.zlib = {};
-  }
-  if (typeof options.zlib.level !== "number") {
-    options.zlib.level = ZLIB_BEST_SPEED;
-  }
+  options ??= {};
+  options.zlib ??= {};
+  options.zlib.level ||= ZLIB_BEST_SPEED;
   return options;
 }
 

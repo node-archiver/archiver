@@ -184,7 +184,7 @@ class WritableState {
     return data;
   }
 
-  end(data): void {
+  end(data?): void {
     if (typeof data === "function") this.stream.once("finish", data);
     else if (data !== undefined && data !== null) this.push(data);
     this.stream._duplexState =
@@ -277,7 +277,7 @@ class ReadableState {
   queue: FIFO;
   readAhead: boolean;
 
-  constructor(stream: Stream, options?: ReadableStateOptions) {
+  constructor(stream: Stream, options?: Partial<ReadableStateOptions>) {
     const {
       highWaterMark = 16384,
       map = null,
@@ -774,11 +774,11 @@ class Stream extends EventEmitter {
 
 interface ReadableOptions extends StreamOptions, ReadableStateOptions {
   encoding?: BufferEncoding;
-  read(cb: unknown): void;
+  read(cb: (err: Error | null) => void): void;
 }
 
 class Readable extends Stream {
-  constructor(opts?: ReadableOptions) {
+  constructor(opts?: Partial<ReadableOptions>) {
     super(opts);
 
     this._duplexState |= OPENING | WRITE_DONE | READ_READ_AHEAD;
@@ -902,7 +902,7 @@ class Readable extends Stream {
     const stream = this;
 
     let error = null;
-    let promiseResolve = null;
+    let promiseResolve: (value: unknown) => void | null = null;
     let promiseReject = null;
 
     this.on("error", (err) => {
@@ -912,23 +912,27 @@ class Readable extends Stream {
     this.on("close", onclose);
 
     return {
-      [Symbol.asyncIterator]() {
-        return this;
+      [Symbol.asyncIterator](): Readable {
+        return stream;
       },
 
-      next() {
-        return new Promise((resolve, reject) => {
-          promiseResolve = resolve;
-          promiseReject = reject;
-          const data = stream.read();
-          if (data !== null) ondata(data);
-          else if ((stream._duplexState & DESTROYED) !== 0) ondata(null);
-        });
+      next(): Promise<{ value: undefined; done: true }> {
+        return new Promise<{ value: undefined; done: true }>(
+          (resolve, reject) => {
+            promiseResolve = resolve;
+            promiseReject = reject;
+            const data = stream.read();
+            if (data !== null) ondata(data);
+            else if ((stream._duplexState & DESTROYED) !== 0) ondata(null);
+          },
+        );
       },
-      return() {
+
+      return(): Promise<{ value: undefined; done: true }> {
         return destroy(null);
       },
-      throw(err) {
+
+      throw(err): Promise<{ value: undefined; done: true }> {
         return destroy(err);
       },
     };
@@ -950,17 +954,19 @@ class Readable extends Stream {
       promiseReject = promiseResolve = null;
     }
 
-    function destroy(err) {
+    function destroy(err): Promise<{ value: undefined; done: true }> {
       stream.destroy(err);
-      return new Promise((resolve, reject) => {
-        if (stream._duplexState & DESTROYED)
-          return resolve({ value: undefined, done: true });
+      return new Promise<{ value: undefined; done: true }>(
+        (resolve, reject) => {
+          if (stream._duplexState & DESTROYED)
+            return resolve({ value: undefined, done: true });
 
-        stream.once("close", () => {
-          if (err) reject(err);
-          else resolve({ value: undefined, done: true });
-        });
-      });
+          stream.once("close", () => {
+            if (err) reject(err);
+            else resolve({ value: undefined, done: true });
+          });
+        },
+      );
     }
   }
 }
@@ -968,9 +974,6 @@ class Readable extends Stream {
 interface WritableOptions extends StreamOptions {}
 
 class Writable extends Stream {
-  protected _duplexState: number;
-  protected _writableState: WritableState;
-
   constructor(opts?: WritableOptions) {
     super(opts);
 

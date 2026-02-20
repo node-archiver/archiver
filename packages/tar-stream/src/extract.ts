@@ -111,6 +111,7 @@ interface TarExtractOptions {
 
 class TarExtract extends Writable {
   private _buffer: BufferList;
+  private _stream: null | Source;
 
   constructor(opts?: TarExtractOptions) {
     super(opts);
@@ -123,7 +124,7 @@ class TarExtract extends Writable {
     this._stream = null;
     this._missing = 0;
     this._longHeader = false;
-    this._callback = noop;
+    this._callback = () => {};
     this._locked = false;
     this._finished = false;
     this._pax = null;
@@ -190,7 +191,7 @@ class TarExtract extends Writable {
     return true;
   }
 
-  _applyLongHeaders() {
+  _applyLongHeaders(): void {
     if (this._gnuLongPath) {
       this._header.name = this._gnuLongPath;
       this._gnuLongPath = null;
@@ -297,7 +298,7 @@ class TarExtract extends Writable {
 
   _continueWrite(err): void {
     const cb = this._callback;
-    this._callback = noop;
+    this._callback = () => {};
     cb(err);
   }
 
@@ -384,7 +385,7 @@ class TarExtract extends Writable {
 
     function onentry(header, stream, callback): void {
       entryCallback = callback;
-      stream.on("error", noop); // no way around this due to tick sillyness
+      stream.on("error", () => {}); // no way around this due to tick sillyness
 
       if (promiseResolve) {
         promiseResolve({ value: stream, done: false });
@@ -419,8 +420,6 @@ class TarExtract extends Writable {
     }
   }
 }
-
-function noop() {}
 
 function overflow(size) {
   size &= 511;

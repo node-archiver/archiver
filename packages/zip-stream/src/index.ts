@@ -11,7 +11,7 @@ interface ZlibOptions {
   level?: number;
 }
 
-interface ZipOptions extends ZlibOptions {
+interface ZipOptions {
   /**
    * Sets the zip archive comment.
    * @default ""
@@ -39,28 +39,21 @@ interface ZipOptions extends ZlibOptions {
 interface EntryData {
   name: string;
   comment?: string;
-  date?: string | Date;
+  date?: Date;
   mode?: number;
   store?: boolean;
-  type?: string;
+  type?: "file" | "directory" | "symlink";
+  namePrependSlash?: boolean;
+  linkname?: string;
 }
 
 class ZipStream extends ZipArchiveOutputStream {
   constructor(options?: Partial<ZipOptions>) {
     options ??= {};
 
-    options.zlib = options.zlib || {};
+    options.zlib ??= {};
 
-    if (typeof options.level === "number" && options.level >= 0) {
-      options.zlib.level = options.level;
-      delete options.level;
-    }
-
-    if (
-      !options.forceZip64 &&
-      typeof options.zlib.level === "number" &&
-      options.zlib.level === 0
-    ) {
+    if (!options.forceZip64 && options.zlib.level === 0) {
       options.store = true;
     }
 
@@ -76,7 +69,7 @@ class ZipStream extends ZipArchiveOutputStream {
   /**
    * Normalizes entry data with fallbacks for key properties.
    */
-  _normalizeFileData(data) {
+  private _normalizeFileData(data: EntryData): EntryData {
     data = {
       type: "file",
       name: null,
@@ -109,6 +102,7 @@ class ZipStream extends ZipArchiveOutputStream {
   /**
    * Appends an entry given an input source (text string, buffer, or stream).
    */
+  // @ts-expect-error
   entry(
     source: Buffer | Stream | string,
     data: EntryData,
