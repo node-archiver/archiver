@@ -39,6 +39,7 @@ export interface TarHeader {
   gname: string;
   devmajor: number;
   devminor: number;
+  typeflag: number;
 }
 
 /**
@@ -72,7 +73,7 @@ function parse256(buf) {
   return positive ? sum : -1 * sum;
 }
 
-function decodeOct(val, offset, length) {
+function decodeOct(val: Buffer, offset: number, length: number): number {
   val = val.subarray(offset, offset + length);
   offset = 0;
 

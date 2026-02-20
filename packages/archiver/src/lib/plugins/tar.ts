@@ -1,11 +1,11 @@
 import type { Stream } from "node:stream";
 import { type Gzip, type ZlibOptions, createGzip } from "node:zlib";
 
-import * as TarStream from "@archiver/tar-stream";
+import * as tar from "@archiver/tar-stream";
 
 import { collectStream } from "../utils";
 
-type TarPack = ReturnType<typeof TarStream.pack>;
+type TarPack = ReturnType<typeof tar.pack>;
 
 interface TarOptions {
   gzip: boolean;
@@ -20,7 +20,7 @@ class Tar {
   constructor(options?: Partial<TarOptions>) {
     const normalizedOptions = (this.options = { gzip: false, ...options });
 
-    this.engine = TarStream.pack(normalizedOptions);
+    this.engine = tar.pack(normalizedOptions);
     this.compressor = null;
     if (normalizedOptions.gzip) {
       this.compressor = createGzip(normalizedOptions.gzipOptions);

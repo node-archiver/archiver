@@ -19,6 +19,11 @@ class Sink extends Writable {
   written: number;
   header: TarHeader;
 
+  private _isLinkname: boolean;
+  private _isVoid: boolean;
+  private _finished: boolean;
+  private _pack: TarPack;
+
   constructor(pack: TarPack, header: TarHeader, callback) {
     super({ mapWritable, eagerOpen: true });
 
@@ -37,12 +42,12 @@ class Sink extends Writable {
     else this._pack._pending.push(this);
   }
 
-  _open(cb): void {
-    this._openCallback = cb;
+  _open(callback): void {
+    this._openCallback = callback;
     if (this._pack._stream === this) this._continueOpen();
   }
 
-  _continuePack(err): void {
+  _continuePack(err: Error | null): void {
     if (this._callback === null) return;
 
     const callback = this._callback;
@@ -51,18 +56,21 @@ class Sink extends Writable {
     callback(err);
   }
 
-  _continueOpen() {
+  _continueOpen(): void {
     if (this._pack._stream === null) this._pack._stream = this;
 
-    const cb = this._openCallback;
+    const callback = this._openCallback;
     this._openCallback = null;
 
-    if (cb === null) return;
+    if (callback === null) return;
 
-    if (this._pack.destroying) return cb(new Error("pack stream destroyed"));
+    if (this._pack.destroying) {
+      return callback(new Error("pack stream destroyed"));
+    }
 
-    if (this._pack._finalized)
-      return cb(new Error("pack stream is already finalized"));
+    if (this._pack._finalized) {
+      return callback(new Error("pack stream is already finalized"));
+    }
 
     this._pack._stream = this;
 
@@ -75,7 +83,7 @@ class Sink extends Writable {
       this._continuePack(null);
     }
 
-    cb(null);
+    callback(null);
   }
 
   _write(data, callback): void {
@@ -132,18 +140,20 @@ class Sink extends Writable {
     this._pack.destroy(this._getError());
   }
 
-  _destroy(cb: () => void): void {
+  _destroy(callback: () => void): void {
     this._pack._done(this);
 
     this._continuePack(this._finished ? null : this._getError());
 
-    cb();
+    callback();
   }
 }
 
 interface TarPackOptions extends ReadableOptions {}
 
 class TarPack extends Readable {
+  private _drain: () => void;
+
   constructor(opts?: TarPackOptions) {
     super(opts);
 
@@ -154,8 +164,15 @@ class TarPack extends Readable {
     this._stream = null;
   }
 
-  entry(header: Partial<TarHeader>, callback?): Sink;
-  entry(header: Partial<TarHeader>, buffer, callback?): Sink;
+  entry(
+    header: Partial<TarHeader>,
+    callback?: (err?: Error | null) => void,
+  ): Sink;
+  entry(
+    header: Partial<TarHeader>,
+    buffer: string | Buffer | ((err?: Error | null) => void),
+    callback?: (err?: Error | null) => void,
+  ): Sink;
 
   entry(header: Partial<TarHeader>, bufferOrCallback, callback?): Sink {
     if (this._finalized || this.destroying) {
@@ -279,9 +296,9 @@ class TarPack extends Readable {
     this._doDrain();
   }
 
-  _read(cb: () => void): void {
+  _read(callback: () => void): void {
     this._doDrain();
-    cb();
+    callback();
   }
 }
 
