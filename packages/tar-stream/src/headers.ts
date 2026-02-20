@@ -151,7 +151,23 @@ function decodePax(buf: Buffer): Record<string, string> {
   return result;
 }
 
-function encode(opts): Buffer {
+interface EncodeOptions {
+  name: string;
+  typeflag: number;
+  linkname?: string;
+  mode: number;
+  uid: number;
+  gid: number;
+  size: number;
+  mtime: Date;
+  type: HeaderType;
+  uname?: string;
+  gname?: string;
+  devmajor?: number;
+  devminor?: number;
+}
+
+function encode(opts: EncodeOptions): Buffer {
   const buf = Buffer.alloc(512);
   let name = opts.name;
   let prefix = "";
@@ -355,8 +371,8 @@ function cksum(block) {
   return sum;
 }
 
-function encodeOct(val, n) {
-  val = val.toString(8);
+function encodeOct(num: number, n) {
+  const val = num.toString(8);
   if (val.length > n) return SEVENS.slice(0, n) + " ";
   return ZEROS.slice(0, n - val.length) + val + " ";
 }

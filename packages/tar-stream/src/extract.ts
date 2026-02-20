@@ -69,7 +69,9 @@ class BufferList {
 }
 
 class Source extends Readable {
-  constructor(self, header, offset) {
+  private _parent: TarExtract;
+
+  constructor(self: TarExtract, header, offset) {
     super();
 
     this.header = header;
