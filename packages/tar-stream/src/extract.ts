@@ -25,7 +25,7 @@ class BufferList {
   }
 
   shiftFirst(size: number): Buffer {
-    return this._buffered === 0 ? null : this._next(size);
+    return this.buffered === 0 ? null : this._next(size);
   }
 
   shift(size: number): Buffer {
@@ -78,14 +78,14 @@ class Source extends Readable {
     this._parent = self;
   }
 
-  _read(cb): void {
+  _read(callback): void {
     if (this.header.size === 0) {
       this.push(null);
     }
     if (this._parent._stream === this) {
       this._parent._update();
     }
-    cb(null);
+    callback(null);
   }
 
   _predestroy(): void {
@@ -100,9 +100,9 @@ class Source extends Readable {
     }
   }
 
-  _destroy(cb): void {
+  _destroy(callback): void {
     this._detach();
-    cb(null);
+    callback(null);
   }
 }
 
@@ -299,29 +299,29 @@ class TarExtract extends Writable {
   }
 
   _continueWrite(err): void {
-    const cb = this._callback;
+    const callback = this._callback;
     this._callback = () => {};
-    cb(err);
+    callback(err);
   }
 
-  _write(data, cb): void {
-    this._callback = cb;
+  _write(data, callback): void {
+    this._callback = callback;
     this._buffer.push(data);
     this._update();
   }
 
-  _final(cb): void {
+  _final(callback): void {
     this._finished = this._missing === 0 && this._buffer.buffered === 0;
-    cb(this._finished ? null : new Error("Unexpected end of data"));
+    callback(this._finished ? null : new Error("Unexpected end of data"));
   }
 
   _predestroy(): void {
     this._continueWrite(null);
   }
 
-  _destroy(cb): void {
+  _destroy(callback): void {
     if (this._stream) this._stream.destroy(getStreamError(this));
-    cb(null);
+    callback(null);
   }
 
   [Symbol.asyncIterator]() {
@@ -358,9 +358,9 @@ class TarExtract extends Writable {
 
     function consumeCallback(err) {
       if (!entryCallback) return;
-      const cb = entryCallback;
+      const callback = entryCallback;
       entryCallback = null;
-      cb(err);
+      callback(err);
     }
 
     function onnext(resolve, reject) {

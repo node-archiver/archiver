@@ -122,436 +122,12 @@ const WRITE_UPDATE_SYNC_STATUS =
   WRITE_UPDATING | OPEN_STATUS | WRITE_NEXT_TICK | WRITE_PRIMARY;
 const WRITE_DROP_DATA = WRITE_FINISHING | WRITE_DONE | DESTROY_STATUS;
 
-interface WritableStateOptions {}
-
-class WritableState {
-  stream: Stream;
-
-  constructor(stream: Stream, options?: WritableStateOptions) {
-    const {
-      highWaterMark = 16384,
-      map = null,
-      mapWritable,
-      byteLength,
-      byteLengthWritable,
-    } = { ...options };
-
-    this.stream = stream;
-    this.queue = new FIFO();
-    this.highWaterMark = highWaterMark;
-    this.buffered = 0;
-    this.error = null;
-    this.pipeline = null;
-    this.drains = null; // if we add more seldomly used helpers we might them into a subobject so its a single ptr
-    this.byteLength = byteLengthWritable || byteLength || defaultByteLength;
-    this.map = mapWritable || map;
-    this.afterWrite = afterWrite.bind(this);
-    this.afterUpdateNextTick = updateWriteNT.bind(this);
-  }
-
-  get ended(): boolean {
-    return (this.stream._duplexState & WRITE_DONE) !== 0;
-  }
-
-  push(data): boolean {
-    if ((this.stream._duplexState & WRITE_DROP_DATA) !== 0) return false;
-    if (this.map !== null) data = this.map(data);
-
-    this.buffered += this.byteLength(data);
-    this.queue.push(data);
-
-    if (this.buffered < this.highWaterMark) {
-      this.stream._duplexState |= WRITE_QUEUED;
-      return true;
-    }
-
-    this.stream._duplexState |= WRITE_QUEUED_AND_UNDRAINED;
-    return false;
-  }
-
-  shift() {
-    const data = this.queue.shift();
-
-    this.buffered -= this.byteLength(data);
-    if (this.buffered === 0) this.stream._duplexState &= WRITE_NOT_QUEUED;
-
-    return data;
-  }
-
-  end(data?): void {
-    if (typeof data === "function") this.stream.once("finish", data);
-    else if (data !== undefined && data !== null) this.push(data);
-    this.stream._duplexState =
-      (this.stream._duplexState | WRITE_FINISHING) & WRITE_NON_PRIMARY;
-  }
-
-  autoBatch(data, callback) {
-    const buffer = [];
-    const stream = this.stream;
-
-    buffer.push(data);
-    while ((stream._duplexState & WRITE_STATUS) === WRITE_QUEUED_AND_ACTIVE) {
-      buffer.push(stream._writableState.shift());
-    }
-
-    if ((stream._duplexState & OPEN_STATUS) !== 0) return callback(null);
-    stream._writev(buffer, callback);
-  }
-
-  update(): void {
-    const stream = this.stream;
-
-    stream._duplexState |= WRITE_UPDATING;
-
-    do {
-      while ((stream._duplexState & WRITE_STATUS) === WRITE_QUEUED) {
-        const data = this.shift();
-        stream._duplexState |= WRITE_ACTIVE_AND_WRITING;
-        stream._write(data, this.afterWrite);
-      }
-
-      if ((stream._duplexState & WRITE_PRIMARY_AND_ACTIVE) === 0)
-        this.updateNonPrimary();
-    } while (this.continueUpdate() === true);
-
-    stream._duplexState &= WRITE_NOT_UPDATING;
-  }
-
-  updateNonPrimary(): void {
-    const stream = this.stream;
-
-    if ((stream._duplexState & WRITE_FINISHING_STATUS) === WRITE_FINISHING) {
-      stream._duplexState = stream._duplexState | WRITE_ACTIVE;
-      stream._final(afterFinal.bind(this));
-      return;
-    }
-
-    if ((stream._duplexState & DESTROY_STATUS) === DESTROYING) {
-      if ((stream._duplexState & ACTIVE_OR_TICKING) === 0) {
-        stream._duplexState |= ACTIVE;
-        stream._destroy(afterDestroy.bind(this));
-      }
-      return;
-    }
-
-    if ((stream._duplexState & IS_OPENING) === OPENING) {
-      stream._duplexState = (stream._duplexState | ACTIVE) & NOT_OPENING;
-      stream._open(afterOpen(this.stream));
-    }
-  }
-
-  continueUpdate(): boolean {
-    if ((this.stream._duplexState & WRITE_NEXT_TICK) === 0) return false;
-    this.stream._duplexState &= WRITE_NOT_NEXT_TICK;
-    return true;
-  }
-
-  updateCallback(): void {
-    if ((this.stream._duplexState & WRITE_UPDATE_SYNC_STATUS) === WRITE_PRIMARY)
-      this.update();
-    else this.updateNextTick();
-  }
-
-  updateNextTick(): void {
-    if ((this.stream._duplexState & WRITE_NEXT_TICK) !== 0) return;
-    this.stream._duplexState |= WRITE_NEXT_TICK;
-    if ((this.stream._duplexState & WRITE_UPDATING) === 0)
-      queueMicrotask(this.afterUpdateNextTick);
-  }
-}
-
-interface ReadableStateOptions {
-  highWaterMark: number;
-  map: unknown;
-  mapReadable: unknown;
-}
-
-class ReadableState {
-  stream: Stream;
-  queue: FIFO;
-  readAhead: boolean;
-
-  constructor(stream: Stream, options?: Partial<ReadableStateOptions>) {
-    const {
-      highWaterMark = 16384,
-      map = null,
-      mapReadable,
-      byteLength,
-      byteLengthReadable,
-    } = { ...options };
-
-    this.stream = stream;
-    this.queue = new FIFO();
-    this.highWaterMark = highWaterMark === 0 ? 1 : highWaterMark;
-    this.buffered = 0;
-    this.readAhead = highWaterMark > 0;
-    this.error = null;
-    this.pipeline = null;
-    this.byteLength = byteLengthReadable || byteLength || defaultByteLength;
-    this.map = mapReadable || map;
-    this.pipeTo = null;
-    this.afterRead = afterRead.bind(this);
-    this.afterUpdateNextTick = updateReadNT.bind(this);
-  }
-
-  get ended(): boolean {
-    return (this.stream._duplexState & READ_DONE) !== 0;
-  }
-
-  pipe(pipeTo, callback): void {
-    if (this.pipeTo !== null)
-      throw new Error("Can only pipe to one destination");
-    if (typeof callback !== "function") callback = null;
-
-    this.stream._duplexState |= READ_PIPE_DRAINED;
-    this.pipeTo = pipeTo;
-    this.pipeline = new Pipeline(this.stream, pipeTo, callback);
-
-    if (callback) this.stream.on("error", () => {}); // We already error handle this so supress crashes
-
-    if (isStreamx(pipeTo)) {
-      pipeTo._writableState.pipeline = this.pipeline;
-      if (callback) pipeTo.on("error", () => {}); // We already error handle this so supress crashes
-      pipeTo.on("finish", this.pipeline.finished.bind(this.pipeline)); // TODO: just call finished from pipeTo itself
-    } else {
-      const onerror = this.pipeline.done.bind(this.pipeline, pipeTo);
-      const onclose = this.pipeline.done.bind(this.pipeline, pipeTo, null); // onclose has a weird bool arg
-      pipeTo.on("error", onerror);
-      pipeTo.on("close", onclose);
-      pipeTo.on("finish", this.pipeline.finished.bind(this.pipeline));
-    }
-
-    pipeTo.on("drain", afterDrain.bind(this));
-    this.stream.emit("piping", pipeTo);
-    pipeTo.emit("pipe", this.stream);
-  }
-
-  push(data: Buffer) {
-    const stream = this.stream;
-
-    if (data === null) {
-      this.highWaterMark = 0;
-      stream._duplexState =
-        (stream._duplexState | READ_ENDING) & READ_NON_PRIMARY_AND_PUSHED;
-      return false;
-    }
-
-    if (this.map !== null) {
-      data = this.map(data);
-      if (data === null) {
-        stream._duplexState &= READ_PUSHED;
-        return this.buffered < this.highWaterMark;
-      }
-    }
-
-    this.buffered += this.byteLength(data);
-    this.queue.push(data);
-
-    stream._duplexState = (stream._duplexState | READ_QUEUED) & READ_PUSHED;
-
-    return this.buffered < this.highWaterMark;
-  }
-
-  shift(): Buffer {
-    const data = this.queue.shift();
-
-    this.buffered -= this.byteLength(data);
-    if (this.buffered === 0) this.stream._duplexState &= READ_NOT_QUEUED;
-    return data;
-  }
-
-  unshift(data): void {
-    const pending = [this.map !== null ? this.map(data) : data];
-    while (this.buffered > 0) pending.push(this.shift());
-
-    for (let i = 0; i < pending.length - 1; i++) {
-      const data = pending[i];
-      this.buffered += this.byteLength(data);
-      this.queue.push(data);
-    }
-
-    this.push(pending[pending.length - 1]);
-  }
-
-  read(): Buffer {
-    const stream = this.stream;
-
-    if ((stream._duplexState & READ_STATUS) === READ_QUEUED) {
-      const data = this.shift();
-      if (this.pipeTo !== null && this.pipeTo.write(data) === false) {
-        stream._duplexState &= READ_PIPE_NOT_DRAINED;
-      }
-      if ((stream._duplexState & READ_EMIT_DATA) !== 0) {
-        stream.emit("data", data);
-      }
-      return data;
-    }
-
-    if (this.readAhead === false) {
-      stream._duplexState |= READ_READ_AHEAD;
-      this.updateNextTick();
-    }
-
-    return null;
-  }
-
-  drain(): void {
-    const stream = this.stream;
-
-    while (
-      (stream._duplexState & READ_STATUS) === READ_QUEUED &&
-      (stream._duplexState & READ_FLOWING) !== 0
-    ) {
-      const data = this.shift();
-      if (this.pipeTo !== null && this.pipeTo.write(data) === false)
-        stream._duplexState &= READ_PIPE_NOT_DRAINED;
-      if ((stream._duplexState & READ_EMIT_DATA) !== 0)
-        stream.emit("data", data);
-    }
-  }
-
-  update(): void {
-    const stream = this.stream;
-
-    stream._duplexState |= READ_UPDATING;
-
-    do {
-      this.drain();
-
-      while (
-        this.buffered < this.highWaterMark &&
-        (stream._duplexState & SHOULD_NOT_READ) === READ_READ_AHEAD
-      ) {
-        stream._duplexState |= READ_ACTIVE_AND_NEEDS_PUSH;
-        stream._read(this.afterRead);
-        this.drain();
-      }
-
-      if (
-        (stream._duplexState & READ_READABLE_STATUS) ===
-        READ_EMIT_READABLE_AND_QUEUED
-      ) {
-        stream._duplexState |= READ_EMITTED_READABLE;
-        stream.emit("readable");
-      }
-
-      if ((stream._duplexState & READ_PRIMARY_AND_ACTIVE) === 0)
-        this.updateNonPrimary();
-    } while (this.continueUpdate() === true);
-
-    stream._duplexState &= READ_NOT_UPDATING;
-  }
-
-  updateNonPrimary(): void {
-    const stream = this.stream;
-
-    if ((stream._duplexState & READ_ENDING_STATUS) === READ_ENDING) {
-      stream._duplexState = (stream._duplexState | READ_DONE) & READ_NOT_ENDING;
-      stream.emit("end");
-      if ((stream._duplexState & AUTO_DESTROY) === DONE)
-        stream._duplexState |= DESTROYING;
-      if (this.pipeTo !== null) this.pipeTo.end();
-    }
-
-    if ((stream._duplexState & DESTROY_STATUS) === DESTROYING) {
-      if ((stream._duplexState & ACTIVE_OR_TICKING) === 0) {
-        stream._duplexState |= ACTIVE;
-        stream._destroy(afterDestroy.bind(this));
-      }
-      return;
-    }
-
-    if ((stream._duplexState & IS_OPENING) === OPENING) {
-      stream._duplexState = (stream._duplexState | ACTIVE) & NOT_OPENING;
-      stream._open(afterOpen(this.stream));
-    }
-  }
-
-  continueUpdate(): boolean {
-    if ((this.stream._duplexState & READ_NEXT_TICK) === 0) return false;
-    this.stream._duplexState &= READ_NOT_NEXT_TICK;
-    return true;
-  }
-
-  updateCallback(): void {
-    if ((this.stream._duplexState & READ_UPDATE_SYNC_STATUS) === READ_PRIMARY)
-      this.update();
-    else this.updateNextTick();
-  }
-
-  updateNextTickIfOpen(): void {
-    if ((this.stream._duplexState & READ_NEXT_TICK_OR_OPENING) !== 0) return;
-    this.stream._duplexState |= READ_NEXT_TICK;
-    if ((this.stream._duplexState & READ_UPDATING) === 0)
-      queueMicrotask(this.afterUpdateNextTick);
-  }
-
-  updateNextTick(): void {
-    if ((this.stream._duplexState & READ_NEXT_TICK) !== 0) return;
-    this.stream._duplexState |= READ_NEXT_TICK;
-    if ((this.stream._duplexState & READ_UPDATING) === 0)
-      queueMicrotask(this.afterUpdateNextTick);
-  }
-}
-
-class Pipeline {
-  from: Stream;
-
-  constructor(from: Stream, to, callback) {
-    this.from = from;
-    this.to = to;
-    this.afterPipe = callback;
-    this.error = null;
-    this.pipeToFinished = false;
-  }
-
-  finished() {
-    this.pipeToFinished = true;
-  }
-
-  done(stream, err) {
-    if (err) this.error = err;
-
-    if (stream === this.to) {
-      this.to = null;
-
-      if (this.from !== null) {
-        if (
-          (this.from._duplexState & READ_DONE) === 0 ||
-          !this.pipeToFinished
-        ) {
-          this.from.destroy(
-            this.error || new Error("Writable stream closed prematurely"),
-          );
-        }
-        return;
-      }
-    }
-
-    if (stream === this.from) {
-      this.from = null;
-
-      if (this.to !== null) {
-        if ((stream._duplexState & READ_DONE) === 0) {
-          this.to.destroy(
-            this.error || new Error("Readable stream closed before ending"),
-          );
-        }
-        return;
-      }
-    }
-
-    if (this.afterPipe !== null) this.afterPipe(this.error);
-    this.to = this.from = this.afterPipe = null;
-  }
-}
-
-function afterDrain() {
+function afterDrain(): void {
   this.stream._duplexState |= READ_PIPE_DRAINED;
   this.updateCallback();
 }
 
-function afterFinal(err) {
+function afterFinal(err): void {
   const stream = this.stream;
   if (err) stream.destroy(err);
   if ((stream._duplexState & DESTROY_STATUS) === 0) {
@@ -799,11 +375,11 @@ class Readable extends Stream {
     }
   }
 
-  _read(callback): void {
+  _read(callback: (err: Error | null) => void): void {
     callback(null);
   }
 
-  pipe(dest, callback?) {
+  pipe(dest: Writable, callback?: (err: Error | null) => void): Writable {
     this._readableState.updateNextTick();
     this._readableState.pipe(dest, callback);
     return dest;
@@ -1001,11 +577,11 @@ class Writable extends Stream {
     callback(null);
   }
 
-  static isBackpressured(ws): boolean {
+  static isBackpressured(ws: Writable): boolean {
     return (ws._duplexState & WRITE_BACKPRESSURE_STATUS) !== 0;
   }
 
-  static drained(ws): Promise<boolean> {
+  static drained(ws: Writable): Promise<boolean> {
     if (ws.destroyed) return Promise.resolve(false);
     const state = ws._writableState;
     const pending = isWritev(ws)
@@ -1066,6 +642,434 @@ function defaultByteLength(data) {
 
 function isWritev(s) {
   return s._writev !== Writable.prototype._writev;
+}
+
+interface WritableStateOptions {}
+
+class WritableState {
+  stream: Stream;
+  queue: FIFO;
+
+  constructor(stream: Stream, options?: WritableStateOptions) {
+    const {
+      highWaterMark = 16384,
+      map = null,
+      mapWritable,
+      byteLength,
+      byteLengthWritable,
+    } = { ...options };
+
+    this.stream = stream;
+    this.queue = new FIFO();
+    this.highWaterMark = highWaterMark;
+    this.buffered = 0;
+    this.error = null;
+    this.pipeline = null;
+    this.drains = null; // if we add more seldomly used helpers we might them into a subobject so its a single ptr
+    this.byteLength = byteLengthWritable || byteLength || defaultByteLength;
+    this.map = mapWritable || map;
+    this.afterWrite = afterWrite.bind(this);
+    this.afterUpdateNextTick = updateWriteNT.bind(this);
+  }
+
+  get ended(): boolean {
+    return (this.stream._duplexState & WRITE_DONE) !== 0;
+  }
+
+  push(data): boolean {
+    if ((this.stream._duplexState & WRITE_DROP_DATA) !== 0) return false;
+    if (this.map !== null) data = this.map(data);
+
+    this.buffered += this.byteLength(data);
+    this.queue.push(data);
+
+    if (this.buffered < this.highWaterMark) {
+      this.stream._duplexState |= WRITE_QUEUED;
+      return true;
+    }
+
+    this.stream._duplexState |= WRITE_QUEUED_AND_UNDRAINED;
+    return false;
+  }
+
+  shift() {
+    const data = this.queue.shift();
+
+    this.buffered -= this.byteLength(data);
+    if (this.buffered === 0) this.stream._duplexState &= WRITE_NOT_QUEUED;
+
+    return data;
+  }
+
+  end(data?): void {
+    if (typeof data === "function") this.stream.once("finish", data);
+    else if (data !== undefined && data !== null) this.push(data);
+    this.stream._duplexState =
+      (this.stream._duplexState | WRITE_FINISHING) & WRITE_NON_PRIMARY;
+  }
+
+  autoBatch(data, callback) {
+    const buffer = [];
+    const stream = this.stream;
+
+    buffer.push(data);
+    while ((stream._duplexState & WRITE_STATUS) === WRITE_QUEUED_AND_ACTIVE) {
+      buffer.push(stream._writableState.shift());
+    }
+
+    if ((stream._duplexState & OPEN_STATUS) !== 0) return callback(null);
+    stream._writev(buffer, callback);
+  }
+
+  update(): void {
+    const stream = this.stream;
+
+    stream._duplexState |= WRITE_UPDATING;
+
+    do {
+      while ((stream._duplexState & WRITE_STATUS) === WRITE_QUEUED) {
+        const data = this.shift();
+        stream._duplexState |= WRITE_ACTIVE_AND_WRITING;
+        stream._write(data, this.afterWrite);
+      }
+
+      if ((stream._duplexState & WRITE_PRIMARY_AND_ACTIVE) === 0)
+        this.updateNonPrimary();
+    } while (this.continueUpdate() === true);
+
+    stream._duplexState &= WRITE_NOT_UPDATING;
+  }
+
+  updateNonPrimary(): void {
+    const stream = this.stream;
+
+    if ((stream._duplexState & WRITE_FINISHING_STATUS) === WRITE_FINISHING) {
+      stream._duplexState = stream._duplexState | WRITE_ACTIVE;
+      stream._final(afterFinal.bind(this));
+      return;
+    }
+
+    if ((stream._duplexState & DESTROY_STATUS) === DESTROYING) {
+      if ((stream._duplexState & ACTIVE_OR_TICKING) === 0) {
+        stream._duplexState |= ACTIVE;
+        stream._destroy(afterDestroy.bind(this));
+      }
+      return;
+    }
+
+    if ((stream._duplexState & IS_OPENING) === OPENING) {
+      stream._duplexState = (stream._duplexState | ACTIVE) & NOT_OPENING;
+      stream._open(afterOpen(this.stream));
+    }
+  }
+
+  continueUpdate(): boolean {
+    if ((this.stream._duplexState & WRITE_NEXT_TICK) === 0) return false;
+    this.stream._duplexState &= WRITE_NOT_NEXT_TICK;
+    return true;
+  }
+
+  updateCallback(): void {
+    if ((this.stream._duplexState & WRITE_UPDATE_SYNC_STATUS) === WRITE_PRIMARY)
+      this.update();
+    else this.updateNextTick();
+  }
+
+  updateNextTick(): void {
+    if ((this.stream._duplexState & WRITE_NEXT_TICK) !== 0) return;
+    this.stream._duplexState |= WRITE_NEXT_TICK;
+    if ((this.stream._duplexState & WRITE_UPDATING) === 0)
+      queueMicrotask(this.afterUpdateNextTick);
+  }
+}
+
+interface ReadableStateOptions {
+  highWaterMark: number;
+  map: unknown;
+  mapReadable: unknown;
+}
+
+class ReadableState {
+  stream: Readable;
+  queue: FIFO;
+  readAhead: boolean;
+
+  constructor(stream: Readable, options?: Partial<ReadableStateOptions>) {
+    const {
+      highWaterMark = 16384,
+      map = null,
+      mapReadable,
+      byteLength,
+      byteLengthReadable,
+    } = { ...options };
+
+    this.stream = stream;
+    this.queue = new FIFO();
+    this.highWaterMark = highWaterMark === 0 ? 1 : highWaterMark;
+    this.buffered = 0;
+    this.readAhead = highWaterMark > 0;
+    this.error = null;
+    this.pipeline = null;
+    this.byteLength = byteLengthReadable || byteLength || defaultByteLength;
+    this.map = mapReadable || map;
+    this.pipeTo = null;
+    this.afterRead = afterRead.bind(this);
+    this.afterUpdateNextTick = updateReadNT.bind(this);
+  }
+
+  get ended(): boolean {
+    return (this.stream._duplexState & READ_DONE) !== 0;
+  }
+
+  pipe(pipeTo: Writable, callback?: (err: Error | null) => void): void {
+    if (this.pipeTo !== null) {
+      throw new Error("Can only pipe to one destination");
+    }
+
+    if (typeof callback !== "function") callback = null;
+
+    this.stream._duplexState |= READ_PIPE_DRAINED;
+    this.pipeTo = pipeTo;
+    this.pipeline = new Pipeline(this.stream, pipeTo, callback);
+
+    if (callback) this.stream.on("error", () => {}); // We already error handle this so supress crashes
+
+    if (isStreamx(pipeTo)) {
+      pipeTo._writableState.pipeline = this.pipeline;
+      if (callback) pipeTo.on("error", () => {}); // We already error handle this so supress crashes
+      pipeTo.on("finish", this.pipeline.finished.bind(this.pipeline)); // TODO: just call finished from pipeTo itself
+    } else {
+      const onerror = this.pipeline.done.bind(this.pipeline, pipeTo);
+      const onclose = this.pipeline.done.bind(this.pipeline, pipeTo, null); // onclose has a weird bool arg
+      pipeTo.on("error", onerror);
+      pipeTo.on("close", onclose);
+      pipeTo.on("finish", this.pipeline.finished.bind(this.pipeline));
+    }
+
+    pipeTo.on("drain", afterDrain.bind(this));
+    this.stream.emit("piping", pipeTo);
+    pipeTo.emit("pipe", this.stream);
+  }
+
+  push(data: Buffer): boolean {
+    const stream = this.stream;
+
+    if (data === null) {
+      this.highWaterMark = 0;
+      stream._duplexState =
+        (stream._duplexState | READ_ENDING) & READ_NON_PRIMARY_AND_PUSHED;
+      return false;
+    }
+
+    if (this.map !== null) {
+      data = this.map(data);
+      if (data === null) {
+        stream._duplexState &= READ_PUSHED;
+        return this.buffered < this.highWaterMark;
+      }
+    }
+
+    this.buffered += this.byteLength(data);
+    this.queue.push(data);
+
+    stream._duplexState = (stream._duplexState | READ_QUEUED) & READ_PUSHED;
+
+    return this.buffered < this.highWaterMark;
+  }
+
+  shift(): Buffer {
+    const data = this.queue.shift();
+
+    this.buffered -= this.byteLength(data);
+    if (this.buffered === 0) this.stream._duplexState &= READ_NOT_QUEUED;
+    return data;
+  }
+
+  unshift(data): void {
+    const pending = [this.map !== null ? this.map(data) : data];
+    while (this.buffered > 0) pending.push(this.shift());
+
+    for (let i = 0; i < pending.length - 1; i++) {
+      const data = pending[i];
+      this.buffered += this.byteLength(data);
+      this.queue.push(data);
+    }
+
+    this.push(pending[pending.length - 1]);
+  }
+
+  read(): Buffer {
+    const stream = this.stream;
+
+    if ((stream._duplexState & READ_STATUS) === READ_QUEUED) {
+      const data = this.shift();
+      if (this.pipeTo !== null && this.pipeTo.write(data) === false) {
+        stream._duplexState &= READ_PIPE_NOT_DRAINED;
+      }
+      if ((stream._duplexState & READ_EMIT_DATA) !== 0) {
+        stream.emit("data", data);
+      }
+      return data;
+    }
+
+    if (this.readAhead === false) {
+      stream._duplexState |= READ_READ_AHEAD;
+      this.updateNextTick();
+    }
+
+    return null;
+  }
+
+  drain(): void {
+    const stream = this.stream;
+
+    while (
+      (stream._duplexState & READ_STATUS) === READ_QUEUED &&
+      (stream._duplexState & READ_FLOWING) !== 0
+    ) {
+      const data = this.shift();
+      if (this.pipeTo !== null && this.pipeTo.write(data) === false)
+        stream._duplexState &= READ_PIPE_NOT_DRAINED;
+      if ((stream._duplexState & READ_EMIT_DATA) !== 0)
+        stream.emit("data", data);
+    }
+  }
+
+  update(): void {
+    const stream = this.stream;
+
+    stream._duplexState |= READ_UPDATING;
+
+    do {
+      this.drain();
+
+      while (
+        this.buffered < this.highWaterMark &&
+        (stream._duplexState & SHOULD_NOT_READ) === READ_READ_AHEAD
+      ) {
+        stream._duplexState |= READ_ACTIVE_AND_NEEDS_PUSH;
+        stream._read(this.afterRead);
+        this.drain();
+      }
+
+      if (
+        (stream._duplexState & READ_READABLE_STATUS) ===
+        READ_EMIT_READABLE_AND_QUEUED
+      ) {
+        stream._duplexState |= READ_EMITTED_READABLE;
+        stream.emit("readable");
+      }
+
+      if ((stream._duplexState & READ_PRIMARY_AND_ACTIVE) === 0)
+        this.updateNonPrimary();
+    } while (this.continueUpdate() === true);
+
+    stream._duplexState &= READ_NOT_UPDATING;
+  }
+
+  updateNonPrimary(): void {
+    const stream = this.stream;
+
+    if ((stream._duplexState & READ_ENDING_STATUS) === READ_ENDING) {
+      stream._duplexState = (stream._duplexState | READ_DONE) & READ_NOT_ENDING;
+      stream.emit("end");
+      if ((stream._duplexState & AUTO_DESTROY) === DONE)
+        stream._duplexState |= DESTROYING;
+      if (this.pipeTo !== null) this.pipeTo.end();
+    }
+
+    if ((stream._duplexState & DESTROY_STATUS) === DESTROYING) {
+      if ((stream._duplexState & ACTIVE_OR_TICKING) === 0) {
+        stream._duplexState |= ACTIVE;
+        stream._destroy(afterDestroy.bind(this));
+      }
+      return;
+    }
+
+    if ((stream._duplexState & IS_OPENING) === OPENING) {
+      stream._duplexState = (stream._duplexState | ACTIVE) & NOT_OPENING;
+      stream._open(afterOpen(this.stream));
+    }
+  }
+
+  continueUpdate(): boolean {
+    if ((this.stream._duplexState & READ_NEXT_TICK) === 0) return false;
+    this.stream._duplexState &= READ_NOT_NEXT_TICK;
+    return true;
+  }
+
+  updateCallback(): void {
+    if ((this.stream._duplexState & READ_UPDATE_SYNC_STATUS) === READ_PRIMARY)
+      this.update();
+    else this.updateNextTick();
+  }
+
+  updateNextTickIfOpen(): void {
+    if ((this.stream._duplexState & READ_NEXT_TICK_OR_OPENING) !== 0) return;
+    this.stream._duplexState |= READ_NEXT_TICK;
+    if ((this.stream._duplexState & READ_UPDATING) === 0)
+      queueMicrotask(this.afterUpdateNextTick);
+  }
+
+  updateNextTick(): void {
+    if ((this.stream._duplexState & READ_NEXT_TICK) !== 0) return;
+    this.stream._duplexState |= READ_NEXT_TICK;
+    if ((this.stream._duplexState & READ_UPDATING) === 0)
+      queueMicrotask(this.afterUpdateNextTick);
+  }
+}
+
+class Pipeline {
+  from: Stream;
+  to: Writable;
+
+  constructor(from: Readable, to: Writable, callback) {
+    this.from = from;
+    this.to = to;
+    this.afterPipe = callback;
+    this.error = null;
+    this.pipeToFinished = false;
+  }
+
+  finished() {
+    this.pipeToFinished = true;
+  }
+
+  done(stream, err) {
+    if (err) this.error = err;
+
+    if (stream === this.to) {
+      this.to = null;
+
+      if (this.from !== null) {
+        if (
+          (this.from._duplexState & READ_DONE) === 0 ||
+          !this.pipeToFinished
+        ) {
+          this.from.destroy(
+            this.error || new Error("Writable stream closed prematurely"),
+          );
+        }
+        return;
+      }
+    }
+
+    if (stream === this.from) {
+      this.from = null;
+
+      if (this.to !== null) {
+        if ((stream._duplexState & READ_DONE) === 0) {
+          this.to.destroy(
+            this.error || new Error("Readable stream closed before ending"),
+          );
+        }
+        return;
+      }
+    }
+
+    if (this.afterPipe !== null) this.afterPipe(this.error);
+    this.to = this.from = this.afterPipe = null;
+  }
 }
 
 export { getStreamError, Writable, Readable, type ReadableOptions };

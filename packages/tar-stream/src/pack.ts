@@ -15,16 +15,22 @@ const FMODE = 0o644;
 
 const END_OF_TAR = Buffer.alloc(1024);
 
+interface SinkHeader {
+  type: "symlink" | "file" | "contiguous-file";
+  linkname: string;
+  size: number;
+}
+
 class Sink extends Writable {
   written: number;
-  header: TarHeader;
+  header: SinkHeader;
 
   private _isLinkname: boolean;
   private _isVoid: boolean;
   private _finished: boolean;
   private _pack: TarPack;
 
-  constructor(pack: TarPack, header: TarHeader, callback) {
+  constructor(pack: TarPack, header: SinkHeader, callback?) {
     super({ mapWritable, eagerOpen: true });
 
     this.written = 0;
@@ -153,6 +159,8 @@ interface TarPackOptions extends ReadableOptions {}
 
 class TarPack extends Readable {
   private _drain: () => void;
+  private _finalized: boolean;
+  private _finalizing: boolean;
 
   constructor(opts?: TarPackOptions) {
     super(opts);
@@ -319,7 +327,7 @@ function modeToType(mode: number): HeaderType {
   return "file";
 }
 
-function overflow(self, size: number): void {
+function overflow(self: TarPack, size: number): void {
   size &= 511;
   if (size) self.push(END_OF_TAR.subarray(0, 512 - size));
 }
