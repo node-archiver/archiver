@@ -68,16 +68,26 @@ class BufferList {
   }
 }
 
-interface SourceHeader {
-  size: number;
+function overflow(size: number): number {
+  size &= 511;
+  return size && 512 - size;
 }
 
-class Source extends Readable {
+interface TarExtractSourceHeader {
+  size: number;
+  name: string;
+}
+
+class TarExtractSource extends Readable {
   private _parent: TarExtract;
-  header: SourceHeader;
+  header: TarExtractSourceHeader;
   offset: number;
 
-  constructor(self: TarExtract, header: SourceHeader, offset: number) {
+  constructor(
+    self: TarExtract,
+    header: TarExtractSourceHeader,
+    offset: number,
+  ) {
     super();
 
     this.header = header;
@@ -122,7 +132,7 @@ interface TarExtractOptions {
 class TarExtract extends Writable {
   private _buffer: BufferList;
   private _offset: number;
-  private _stream: null | Source;
+  private _stream: null | TarExtractSource;
   private _missing: number;
   private _longHeader: boolean;
   private _callback?: (err?: Error | null) => void;
@@ -282,8 +292,8 @@ class TarExtract extends Writable {
     return drained;
   }
 
-  _createStream(): Source {
-    return new Source(this, this._header, this._offset);
+  _createStream(): TarExtractSource {
+    return new TarExtractSource(this, this._header, this._offset);
   }
 
   _update(): boolean {
@@ -344,7 +354,7 @@ class TarExtract extends Writable {
     let promiseResolve = null;
     let promiseReject = null;
 
-    let entryStream = null;
+    let entryStream: TarExtractSource | null = null;
     let entryCallback = null;
 
     const extract = this;
@@ -359,8 +369,8 @@ class TarExtract extends Writable {
       [Symbol.asyncIterator](): TarExtract {
         return extract;
       },
-      next(): Promise<{ value: unknown; done: boolean }> {
-        return new Promise<{ value: unknown; done: boolean }>(onnext);
+      next(): Promise<{ value: TarExtractSource; done: boolean }> {
+        return new Promise<{ value: TarExtractSource; done: boolean }>(onnext);
       },
       return(): Promise<{ value: undefined; done: true }> {
         return destroy(null);
@@ -399,7 +409,7 @@ class TarExtract extends Writable {
       }
     }
 
-    function onentry(header, stream, callback): void {
+    function onentry(header, stream: TarExtract, callback): void {
       entryCallback = callback;
       stream.on("error", () => {}); // no way around this due to tick sillyness
 
@@ -437,11 +447,6 @@ class TarExtract extends Writable {
       );
     }
   }
-}
-
-function overflow(size: number): number {
-  size &= 511;
-  return size && 512 - size;
 }
 
 function extract(opts?: TarExtractOptions): TarExtract {

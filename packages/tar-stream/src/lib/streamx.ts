@@ -553,6 +553,8 @@ class Readable extends Stream {
 
 interface WritableOptions extends StreamOptions, WritableStateOptions {
   write?(data: Buffer<ArrayBufferLike>, callback: (err?: Error) => void): void;
+
+  eagerOpen?: boolean;
 }
 
 class Writable extends Stream {
@@ -614,7 +616,7 @@ class Writable extends Stream {
     return this._writableState.push(data);
   }
 
-  end(data?: Buffer): this {
+  end(data?: string | Buffer): this {
     this._writableState.updateNextTick();
     this._writableState.end(data);
     return this;
@@ -659,9 +661,9 @@ function isWritev(s): boolean {
 }
 
 interface WritableStateOptions {
-  highWaterMark: number;
-  map: ((data: Buffer) => Buffer) | null;
-  mapWritable: (data: Buffer) => Buffer;
+  highWaterMark?: number;
+  map?: ((data: Buffer) => Buffer) | null;
+  mapWritable?(data: Buffer): Buffer;
 }
 
 class WritableState {
@@ -721,7 +723,7 @@ class WritableState {
     return data;
   }
 
-  end(data?: Buffer): void {
+  end(data?: string | Buffer): void {
     if (typeof data === "function") this.stream.once("finish", data);
     else if (data !== undefined && data !== null) this.push(data);
     this.stream._duplexState =
