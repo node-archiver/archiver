@@ -1,6 +1,6 @@
-import { FastFIFO as FIFO } from "./fifo";
-import * as headers from "./headers";
-import { Writable, Readable, getStreamError } from "./streamx";
+import { FastFIFO as FIFO } from "./lib/fifo";
+import * as headers from "./lib/headers";
+import { Writable, Readable, getStreamError } from "./lib/streamx";
 
 const EMPTY = Buffer.alloc(0);
 

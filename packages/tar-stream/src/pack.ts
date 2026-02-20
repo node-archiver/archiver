@@ -1,14 +1,14 @@
 import { constants } from "node:fs";
 
-import * as b4a from "./b4a";
-import * as headers from "./headers";
-import type { HeaderType, TarHeader } from "./headers";
+import * as b4a from "./lib/b4a";
+import * as headers from "./lib/headers";
+import type { HeaderType, TarHeader } from "./lib/headers";
 import {
   Readable,
   Writable,
   getStreamError,
   type ReadableOptions,
-} from "./streamx";
+} from "./lib/streamx";
 
 const DMODE = 0o755;
 const FMODE = 0o644;
