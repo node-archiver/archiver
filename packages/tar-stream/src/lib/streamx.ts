@@ -443,7 +443,9 @@ class Readable extends Stream {
 
     return rs;
 
-    function push(data) {
+    function push(
+      data: { done: true; value: undefined } | { done: false; value: Buffer },
+    ) {
       if (data.done) rs.push(null);
       else rs.push(data.value);
     }
@@ -801,6 +803,59 @@ class WritableState {
   }
 }
 
+class Pipeline {
+  from: Stream;
+  to: Writable;
+
+  constructor(from: Readable, to: Writable, callback) {
+    this.from = from;
+    this.to = to;
+    this.afterPipe = callback;
+    this.error = null;
+    this.pipeToFinished = false;
+  }
+
+  finished() {
+    this.pipeToFinished = true;
+  }
+
+  done(stream, err) {
+    if (err) this.error = err;
+
+    if (stream === this.to) {
+      this.to = null;
+
+      if (this.from !== null) {
+        if (
+          (this.from._duplexState & READ_DONE) === 0 ||
+          !this.pipeToFinished
+        ) {
+          this.from.destroy(
+            this.error || new Error("Writable stream closed prematurely"),
+          );
+        }
+        return;
+      }
+    }
+
+    if (stream === this.from) {
+      this.from = null;
+
+      if (this.to !== null) {
+        if ((stream._duplexState & READ_DONE) === 0) {
+          this.to.destroy(
+            this.error || new Error("Readable stream closed before ending"),
+          );
+        }
+        return;
+      }
+    }
+
+    if (this.afterPipe !== null) this.afterPipe(this.error);
+    this.to = this.from = this.afterPipe = null;
+  }
+}
+
 interface ReadableStateOptions {
   highWaterMark: number;
   map: ((data: Buffer) => Buffer) | null;
@@ -1039,59 +1094,6 @@ class ReadableState {
     this.stream._duplexState |= READ_NEXT_TICK;
     if ((this.stream._duplexState & READ_UPDATING) === 0)
       queueMicrotask(this.afterUpdateNextTick);
-  }
-}
-
-class Pipeline {
-  from: Stream;
-  to: Writable;
-
-  constructor(from: Readable, to: Writable, callback) {
-    this.from = from;
-    this.to = to;
-    this.afterPipe = callback;
-    this.error = null;
-    this.pipeToFinished = false;
-  }
-
-  finished() {
-    this.pipeToFinished = true;
-  }
-
-  done(stream, err) {
-    if (err) this.error = err;
-
-    if (stream === this.to) {
-      this.to = null;
-
-      if (this.from !== null) {
-        if (
-          (this.from._duplexState & READ_DONE) === 0 ||
-          !this.pipeToFinished
-        ) {
-          this.from.destroy(
-            this.error || new Error("Writable stream closed prematurely"),
-          );
-        }
-        return;
-      }
-    }
-
-    if (stream === this.from) {
-      this.from = null;
-
-      if (this.to !== null) {
-        if ((stream._duplexState & READ_DONE) === 0) {
-          this.to.destroy(
-            this.error || new Error("Readable stream closed before ending"),
-          );
-        }
-        return;
-      }
-    }
-
-    if (this.afterPipe !== null) this.afterPipe(this.error);
-    this.to = this.from = this.afterPipe = null;
   }
 }
 
