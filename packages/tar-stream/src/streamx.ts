@@ -203,7 +203,7 @@ class WritableState {
     stream._writev(buffer, cb);
   }
 
-  update() {
+  update(): void {
     const stream = this.stream;
 
     stream._duplexState |= WRITE_UPDATING;
@@ -222,7 +222,7 @@ class WritableState {
     stream._duplexState &= WRITE_NOT_UPDATING;
   }
 
-  updateNonPrimary() {
+  updateNonPrimary(): void {
     const stream = this.stream;
 
     if ((stream._duplexState & WRITE_FINISHING_STATUS) === WRITE_FINISHING) {
@@ -245,19 +245,19 @@ class WritableState {
     }
   }
 
-  continueUpdate() {
+  continueUpdate(): boolean {
     if ((this.stream._duplexState & WRITE_NEXT_TICK) === 0) return false;
     this.stream._duplexState &= WRITE_NOT_NEXT_TICK;
     return true;
   }
 
-  updateCallback() {
+  updateCallback(): void {
     if ((this.stream._duplexState & WRITE_UPDATE_SYNC_STATUS) === WRITE_PRIMARY)
       this.update();
     else this.updateNextTick();
   }
 
-  updateNextTick() {
+  updateNextTick(): void {
     if ((this.stream._duplexState & WRITE_NEXT_TICK) !== 0) return;
     this.stream._duplexState |= WRITE_NEXT_TICK;
     if ((this.stream._duplexState & WRITE_UPDATING) === 0)

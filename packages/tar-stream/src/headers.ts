@@ -68,27 +68,29 @@ export function encode(opts) {
     return null;
   if (opts.linkname && Buffer.byteLength(opts.linkname) > 100) return null;
 
-  b4a.write(buf, name);
-  b4a.write(buf, encodeOct(opts.mode & MASK, 6), 100);
-  b4a.write(buf, encodeOct(opts.uid, 6), 108);
-  b4a.write(buf, encodeOct(opts.gid, 6), 116);
+  b4a.toBuffer(buf).write(name);
+  b4a.toBuffer(buf).write(encodeOct(opts.mode & MASK, 6), 100);
+  b4a.toBuffer(buf).write(encodeOct(opts.uid, 6), 108);
+  b4a.toBuffer(buf).write(encodeOct(opts.gid, 6), 116);
   encodeSize(opts.size, buf, 124);
-  b4a.write(buf, encodeOct((opts.mtime.getTime() / 1000) | 0, 11), 136);
+  b4a
+    .toBuffer(buf)
+    .write(encodeOct((opts.mtime.getTime() / 1000) | 0, 11), 136);
 
   buf[156] = ZERO_OFFSET + toTypeflag(opts.type);
 
-  if (opts.linkname) b4a.write(buf, opts.linkname, 157);
+  if (opts.linkname) b4a.toBuffer(buf).write(opts.linkname, 157);
 
   b4a.copy(USTAR_MAGIC, buf, MAGIC_OFFSET);
   b4a.copy(USTAR_VER, buf, VERSION_OFFSET);
-  if (opts.uname) b4a.write(buf, opts.uname, 265);
-  if (opts.gname) b4a.write(buf, opts.gname, 297);
-  b4a.write(buf, encodeOct(opts.devmajor || 0, 6), 329);
-  b4a.write(buf, encodeOct(opts.devminor || 0, 6), 337);
+  if (opts.uname) b4a.toBuffer(buf).write(opts.uname, 265);
+  if (opts.gname) b4a.toBuffer(buf).write(opts.gname, 297);
+  b4a.toBuffer(buf).write(encodeOct(opts.devmajor || 0, 6), 329);
+  b4a.toBuffer(buf).write(encodeOct(opts.devminor || 0, 6), 337);
 
-  if (prefix) b4a.write(buf, prefix, 345);
+  if (prefix) b4a.toBuffer(buf).write(prefix, 345);
 
-  b4a.write(buf, encodeOct(cksum(buf), 6), 148);
+  b4a.toBuffer(buf).write(encodeOct(cksum(buf), 6), 148);
 
   return buf;
 }
@@ -265,7 +267,7 @@ function encodeSize(num, buf, off) {
   if (num.toString(8).length > 11) {
     encodeSizeBin(num, buf, off);
   } else {
-    b4a.write(buf, encodeOct(num, 11), off);
+    b4a.toBuffer(buf).write(encodeOct(num, 11), off);
   }
 }
 

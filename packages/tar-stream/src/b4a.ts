@@ -16,7 +16,7 @@ function equals(a: Buffer, b: Uint8Array): boolean {
   return toBuffer(a).equals(b);
 }
 
-function toBuffer(buffer) {
+export function toBuffer(buffer): Buffer {
   if (Buffer.isBuffer(buffer)) return buffer;
   return Buffer.from(buffer.buffer, buffer.byteOffset, buffer.byteLength);
 }
@@ -30,14 +30,4 @@ function toString(
   return toBuffer(buffer).toString(encoding, start, end);
 }
 
-function write(
-  buffer,
-  string: string,
-  offset: number,
-  length: number,
-  encoding?: BufferEncoding,
-): number {
-  return toBuffer(buffer).write(string, offset, length, encoding);
-}
-
-export { isBuffer, copy, equals, toString, write };
+export { isBuffer, copy, equals, toString };
