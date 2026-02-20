@@ -501,10 +501,12 @@ class ReadableState {
 }
 
 class Pipeline {
-  constructor(src, dst, cb) {
-    this.from = src;
-    this.to = dst;
-    this.afterPipe = cb;
+  from: Stream;
+
+  constructor(from: Stream, to, callback) {
+    this.from = from;
+    this.to = to;
+    this.afterPipe = callback;
     this.error = null;
     this.pipeToFinished = false;
   }
@@ -836,7 +838,7 @@ class Readable extends Stream {
     return this;
   }
 
-  pause() {
+  pause(): this {
     this._duplexState &=
       this._readableState.readAhead === false
         ? READ_PAUSED_NO_READ_AHEAD
@@ -844,7 +846,7 @@ class Readable extends Stream {
     return this;
   }
 
-  static _fromAsyncIterator(ite, opts) {
+  static _fromAsyncIterator(ite, opts): Readable {
     let destroy;
 
     const rs = new Readable({

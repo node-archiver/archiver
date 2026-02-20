@@ -10,7 +10,7 @@ class UTF8Decoder {
     this._reset();
   }
 
-  get remaining() {
+  get remaining(): 0 | 1 {
     return this.bytesSeen;
   }
 
