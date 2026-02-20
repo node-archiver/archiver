@@ -418,7 +418,7 @@ class Readable extends Stream {
   }
 
   static _fromAsyncIterator(
-    iterator,
+    iterator: AsyncIterator<Buffer, undefined>,
     opts?: Partial<ReadableOptions>,
   ): Readable {
     let destroy;
@@ -443,15 +443,13 @@ class Readable extends Stream {
 
     return rs;
 
-    function push(
-      data: { done: true; value: undefined } | { done: false; value: Buffer },
-    ) {
+    function push(data: IteratorResult<Buffer, undefined>) {
       if (data.done) rs.push(null);
       else rs.push(data.value);
     }
   }
 
-  static from(data, opts?: Partial<ReadableOptions>) {
+  static from(data: unknown, opts?: Partial<ReadableOptions>): unknown {
     if (isReadStreamx(data)) return data;
 
     if (data[Symbol.asyncIterator])
@@ -469,14 +467,14 @@ class Readable extends Stream {
     });
   }
 
-  static isBackpressured(rs): boolean {
+  static isBackpressured(rs: unknown): boolean {
     return (
       (rs._duplexState & READ_BACKPRESSURE_STATUS) !== 0 ||
       rs._readableState.buffered >= rs._readableState.highWaterMark
     );
   }
 
-  static isPaused(rs): boolean {
+  static isPaused(rs: unknown): boolean {
     return (rs._duplexState & READ_RESUMED) === 0;
   }
 
@@ -514,7 +512,7 @@ class Readable extends Stream {
         return destroy(null);
       },
 
-      throw(err): Promise<{ value: undefined; done: true }> {
+      throw(err?: Error): Promise<{ value: undefined; done: true }> {
         return destroy(err);
       },
     };
@@ -536,7 +534,7 @@ class Readable extends Stream {
       promiseReject = promiseResolve = null;
     }
 
-    function destroy(err): Promise<{ value: undefined; done: true }> {
+    function destroy(err?: Error): Promise<{ value: undefined; done: true }> {
       stream.destroy(err);
       return new Promise<{ value: undefined; done: true }>(
         (resolve, reject) => {
@@ -553,7 +551,9 @@ class Readable extends Stream {
   }
 }
 
-interface WritableOptions extends StreamOptions, WritableStateOptions {}
+interface WritableOptions extends StreamOptions, WritableStateOptions {
+  write?(data: Buffer<ArrayBufferLike>, callback: (err?: Error) => void): void;
+}
 
 class Writable extends Stream {
   constructor(opts?: WritableOptions) {
@@ -579,7 +579,7 @@ class Writable extends Stream {
     this._writableState.updateNextTick();
   }
 
-  _writev(batch, callback: (err?: Error | null) => void): void {
+  _writev(batch: unknown, callback: (err?: Error | null) => void): void {
     callback(null);
   }
 
@@ -609,12 +609,12 @@ class Writable extends Stream {
     });
   }
 
-  write(data): boolean {
+  write(data: Buffer): boolean {
     this._writableState.updateNextTick();
     return this._writableState.push(data);
   }
 
-  end(data?): this {
+  end(data?: Buffer): this {
     this._writableState.updateNextTick();
     this._writableState.end(data);
     return this;
