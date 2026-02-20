@@ -3,7 +3,7 @@ import * as fs from "node:fs";
 import * as zlib from "node:zlib";
 
 import * as tar from "../src/index";
-import { Writable } from "../src/streamx";
+import { Writable } from "../src/lib/streamx";
 import * as fixtures from "./fixtures";
 
 const win32 = process.platform === "win32";

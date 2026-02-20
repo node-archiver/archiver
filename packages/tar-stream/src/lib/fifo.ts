@@ -18,12 +18,6 @@ class FixedFIFO {
     this.next = null;
   }
 
-  clear(): void {
-    this.top = this.btm = 0;
-    this.next = null;
-    this.buffer.fill(undefined);
-  }
-
   push(data: Buffer): boolean {
     if (this.buffer[this.top] !== undefined) return false;
     this.buffer[this.top] = data;
@@ -42,10 +36,6 @@ class FixedFIFO {
   peek(): Buffer {
     return this.buffer[this.btm];
   }
-
-  isEmpty(): boolean {
-    return this.buffer[this.btm] === undefined;
-  }
 }
 
 class FastFIFO {
@@ -56,12 +46,6 @@ class FastFIFO {
   constructor() {
     this.head = new FixedFIFO(16);
     this.tail = this.head;
-    this.length = 0;
-  }
-
-  clear(): void {
-    this.head = this.tail;
-    this.head.clear();
     this.length = 0;
   }
 
@@ -91,10 +75,6 @@ class FastFIFO {
     const val = this.tail.peek();
     if (val === undefined && this.tail.next) return this.tail.next.peek();
     return val;
-  }
-
-  isEmpty(): boolean {
-    return this.length === 0;
   }
 }
 

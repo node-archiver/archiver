@@ -39,6 +39,7 @@ export interface TarHeader {
   gname: string;
   devmajor: number;
   devminor: number;
+  typeflag: number;
 }
 
 /**
@@ -72,7 +73,7 @@ function parse256(buf) {
   return positive ? sum : -1 * sum;
 }
 
-function decodeOct(val, offset, length) {
+function decodeOct(val: Buffer, offset: number, length: number): number {
   val = val.subarray(offset, offset + length);
   offset = 0;
 
@@ -89,7 +90,7 @@ function decodeOct(val, offset, length) {
     );
     while (offset < end && val[offset] === 0) offset++;
     if (end === offset) return 0;
-    return parseInt(b4a.toString(val.subarray(offset, end)), 8);
+    return parseInt(val.subarray(offset, end).toString(), 8);
   }
 }
 
@@ -116,7 +117,13 @@ function decodeLongPath(buf: Buffer, encoding: BufferEncoding): string {
   return decodeStr(buf, 0, buf.length, encoding);
 }
 
-function encodePax(opts): Buffer {
+interface EncodePaxOptions {
+  name?: string;
+  linkname?: string;
+  pax?: Record<string, string>;
+}
+
+function encodePax(opts: EncodePaxOptions): Buffer {
   // TODO: encode more stuff in pax
   let result = "";
   if (opts.name) result += addLength(" path=" + opts.name + "\n");
@@ -150,7 +157,23 @@ function decodePax(buf: Buffer): Record<string, string> {
   return result;
 }
 
-function encode(opts): Buffer {
+interface EncodeOptions {
+  name: string;
+  typeflag?: number;
+  linkname?: string;
+  mode: number;
+  uid: number;
+  gid: number;
+  size: number;
+  mtime: Date;
+  type: HeaderType;
+  uname?: string;
+  gname?: string;
+  devmajor?: number;
+  devminor?: number;
+}
+
+function encode(opts: EncodeOptions): Buffer {
   const buf = Buffer.alloc(512);
   let name = opts.name;
   let prefix = "";
@@ -169,10 +192,10 @@ function encode(opts): Buffer {
     return null;
   if (opts.linkname && Buffer.byteLength(opts.linkname) > 100) return null;
 
-  b4a.toBuffer(buf).write(name);
-  b4a.toBuffer(buf).write(encodeOct(opts.mode & MASK, 6), 100);
-  b4a.toBuffer(buf).write(encodeOct(opts.uid, 6), 108);
-  b4a.toBuffer(buf).write(encodeOct(opts.gid, 6), 116);
+  buf.write(name);
+  buf.write(encodeOct(opts.mode & MASK, 6), 100);
+  buf.write(encodeOct(opts.uid, 6), 108);
+  buf.write(encodeOct(opts.gid, 6), 116);
   encodeSize(opts.size, buf, 124);
   b4a
     .toBuffer(buf)
@@ -180,27 +203,43 @@ function encode(opts): Buffer {
 
   buf[156] = ZERO_OFFSET + toTypeflag(opts.type);
 
-  if (opts.linkname) b4a.toBuffer(buf).write(opts.linkname, 157);
+  if (opts.linkname) buf.write(opts.linkname, 157);
 
   b4a.copy(USTAR_MAGIC, buf, MAGIC_OFFSET);
   b4a.copy(USTAR_VER, buf, VERSION_OFFSET);
-  if (opts.uname) b4a.toBuffer(buf).write(opts.uname, 265);
-  if (opts.gname) b4a.toBuffer(buf).write(opts.gname, 297);
-  b4a.toBuffer(buf).write(encodeOct(opts.devmajor || 0, 6), 329);
-  b4a.toBuffer(buf).write(encodeOct(opts.devminor || 0, 6), 337);
+  if (opts.uname) buf.write(opts.uname, 265);
+  if (opts.gname) buf.write(opts.gname, 297);
+  buf.write(encodeOct(opts.devmajor || 0, 6), 329);
+  buf.write(encodeOct(opts.devminor || 0, 6), 337);
 
-  if (prefix) b4a.toBuffer(buf).write(prefix, 345);
+  if (prefix) buf.write(prefix, 345);
 
-  b4a.toBuffer(buf).write(encodeOct(cksum(buf), 6), 148);
+  buf.write(encodeOct(cksum(buf), 6), 148);
 
   return buf;
+}
+
+interface DecodedHeader {
+  name: string;
+  mode: number;
+  uid: number;
+  gid: number;
+  size: number;
+  mtime: Date;
+  type: HeaderType;
+  linkname: string;
+  uname: string;
+  gname: string;
+  devmajor: number;
+  devminor: number;
+  pax: null;
 }
 
 function decode(
   buf: Buffer,
   filenameEncoding: BufferEncoding,
   allowUnknownFormat?: boolean,
-): TarHeader {
+): DecodedHeader {
   let typeflag = buf[156] === 0 ? 0 : buf[156] - ZERO_OFFSET;
 
   let name = decodeStr(buf, 0, 100, filenameEncoding);
@@ -262,14 +301,14 @@ function decode(
   };
 }
 
-function isUSTAR(buf) {
-  return b4a.equals(USTAR_MAGIC, buf.subarray(MAGIC_OFFSET, MAGIC_OFFSET + 6));
+function isUSTAR(buf: Buffer): boolean {
+  return USTAR_MAGIC.equals(buf.subarray(MAGIC_OFFSET, MAGIC_OFFSET + 6));
 }
 
-function isGNU(buf) {
+function isGNU(buf: Buffer): boolean {
   return (
-    b4a.equals(GNU_MAGIC, buf.subarray(MAGIC_OFFSET, MAGIC_OFFSET + 6)) &&
-    b4a.equals(GNU_VER, buf.subarray(VERSION_OFFSET, VERSION_OFFSET + 2))
+    GNU_MAGIC.equals(buf.subarray(MAGIC_OFFSET, MAGIC_OFFSET + 6)) &&
+    GNU_VER.equals(buf.subarray(VERSION_OFFSET, VERSION_OFFSET + 2))
   );
 }
 
@@ -315,7 +354,7 @@ function toType(flag: number): HeaderType | null {
   return null;
 }
 
-function toTypeflag(flag) {
+function toTypeflag(flag: HeaderType): number {
   switch (flag) {
     case "file":
       return 0;
@@ -340,27 +379,32 @@ function toTypeflag(flag) {
   return 0;
 }
 
-function indexOf(block, num: number, offset: number, end: number) {
+function indexOf(
+  block: Buffer,
+  num: number,
+  offset: number,
+  end: number,
+): number {
   for (; offset < end; offset++) {
     if (block[offset] === num) return offset;
   }
   return end;
 }
 
-function cksum(block) {
+function cksum(block: Buffer): number {
   let sum = 8 * 32;
   for (let i = 0; i < 148; i++) sum += block[i];
   for (let j = 156; j < 512; j++) sum += block[j];
   return sum;
 }
 
-function encodeOct(val, n) {
-  val = val.toString(8);
+function encodeOct(num: number, n: number): string {
+  const val = num.toString(8);
   if (val.length > n) return SEVENS.slice(0, n) + " ";
   return ZEROS.slice(0, n - val.length) + val + " ";
 }
 
-function encodeSizeBin(num, buf, off) {
+function encodeSizeBin(num: number, buf: Buffer, off: number): void {
   buf[off] = 0x80;
   for (let i = 11; i > 0; i--) {
     buf[off + i] = num & 0xff;
@@ -368,11 +412,11 @@ function encodeSizeBin(num, buf, off) {
   }
 }
 
-function encodeSize(num, buf, off) {
+function encodeSize(num: number, buf: Buffer, off: number): void {
   if (num.toString(8).length > 11) {
     encodeSizeBin(num, buf, off);
   } else {
-    b4a.toBuffer(buf).write(encodeOct(num, 11), off);
+    buf.write(encodeOct(num, 11), off);
   }
 }
 

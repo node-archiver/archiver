@@ -1,7 +1,7 @@
 import Stream, {
   Transform,
-  TransformCallback,
-  TransformOptions,
+  type TransformCallback,
+  type TransformOptions,
 } from "node:stream";
 import { crc32 } from "node:zlib";
 

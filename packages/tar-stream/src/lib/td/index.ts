@@ -20,7 +20,7 @@ class TextDecoder {
     }
   }
 
-  get remaining() {
+  get remaining(): number {
     return this.decoder.remaining;
   }
 

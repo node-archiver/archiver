@@ -4,7 +4,7 @@ import * as fs from "node:fs";
 import concat from "concat-stream";
 
 import * as tar from "../src/index";
-import { Writable } from "../src/streamx";
+import { Writable } from "../src/lib/streamx";
 import * as fixtures from "./fixtures";
 
 test("one-file", function () {

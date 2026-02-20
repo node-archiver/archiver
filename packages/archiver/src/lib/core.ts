@@ -776,4 +776,9 @@ class Archiver extends Transform {
   }
 }
 
-export { Archiver, type ArchiverOptions, normalizeEntryData };
+export {
+  Archiver,
+  type ArchiverOptions,
+  type ProgressData,
+  normalizeEntryData,
+};

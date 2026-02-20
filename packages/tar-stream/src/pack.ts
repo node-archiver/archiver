@@ -1,25 +1,67 @@
 import { constants } from "node:fs";
 
-import * as b4a from "./b4a";
-import * as headers from "./headers";
-import type { HeaderType, TarHeader } from "./headers";
+import * as b4a from "./lib/b4a";
+import * as headers from "./lib/headers";
+import type { HeaderType, TarHeader } from "./lib/headers";
 import {
   Readable,
   Writable,
   getStreamError,
   type ReadableOptions,
-} from "./streamx";
+} from "./lib/streamx";
 
 const DMODE = 0o755;
 const FMODE = 0o644;
 
 const END_OF_TAR = Buffer.alloc(1024);
 
-class Sink extends Writable {
-  written: number;
-  header: TarHeader;
+function modeToType(mode: number): HeaderType {
+  switch (mode & constants.S_IFMT) {
+    case constants.S_IFBLK:
+      return "block-device";
+    case constants.S_IFCHR:
+      return "character-device";
+    case constants.S_IFDIR:
+      return "directory";
+    case constants.S_IFIFO:
+      return "fifo";
+    case constants.S_IFLNK:
+      return "symlink";
+  }
 
-  constructor(pack: TarPack, header: TarHeader, callback) {
+  return "file";
+}
+
+function overflow(self: TarPack, size: number): void {
+  size &= 511;
+  if (size) self.push(END_OF_TAR.subarray(0, 512 - size));
+}
+
+function mapWritable(buf): Buffer {
+  return Buffer.isBuffer(buf) ? buf : Buffer.from(buf);
+}
+
+interface TarPackSinkHeader {
+  type: HeaderType;
+  linkname: string;
+  size: number;
+}
+
+class TarPackSink extends Writable {
+  written: number;
+  header: TarPackSinkHeader;
+
+  private _isLinkname: boolean;
+  private _isVoid: boolean;
+  private _finished: boolean;
+  private _pack: TarPack;
+  private _linkname: Buffer | null;
+
+  constructor(
+    pack: TarPack,
+    header: TarPackSinkHeader,
+    callback?: (err: Error | null) => void,
+  ) {
     super({ mapWritable, eagerOpen: true });
 
     this.written = 0;
@@ -37,12 +79,12 @@ class Sink extends Writable {
     else this._pack._pending.push(this);
   }
 
-  _open(cb): void {
-    this._openCallback = cb;
+  _open(callback?: (err: Error | null) => void): void {
+    this._openCallback = callback;
     if (this._pack._stream === this) this._continueOpen();
   }
 
-  _continuePack(err): void {
+  _continuePack(err: Error | null): void {
     if (this._callback === null) return;
 
     const callback = this._callback;
@@ -51,16 +93,21 @@ class Sink extends Writable {
     callback(err);
   }
 
-  _continueOpen() {
+  _continueOpen(): void {
     if (this._pack._stream === null) this._pack._stream = this;
 
-    const cb = this._openCallback;
+    const callback = this._openCallback;
     this._openCallback = null;
-    if (cb === null) return;
 
-    if (this._pack.destroying) return cb(new Error("pack stream destroyed"));
-    if (this._pack._finalized)
-      return cb(new Error("pack stream is already finalized"));
+    if (callback === null) return;
+
+    if (this._pack.destroying) {
+      return callback(new Error("pack stream destroyed"));
+    }
+
+    if (this._pack._finalized) {
+      return callback(new Error("pack stream is already finalized"));
+    }
 
     this._pack._stream = this;
 
@@ -73,14 +120,15 @@ class Sink extends Writable {
       this._continuePack(null);
     }
 
-    cb(null);
+    callback(null);
   }
 
-  _write(data, callback): void {
+  _write(data: Buffer, callback: (arg?: Error | null) => void): void {
     if (this._isLinkname) {
       this._linkname = this._linkname
         ? Buffer.concat([this._linkname, data])
         : data;
+
       return callback(null);
     }
 
@@ -102,7 +150,7 @@ class Sink extends Writable {
 
     if (this._isLinkname) {
       this.header.linkname = this._linkname
-        ? b4a.toString(this._linkname, "utf-8")
+        ? this._linkname.toString("utf-8")
         : "";
       this._pack._encode(this.header);
     }
@@ -122,7 +170,7 @@ class Sink extends Writable {
     callback(null);
   }
 
-  _getError(): Error {
+  private _getError(): Error {
     return getStreamError(this) || new Error("tar entry destroyed");
   }
 
@@ -130,18 +178,24 @@ class Sink extends Writable {
     this._pack.destroy(this._getError());
   }
 
-  _destroy(cb: () => void): void {
+  _destroy(callback: () => void): void {
     this._pack._done(this);
 
     this._continuePack(this._finished ? null : this._getError());
 
-    cb();
+    callback();
   }
 }
 
 interface TarPackOptions extends ReadableOptions {}
 
 class TarPack extends Readable {
+  private _drain: () => void;
+  private _finalized: boolean;
+  private _finalizing: boolean;
+  private _pending: TarPackSink[];
+  private _stream: TarPackSink | null;
+
   constructor(opts?: TarPackOptions) {
     super(opts);
 
@@ -152,10 +206,21 @@ class TarPack extends Readable {
     this._stream = null;
   }
 
-  entry(header: Partial<TarHeader>, callback?): Sink;
-  entry(header: Partial<TarHeader>, buffer, callback?): Sink;
+  entry(
+    header: Partial<TarHeader>,
+    callback?: (err?: Error | null) => void,
+  ): TarPackSink;
+  entry(
+    header: Partial<TarHeader>,
+    buffer: string | Buffer,
+    callback?: (err?: Error | null) => void,
+  ): TarPackSink;
 
-  entry(header: Partial<TarHeader>, bufferOrCallback, callback?): Sink {
+  entry(
+    header: Partial<TarHeader> & { type: HeaderType; linkname: string },
+    bufferOrCallback?: string | Buffer | ((err?: Error | null) => void),
+    callback?: (err?: Error | null) => void,
+  ): TarPackSink {
     if (this._finalized || this.destroying) {
       throw new Error("already finalized or destroyed");
     }
@@ -167,20 +232,25 @@ class TarPack extends Readable {
 
     if (!callback) callback = () => {};
 
-    if (!header.size || header.type === "symlink") header.size = 0;
-    if (!header.type) header.type = modeToType(header.mode);
-    if (!header.mode) header.mode = header.type === "directory" ? DMODE : FMODE;
-    if (!header.uid) header.uid = 0;
-    if (!header.gid) header.gid = 0;
-    if (!header.mtime) header.mtime = new Date();
+    const normalizedHeader = { size: 0, ...header };
+
+    if (normalizedHeader.type === "symlink") normalizedHeader.size = 0;
+    if (!normalizedHeader.type)
+      normalizedHeader.type = modeToType(normalizedHeader.mode);
+    if (!normalizedHeader.mode)
+      normalizedHeader.mode =
+        normalizedHeader.type === "directory" ? DMODE : FMODE;
+    if (!normalizedHeader.uid) normalizedHeader.uid = 0;
+    if (!normalizedHeader.gid) normalizedHeader.gid = 0;
+    if (!normalizedHeader.mtime) normalizedHeader.mtime = new Date();
 
     if (typeof bufferOrCallback === "string")
       bufferOrCallback = Buffer.from(bufferOrCallback);
 
-    const sink = new Sink(this, header, callback);
+    const sink = new TarPackSink(this, normalizedHeader, callback);
 
     if (b4a.isBuffer(bufferOrCallback)) {
-      header.size = bufferOrCallback.byteLength;
+      normalizedHeader.size = bufferOrCallback.byteLength;
       sink.write(bufferOrCallback);
       sink.end();
       return sink;
@@ -206,7 +276,7 @@ class TarPack extends Readable {
     this.push(null);
   }
 
-  _done(stream): void {
+  _done(stream: TarPackSink): void {
     if (stream !== this._stream) return;
 
     this._stream = null;
@@ -215,7 +285,7 @@ class TarPack extends Readable {
     if (this._pending.length) this._pending.shift()._continueOpen();
   }
 
-  _encode(header): void {
+  _encode(header: TarHeader): void {
     if (!header.pax) {
       const buf = headers.encode(header);
       if (buf) {
@@ -233,7 +303,7 @@ class TarPack extends Readable {
       pax: header.pax,
     });
 
-    const newHeader = {
+    const newHeader: Omit<TarHeader, "pax" | "typeflag"> = {
       name: "PaxHeader",
       mode: header.mode,
       uid: header.uid,
@@ -246,7 +316,7 @@ class TarPack extends Readable {
       gname: header.gname,
       devmajor: header.devmajor,
       devminor: header.devminor,
-    } satisfies TarHeader;
+    };
 
     this.push(headers.encode(newHeader));
     this.push(paxHeader);
@@ -277,36 +347,10 @@ class TarPack extends Readable {
     this._doDrain();
   }
 
-  _read(cb: () => void): void {
+  _read(callback: () => void): void {
     this._doDrain();
-    cb();
+    callback();
   }
-}
-
-function modeToType(mode: number): HeaderType {
-  switch (mode & constants.S_IFMT) {
-    case constants.S_IFBLK:
-      return "block-device";
-    case constants.S_IFCHR:
-      return "character-device";
-    case constants.S_IFDIR:
-      return "directory";
-    case constants.S_IFIFO:
-      return "fifo";
-    case constants.S_IFLNK:
-      return "symlink";
-  }
-
-  return "file";
-}
-
-function overflow(self, size: number): void {
-  size &= 511;
-  if (size) self.push(END_OF_TAR.subarray(0, 512 - size));
-}
-
-function mapWritable(buf) {
-  return b4a.isBuffer(buf) ? buf : Buffer.from(buf);
 }
 
 function pack(opts?: TarPackOptions): TarPack {
