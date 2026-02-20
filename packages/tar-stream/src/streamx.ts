@@ -131,8 +131,10 @@ const WRITE_UPDATE_SYNC_STATUS =
 const WRITE_DROP_DATA = WRITE_FINISHING | WRITE_DONE | DESTROY_STATUS;
 
 class WritableState {
+  stream: Stream;
+
   constructor(
-    stream,
+    stream: Stream,
     {
       highWaterMark = 16384,
       map = null,
@@ -154,11 +156,11 @@ class WritableState {
     this.afterUpdateNextTick = updateWriteNT.bind(this);
   }
 
-  get ended() {
+  get ended(): boolean {
     return (this.stream._duplexState & WRITE_DONE) !== 0;
   }
 
-  push(data) {
+  push(data): boolean {
     if ((this.stream._duplexState & WRITE_DROP_DATA) !== 0) return false;
     if (this.map !== null) data = this.map(data);
 
@@ -183,7 +185,7 @@ class WritableState {
     return data;
   }
 
-  end(data) {
+  end(data): void {
     if (typeof data === "function") this.stream.once("finish", data);
     else if (data !== undefined && data !== null) this.push(data);
     this.stream._duplexState =
@@ -294,11 +296,11 @@ class ReadableState {
     this.afterUpdateNextTick = updateReadNT.bind(this);
   }
 
-  get ended() {
+  get ended(): boolean {
     return (this.stream._duplexState & READ_DONE) !== 0;
   }
 
-  pipe(pipeTo, cb) {
+  pipe(pipeTo, cb): void {
     if (this.pipeTo !== null)
       throw new Error("Can only pipe to one destination");
     if (typeof cb !== "function") cb = null;
@@ -352,7 +354,7 @@ class ReadableState {
     return this.buffered < this.highWaterMark;
   }
 
-  shift() {
+  shift(): Buffer {
     const data = this.queue.shift();
 
     this.buffered -= this.byteLength(data);
@@ -360,7 +362,7 @@ class ReadableState {
     return data;
   }
 
-  unshift(data) {
+  unshift(data): void {
     const pending = [this.map !== null ? this.map(data) : data];
     while (this.buffered > 0) pending.push(this.shift());
 
@@ -373,7 +375,7 @@ class ReadableState {
     this.push(pending[pending.length - 1]);
   }
 
-  read() {
+  read(): Buffer {
     const stream = this.stream;
 
     if ((stream._duplexState & READ_STATUS) === READ_QUEUED) {
@@ -701,7 +703,9 @@ class Stream extends EventEmitter {
       if (opts.destroy) this._destroy = opts.destroy;
       if (opts.predestroy) this._predestroy = opts.predestroy;
       if (opts.signal) {
-        opts.signal.addEventListener("abort", abort.bind(this));
+        opts.signal.addEventListener("abort", () =>
+          this.destroy(new Error("Stream aborted.")),
+        );
       }
     }
 
@@ -1017,7 +1021,7 @@ class Writable extends Stream {
     return this._writableState.push(data);
   }
 
-  end(data?) {
+  end(data?): this {
     this._writableState.updateNextTick();
     this._writableState.end(data);
     return this;
@@ -1084,7 +1088,7 @@ function isStreamx(stream) {
   return typeof stream._duplexState === "number" && isStream(stream);
 }
 
-function getStreamError(stream: Stream, opts = {}) {
+function getStreamError(stream: Stream, opts = {}): Error {
   const err =
     (stream._readableState && stream._readableState.error) ||
     (stream._writableState && stream._writableState.error);
@@ -1107,10 +1111,6 @@ function isTypedArray(data) {
 
 function defaultByteLength(data) {
   return isTypedArray(data) ? data.byteLength : 1024;
-}
-
-function abort() {
-  this.destroy(new Error("Stream aborted."));
 }
 
 function isWritev(s) {

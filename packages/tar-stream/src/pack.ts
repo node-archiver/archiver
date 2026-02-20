@@ -58,12 +58,12 @@ class Sink extends Writable {
     else this._pack._pending.push(this);
   }
 
-  _open(cb) {
+  _open(cb): void {
     this._openCallback = cb;
     if (this._pack._stream === this) this._continueOpen();
   }
 
-  _continuePack(err) {
+  _continuePack(err): void {
     if (this._callback === null) return;
 
     const callback = this._callback;
