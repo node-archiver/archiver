@@ -1,6 +1,6 @@
 {
   "name": "@archiver/zip-stream",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "a streaming zip archive generator",
   "license": "MIT",
   "files": [

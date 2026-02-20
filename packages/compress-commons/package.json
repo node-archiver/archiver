@@ -1,6 +1,6 @@
 {
   "name": "@archiver/compress-commons",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "a library that defines a common interface for working with archive formats within node",
   "license": "MIT",
   "files": [
