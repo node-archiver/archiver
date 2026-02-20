@@ -5,12 +5,6 @@ const STREAM_DESTROYED = new Error("Stream was destroyed");
 import { FastFIFO as FIFO } from "./fifo";
 import { TextDecoder } from "./td/index";
 
-// if we do a future major, expect queue microtask to be there always, for now a bit defensive
-const qmt =
-  typeof queueMicrotask === "undefined"
-    ? (fn) => global.process.nextTick(fn)
-    : queueMicrotask;
-
 // 29 bits used total (4 from shared, 14 from read, and 11 from write)
 const MAX = (1 << 29) - 1;
 
@@ -262,7 +256,7 @@ class WritableState {
     if ((this.stream._duplexState & WRITE_NEXT_TICK) !== 0) return;
     this.stream._duplexState |= WRITE_NEXT_TICK;
     if ((this.stream._duplexState & WRITE_UPDATING) === 0)
-      qmt(this.afterUpdateNextTick);
+      queueMicrotask(this.afterUpdateNextTick);
   }
 }
 
@@ -489,14 +483,14 @@ class ReadableState {
     if ((this.stream._duplexState & READ_NEXT_TICK_OR_OPENING) !== 0) return;
     this.stream._duplexState |= READ_NEXT_TICK;
     if ((this.stream._duplexState & READ_UPDATING) === 0)
-      qmt(this.afterUpdateNextTick);
+      queueMicrotask(this.afterUpdateNextTick);
   }
 
   updateNextTick(): void {
     if ((this.stream._duplexState & READ_NEXT_TICK) !== 0) return;
     this.stream._duplexState |= READ_NEXT_TICK;
     if ((this.stream._duplexState & READ_UPDATING) === 0)
-      qmt(this.afterUpdateNextTick);
+      queueMicrotask(this.afterUpdateNextTick);
   }
 }
 
