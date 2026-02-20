@@ -9,6 +9,21 @@ const FMODE = 0o644;
 
 const END_OF_TAR = Buffer.alloc(1024);
 
+interface TarHeader {
+  name: string;
+  mode: unknown;
+  uid: unknown;
+  gid: unknown;
+  size: number;
+  mtime: unknown;
+  type: string;
+  linkname: string;
+  uname: unknown;
+  gname: unknown;
+  devmajor: unknown;
+  devminor: unknown;
+}
+
 class Sink extends Writable {
   constructor(pack, header, callback) {
     super({ mapWritable, eagerOpen: true });
@@ -133,23 +148,26 @@ class Sink extends Writable {
 class Pack extends Readable {
   constructor(opts) {
     super(opts);
-    this._drain = noop;
+    this._drain = () => {};
     this._finalized = false;
     this._finalizing = false;
     this._pending = [];
     this._stream = null;
   }
 
-  entry(header, buffer, callback?) {
-    if (this._finalized || this.destroying)
+  entry(header, callback?): Sink;
+
+  entry(header, buffer, callback?): Sink {
+    if (this._finalized || this.destroying) {
       throw new Error("already finalized or destroyed");
+    }
 
     if (typeof buffer === "function") {
       callback = buffer;
       buffer = null;
     }
 
-    if (!callback) callback = noop;
+    if (!callback) callback = () => {};
 
     if (!header.size || header.type === "symlink") header.size = 0;
     if (!header.type) header.type = modeToType(header.mode);
@@ -209,7 +227,7 @@ class Pack extends Readable {
     this._encodePax(header);
   }
 
-  _encodePax(header) {
+  _encodePax(header: TarHeader) {
     const paxHeader = headers.encodePax({
       name: header.name,
       linkname: header.linkname,
@@ -229,7 +247,7 @@ class Pack extends Readable {
       gname: header.gname,
       devmajor: header.devmajor,
       devminor: header.devminor,
-    };
+    } satisfies TarHeader;
 
     this.push(headers.encode(newHeader));
     this.push(paxHeader);
@@ -242,7 +260,7 @@ class Pack extends Readable {
 
   _doDrain() {
     const drain = this._drain;
-    this._drain = noop;
+    this._drain = () => {};
     drain();
   }
 
@@ -260,13 +278,21 @@ class Pack extends Readable {
     this._doDrain();
   }
 
-  _read(cb) {
+  _read(cb: () => void) {
     this._doDrain();
     cb();
   }
 }
 
-function modeToType(mode) {
+function modeToType(
+  mode,
+):
+  | "symlink"
+  | "file"
+  | "block-device"
+  | "character-device"
+  | "directory"
+  | "fifo" {
   switch (mode & constants.S_IFMT) {
     case constants.S_IFBLK:
       return "block-device";
@@ -283,9 +309,7 @@ function modeToType(mode) {
   return "file";
 }
 
-function noop() {}
-
-function overflow(self, size) {
+function overflow(self, size): void {
   size &= 511;
   if (size) self.push(END_OF_TAR.subarray(0, 512 - size));
 }
@@ -294,7 +318,7 @@ function mapWritable(buf) {
   return b4a.isBuffer(buf) ? buf : Buffer.from(buf);
 }
 
-function pack(opts?) {
+function pack(opts?): Pack {
   return new Pack(opts);
 }
 

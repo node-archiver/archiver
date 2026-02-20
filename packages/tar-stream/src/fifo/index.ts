@@ -1,4 +1,6 @@
 class FixedFIFO {
+  next: FixedFIFO;
+
   constructor(hwm: number) {
     if (!(hwm > 0) || ((hwm - 1) & hwm) !== 0) {
       throw new Error("Max size for a FixedFIFO should be a power of two");
@@ -42,6 +44,8 @@ class FixedFIFO {
 }
 
 class FastFIFO {
+  head: FixedFIFO;
+  tail: FixedFIFO;
   length: number;
 
   constructor() {

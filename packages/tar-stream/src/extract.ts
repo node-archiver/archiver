@@ -5,6 +5,8 @@ import { Writable, Readable, getStreamError } from "./streamx";
 const EMPTY = Buffer.alloc(0);
 
 class BufferList {
+  queue: FIFO;
+
   constructor() {
     this.buffered = 0;
     this.shifted = 0;
