@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    // "declaration": true,
-    // "isolatedDeclarations": true,
+    "declaration": true,
+    "isolatedDeclarations": true,
 
     "target": "esnext",
     "module": "esnext",

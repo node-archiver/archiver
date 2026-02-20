@@ -268,8 +268,12 @@ class WritableState {
 }
 
 class ReadableState {
+  stream: Stream;
+  queue: FIFO;
+  readAhead: boolean;
+
   constructor(
-    stream,
+    stream: Stream,
     {
       highWaterMark = 16384,
       map = null,
@@ -376,10 +380,12 @@ class ReadableState {
 
     if ((stream._duplexState & READ_STATUS) === READ_QUEUED) {
       const data = this.shift();
-      if (this.pipeTo !== null && this.pipeTo.write(data) === false)
+      if (this.pipeTo !== null && this.pipeTo.write(data) === false) {
         stream._duplexState &= READ_PIPE_NOT_DRAINED;
-      if ((stream._duplexState & READ_EMIT_DATA) !== 0)
+      }
+      if ((stream._duplexState & READ_EMIT_DATA) !== 0) {
         stream.emit("data", data);
+      }
       return data;
     }
 
@@ -680,8 +686,10 @@ function newListener(name) {
   }
 }
 
+interface StreamOptions {}
+
 class Stream extends EventEmitter {
-  constructor(opts) {
+  constructor(opts?: StreamOptions) {
     super();
 
     this._duplexState = 0;
@@ -752,8 +760,13 @@ class Stream extends EventEmitter {
   }
 }
 
+interface ReadableOptions extends StreamOptions {}
+
 class Readable extends Stream {
-  constructor(opts) {
+  private _duplexState: number;
+  private _readableState: ReadableState;
+
+  constructor(opts?: ReadableOptions) {
     super(opts);
 
     this._duplexState |= OPENING | WRITE_DONE | READ_READ_AHEAD;
@@ -768,7 +781,7 @@ class Readable extends Stream {
     }
   }
 
-  setEncoding(encoding) {
+  setEncoding(encoding): this {
     const dec = new TextDecoder(encoding);
     const map = this._readableState.map || echo;
     this._readableState.map = mapOrSkip;
@@ -782,7 +795,7 @@ class Readable extends Stream {
     }
   }
 
-  _read(cb) {
+  _read(cb): void {
     cb(null);
   }
 

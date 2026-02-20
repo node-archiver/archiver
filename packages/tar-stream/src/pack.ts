@@ -9,6 +9,15 @@ const FMODE = 0o644;
 
 const END_OF_TAR = Buffer.alloc(1024);
 
+type HeaderType =
+  | "symlink"
+  | "file"
+  | "block-device"
+  | "character-device"
+  | "directory"
+  | "fifo"
+  | "contiguous-file";
+
 interface TarHeader {
   name: string;
   mode: unknown;
@@ -16,7 +25,7 @@ interface TarHeader {
   gid: unknown;
   size: number;
   mtime: unknown;
-  type: string;
+  type: HeaderType;
   linkname: string;
   uname: unknown;
   gname: unknown;
@@ -25,7 +34,10 @@ interface TarHeader {
 }
 
 class Sink extends Writable {
-  constructor(pack, header, callback) {
+  written: number;
+  header: TarHeader;
+
+  constructor(pack, header: TarHeader, callback) {
     super({ mapWritable, eagerOpen: true });
 
     this.written = 0;
@@ -148,6 +160,7 @@ class Sink extends Writable {
 class Pack extends Readable {
   constructor(opts) {
     super(opts);
+
     this._drain = () => {};
     this._finalized = false;
     this._finalizing = false;
@@ -155,16 +168,17 @@ class Pack extends Readable {
     this._stream = null;
   }
 
-  entry(header, callback?): Sink;
+  entry(header: Partial<TarHeader>, callback?): Sink;
+  entry(header: Partial<TarHeader>, buffer, callback?): Sink;
 
-  entry(header, buffer, callback?): Sink {
+  entry(header: Partial<TarHeader>, bufferOrCallback, callback?): Sink {
     if (this._finalized || this.destroying) {
       throw new Error("already finalized or destroyed");
     }
 
-    if (typeof buffer === "function") {
-      callback = buffer;
-      buffer = null;
+    if (typeof bufferOrCallback === "function") {
+      callback = bufferOrCallback;
+      bufferOrCallback = null;
     }
 
     if (!callback) callback = () => {};
@@ -176,13 +190,14 @@ class Pack extends Readable {
     if (!header.gid) header.gid = 0;
     if (!header.mtime) header.mtime = new Date();
 
-    if (typeof buffer === "string") buffer = Buffer.from(buffer);
+    if (typeof bufferOrCallback === "string")
+      bufferOrCallback = Buffer.from(bufferOrCallback);
 
     const sink = new Sink(this, header, callback);
 
-    if (b4a.isBuffer(buffer)) {
-      header.size = buffer.byteLength;
-      sink.write(buffer);
+    if (b4a.isBuffer(bufferOrCallback)) {
+      header.size = bufferOrCallback.byteLength;
+      sink.write(bufferOrCallback);
       sink.end();
       return sink;
     }
@@ -284,15 +299,7 @@ class Pack extends Readable {
   }
 }
 
-function modeToType(
-  mode,
-):
-  | "symlink"
-  | "file"
-  | "block-device"
-  | "character-device"
-  | "directory"
-  | "fifo" {
+function modeToType(mode: number): HeaderType {
   switch (mode & constants.S_IFMT) {
     case constants.S_IFBLK:
       return "block-device";
@@ -322,4 +329,4 @@ function pack(opts?): Pack {
   return new Pack(opts);
 }
 
-export { pack, type Pack };
+export { pack, type Pack as TarPack };

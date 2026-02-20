@@ -5,6 +5,8 @@ import { Writable, Readable, getStreamError } from "./streamx";
 const EMPTY = Buffer.alloc(0);
 
 class BufferList {
+  buffered: number;
+  shifted: number;
   queue: FIFO;
 
   constructor() {
@@ -15,7 +17,7 @@ class BufferList {
     this._offset = 0;
   }
 
-  push(buffer) {
+  push(buffer): void {
     this.buffered += buffer.byteLength;
     this.queue.push(buffer);
   }
@@ -420,4 +422,4 @@ function extract(opts?) {
   return new Extract(opts);
 }
 
-export { extract, type Extract };
+export { extract, type Extract as TarExtract };
