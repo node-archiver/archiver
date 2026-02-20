@@ -4,6 +4,8 @@ import * as b4a from "../b4a";
  * https://encoding.spec.whatwg.org/#utf-8-decoder
  */
 class UTF8Decoder {
+  bytesSeen: 0 | 1;
+
   constructor() {
     this._reset();
   }
@@ -108,13 +110,13 @@ class UTF8Decoder {
     return result;
   }
 
-  flush() {
+  flush(): "" | "\ufffd" {
     const result = this.bytesNeeded > 0 ? "\ufffd" : "";
     this._reset();
     return result;
   }
 
-  _reset() {
+  _reset(): void {
     this.codePoint = 0;
     this.bytesNeeded = 0;
     this.bytesSeen = 0;

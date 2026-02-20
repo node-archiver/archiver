@@ -1,10 +1,14 @@
 import { constants } from "node:fs";
-import type { ReadableOptions } from "node:stream";
 
 import * as b4a from "./b4a";
 import * as headers from "./headers";
 import type { HeaderType, TarHeader } from "./headers";
-import { Readable, Writable, getStreamError } from "./streamx";
+import {
+  Readable,
+  Writable,
+  getStreamError,
+  type ReadableOptions,
+} from "./streamx";
 
 const DMODE = 0o755;
 const FMODE = 0o644;
@@ -118,15 +122,15 @@ class Sink extends Writable {
     cb(null);
   }
 
-  _getError() {
+  _getError(): Error {
     return getStreamError(this) || new Error("tar entry destroyed");
   }
 
-  _predestroy() {
+  _predestroy(): void {
     this._pack.destroy(this._getError());
   }
 
-  _destroy(cb) {
+  _destroy(cb: () => void): void {
     this._pack._done(this);
 
     this._continuePack(this._finished ? null : this._getError());
@@ -189,7 +193,7 @@ class TarPack extends Readable {
     return sink;
   }
 
-  finalize() {
+  finalize(): void {
     if (this._stream || this._pending.length > 0) {
       this._finalizing = true;
       return;
@@ -202,7 +206,7 @@ class TarPack extends Readable {
     this.push(null);
   }
 
-  _done(stream) {
+  _done(stream): void {
     if (stream !== this._stream) return;
 
     this._stream = null;
@@ -211,7 +215,7 @@ class TarPack extends Readable {
     if (this._pending.length) this._pending.shift()._continueOpen();
   }
 
-  _encode(header) {
+  _encode(header): void {
     if (!header.pax) {
       const buf = headers.encode(header);
       if (buf) {

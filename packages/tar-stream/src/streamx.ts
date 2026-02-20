@@ -11,8 +11,6 @@ const qmt =
     ? (fn) => global.process.nextTick(fn)
     : queueMicrotask;
 
-/* eslint-disable no-multi-spaces */
-
 // 29 bits used total (4 from shared, 14 from read, and 11 from write)
 const MAX = (1 << 29) - 1;
 
@@ -778,9 +776,6 @@ interface ReadableOptions extends StreamOptions, ReadableStateOptions {
 }
 
 class Readable extends Stream {
-  protected _duplexState: number;
-  protected _readableState: ReadableState;
-
   constructor(opts?: ReadableOptions) {
     super(opts);
 
@@ -1080,4 +1075,4 @@ function isWritev(s) {
   return s._writev !== Writable.prototype._writev;
 }
 
-export { getStreamError, Writable, Readable };
+export { getStreamError, Writable, Readable, type ReadableOptions };
