@@ -1,4 +1,4 @@
-import { Archiver, type ArchiverOptions } from "./lib/core";
+import { Archiver, type ArchiverOptions, type ProgressData } from "./lib/core";
 import { Json } from "./lib/plugins/json";
 import { Tar, type TarOptions } from "./lib/plugins/tar";
 import { Zip, type ZipOptions } from "./lib/plugins/zip";
@@ -44,4 +44,4 @@ class JsonArchive extends Archiver {
   }
 }
 
-export { ZipArchive, TarArchive, JsonArchive, Archiver };
+export { ZipArchive, TarArchive, JsonArchive, Archiver, type ProgressData };
