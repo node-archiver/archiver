@@ -23,7 +23,7 @@
     // "forceConsistentCasingInFileNames": true,
     "verbatimModuleSyntax": true,
 
-    "types": ["node"]
+    "types": ["bun"]
   },
   "include": ["**/src/*.ts"]
 }
