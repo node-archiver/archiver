@@ -309,11 +309,11 @@ class ReadableState {
     this.pipeTo = pipeTo;
     this.pipeline = new Pipeline(this.stream, pipeTo, cb);
 
-    if (cb) this.stream.on("error", noop); // We already error handle this so supress crashes
+    if (cb) this.stream.on("error", () => {}); // We already error handle this so supress crashes
 
     if (isStreamx(pipeTo)) {
       pipeTo._writableState.pipeline = this.pipeline;
-      if (cb) pipeTo.on("error", noop); // We already error handle this so supress crashes
+      if (cb) pipeTo.on("error", () => {}); // We already error handle this so supress crashes
       pipeTo.on("finish", this.pipeline.finished.bind(this.pipeline)); // TODO: just call finished from pipeTo itself
     } else {
       const onerror = this.pipeline.done.bind(this.pipeline, pipeTo);
@@ -689,6 +689,8 @@ function newListener(name) {
 interface StreamOptions {}
 
 class Stream extends EventEmitter {
+  protected _duplexState: number;
+
   constructor(opts?: StreamOptions) {
     super();
 
@@ -708,35 +710,35 @@ class Stream extends EventEmitter {
     this.on("newListener", newListener);
   }
 
-  _open(cb) {
+  _open(cb): void {
     cb(null);
   }
 
-  _destroy(cb) {
+  _destroy(cb): void {
     cb(null);
   }
 
-  _predestroy() {
+  _predestroy(): void {
     // does nothing
   }
 
-  get readable() {
+  get readable(): boolean {
     return this._readableState !== null ? true : undefined;
   }
 
-  get writable() {
+  get writable(): boolean {
     return this._writableState !== null ? true : undefined;
   }
 
-  get destroyed() {
+  get destroyed(): boolean {
     return (this._duplexState & DESTROYED) !== 0;
   }
 
-  get destroying() {
+  get destroying(): boolean {
     return (this._duplexState & DESTROY_STATUS) !== 0;
   }
 
-  destroy(err) {
+  destroy(err?): void {
     if ((this._duplexState & DESTROY_STATUS) === 0) {
       if (!err) err = STREAM_DESTROYED;
       this._duplexState = (this._duplexState | DESTROYING) & NON_PRIMARY;
@@ -763,8 +765,8 @@ class Stream extends EventEmitter {
 interface ReadableOptions extends StreamOptions {}
 
 class Readable extends Stream {
-  private _duplexState: number;
-  private _readableState: ReadableState;
+  protected _duplexState: number;
+  protected _readableState: ReadableState;
 
   constructor(opts?: ReadableOptions) {
     super(opts);
@@ -951,8 +953,13 @@ class Readable extends Stream {
   }
 }
 
+interface WritableOptions extends StreamOptions {}
+
 class Writable extends Stream {
-  constructor(opts) {
+  protected _duplexState: number;
+  protected _writableState: WritableState;
+
+  constructor(opts?: WritableOptions) {
     super(opts);
 
     this._duplexState |= OPENING | READ_DONE;
@@ -966,32 +973,32 @@ class Writable extends Stream {
     }
   }
 
-  cork() {
+  cork(): void {
     this._duplexState |= WRITE_CORKED;
   }
 
-  uncork() {
+  uncork(): void {
     this._duplexState &= WRITE_NOT_CORKED;
     this._writableState.updateNextTick();
   }
 
-  _writev(batch, cb) {
+  _writev(batch, cb): void {
     cb(null);
   }
 
-  _write(data, cb) {
+  _write(data, cb): void {
     this._writableState.autoBatch(data, cb);
   }
 
-  _final(cb) {
+  _final(cb): void {
     cb(null);
   }
 
-  static isBackpressured(ws) {
+  static isBackpressured(ws): boolean {
     return (ws._duplexState & WRITE_BACKPRESSURE_STATUS) !== 0;
   }
 
-  static drained(ws) {
+  static drained(ws): Promise<boolean> {
     if (ws.destroyed) return Promise.resolve(false);
     const state = ws._writableState;
     const pending = isWritev(ws)
@@ -1010,7 +1017,7 @@ class Writable extends Stream {
     return this._writableState.push(data);
   }
 
-  end(data) {
+  end(data?) {
     this._writableState.updateNextTick();
     this._writableState.end(data);
     return this;
@@ -1077,7 +1084,7 @@ function isStreamx(stream) {
   return typeof stream._duplexState === "number" && isStream(stream);
 }
 
-function getStreamError(stream, opts = {}) {
+function getStreamError(stream: Stream, opts = {}) {
   const err =
     (stream._readableState && stream._readableState.error) ||
     (stream._writableState && stream._writableState.error);
@@ -1101,8 +1108,6 @@ function isTypedArray(data) {
 function defaultByteLength(data) {
   return isTypedArray(data) ? data.byteLength : 1024;
 }
-
-function noop() {}
 
 function abort() {
   this.destroy(new Error("Stream aborted."));

@@ -1,6 +1,9 @@
 class FixedFIFO {
   next: FixedFIFO;
 
+  top: number;
+  btm: number;
+
   constructor(hwm: number) {
     if (!(hwm > 0) || ((hwm - 1) & hwm) !== 0) {
       throw new Error("Max size for a FixedFIFO should be a power of two");
@@ -13,13 +16,13 @@ class FixedFIFO {
     this.next = null;
   }
 
-  clear() {
+  clear(): void {
     this.top = this.btm = 0;
     this.next = null;
     this.buffer.fill(undefined);
   }
 
-  push(data) {
+  push(data): boolean {
     if (this.buffer[this.top] !== undefined) return false;
     this.buffer[this.top] = data;
     this.top = (this.top + 1) & this.mask;
@@ -38,7 +41,7 @@ class FixedFIFO {
     return this.buffer[this.btm];
   }
 
-  isEmpty() {
+  isEmpty(): boolean {
     return this.buffer[this.btm] === undefined;
   }
 }
@@ -54,13 +57,13 @@ class FastFIFO {
     this.length = 0;
   }
 
-  clear() {
+  clear(): void {
     this.head = this.tail;
     this.head.clear();
     this.length = 0;
   }
 
-  push(val) {
+  push(val): void {
     this.length++;
     if (!this.head.push(val)) {
       const prev = this.head;
@@ -88,7 +91,7 @@ class FastFIFO {
     return val;
   }
 
-  isEmpty() {
+  isEmpty(): boolean {
     return this.length === 0;
   }
 }

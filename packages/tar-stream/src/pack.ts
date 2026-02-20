@@ -1,4 +1,5 @@
 import { constants } from "node:fs";
+import type { ReadableOptions } from "node:stream";
 
 import * as b4a from "./b4a";
 import * as headers from "./headers";
@@ -16,13 +17,15 @@ type HeaderType =
   | "character-device"
   | "directory"
   | "fifo"
-  | "contiguous-file";
+  | "contiguous-file"
+  | "pax-header";
 
 interface TarHeader {
   name: string;
   mode: unknown;
   uid: unknown;
   gid: unknown;
+  pax: null | { path?: string; special: string };
   size: number;
   mtime: unknown;
   type: HeaderType;
@@ -37,7 +40,7 @@ class Sink extends Writable {
   written: number;
   header: TarHeader;
 
-  constructor(pack, header: TarHeader, callback) {
+  constructor(pack: Pack, header: TarHeader, callback) {
     super({ mapWritable, eagerOpen: true });
 
     this.written = 0;
@@ -157,8 +160,10 @@ class Sink extends Writable {
   }
 }
 
+interface PackOptions extends ReadableOptions {}
+
 class Pack extends Readable {
-  constructor(opts) {
+  constructor(opts?: PackOptions) {
     super(opts);
 
     this._drain = () => {};
@@ -242,7 +247,7 @@ class Pack extends Readable {
     this._encodePax(header);
   }
 
-  _encodePax(header: TarHeader) {
+  _encodePax(header: TarHeader): void {
     const paxHeader = headers.encodePax({
       name: header.name,
       linkname: header.linkname,
@@ -273,13 +278,13 @@ class Pack extends Readable {
     this.push(headers.encode(newHeader));
   }
 
-  _doDrain() {
+  _doDrain(): void {
     const drain = this._drain;
     this._drain = () => {};
     drain();
   }
 
-  _predestroy() {
+  _predestroy(): void {
     const err = getStreamError(this);
 
     if (this._stream) this._stream.destroy(err);
@@ -293,7 +298,7 @@ class Pack extends Readable {
     this._doDrain();
   }
 
-  _read(cb: () => void) {
+  _read(cb: () => void): void {
     this._doDrain();
     cb();
   }
@@ -316,7 +321,7 @@ function modeToType(mode: number): HeaderType {
   return "file";
 }
 
-function overflow(self, size): void {
+function overflow(self, size: number): void {
   size &= 511;
   if (size) self.push(END_OF_TAR.subarray(0, 512 - size));
 }
@@ -325,7 +330,7 @@ function mapWritable(buf) {
   return b4a.isBuffer(buf) ? buf : Buffer.from(buf);
 }
 
-function pack(opts?): Pack {
+function pack(opts?: PackOptions): Pack {
   return new Pack(opts);
 }
 

@@ -8,11 +8,11 @@ function copy(
   targetStart?: number,
   start?: number,
   end?: number,
-) {
+): number {
   return toBuffer(source).copy(target, targetStart, start, end);
 }
 
-function equals(a: Buffer, b: Uint8Array) {
+function equals(a: Buffer, b: Uint8Array): boolean {
   return toBuffer(a).equals(b);
 }
 
@@ -26,7 +26,7 @@ function toString(
   encoding?: BufferEncoding,
   start?: number,
   end?: number,
-) {
+): string {
   return toBuffer(buffer).toString(encoding, start, end);
 }
 
@@ -36,7 +36,7 @@ function write(
   offset: number,
   length: number,
   encoding?: BufferEncoding,
-) {
+): number {
   return toBuffer(buffer).write(string, offset, length, encoding);
 }
 
