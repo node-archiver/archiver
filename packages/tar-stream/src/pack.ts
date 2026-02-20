@@ -16,7 +16,7 @@ const FMODE = 0o644;
 const END_OF_TAR = Buffer.alloc(1024);
 
 interface SinkHeader {
-  type: "symlink" | "file" | "contiguous-file";
+  type: HeaderType;
   linkname: string;
   size: number;
 }
@@ -30,7 +30,11 @@ class Sink extends Writable {
   private _finished: boolean;
   private _pack: TarPack;
 
-  constructor(pack: TarPack, header: SinkHeader, callback?) {
+  constructor(
+    pack: TarPack,
+    header: SinkHeader,
+    callback?: (err: Error | null) => void,
+  ) {
     super({ mapWritable, eagerOpen: true });
 
     this.written = 0;
@@ -48,7 +52,7 @@ class Sink extends Writable {
     else this._pack._pending.push(this);
   }
 
-  _open(callback): void {
+  _open(callback?: (err: Error | null) => void): void {
     this._openCallback = callback;
     if (this._pack._stream === this) this._continueOpen();
   }
@@ -138,7 +142,7 @@ class Sink extends Writable {
     callback(null);
   }
 
-  _getError(): Error {
+  private _getError(): Error {
     return getStreamError(this) || new Error("tar entry destroyed");
   }
 
@@ -161,6 +165,8 @@ class TarPack extends Readable {
   private _drain: () => void;
   private _finalized: boolean;
   private _finalizing: boolean;
+  private _pending: Sink[];
+  private _stream: Sink | null;
 
   constructor(opts?: TarPackOptions) {
     super(opts);
@@ -182,7 +188,11 @@ class TarPack extends Readable {
     callback?: (err?: Error | null) => void,
   ): Sink;
 
-  entry(header: Partial<TarHeader>, bufferOrCallback, callback?): Sink {
+  entry(
+    header: Partial<TarHeader> & { type: HeaderType; linkname: string },
+    bufferOrCallback,
+    callback?,
+  ): Sink {
     if (this._finalized || this.destroying) {
       throw new Error("already finalized or destroyed");
     }
@@ -194,20 +204,25 @@ class TarPack extends Readable {
 
     if (!callback) callback = () => {};
 
-    if (!header.size || header.type === "symlink") header.size = 0;
-    if (!header.type) header.type = modeToType(header.mode);
-    if (!header.mode) header.mode = header.type === "directory" ? DMODE : FMODE;
-    if (!header.uid) header.uid = 0;
-    if (!header.gid) header.gid = 0;
-    if (!header.mtime) header.mtime = new Date();
+    const normalizedHeader = { size: 0, ...header };
+
+    if (normalizedHeader.type === "symlink") normalizedHeader.size = 0;
+    if (!normalizedHeader.type)
+      normalizedHeader.type = modeToType(normalizedHeader.mode);
+    if (!normalizedHeader.mode)
+      normalizedHeader.mode =
+        normalizedHeader.type === "directory" ? DMODE : FMODE;
+    if (!normalizedHeader.uid) normalizedHeader.uid = 0;
+    if (!normalizedHeader.gid) normalizedHeader.gid = 0;
+    if (!normalizedHeader.mtime) normalizedHeader.mtime = new Date();
 
     if (typeof bufferOrCallback === "string")
       bufferOrCallback = Buffer.from(bufferOrCallback);
 
-    const sink = new Sink(this, header, callback);
+    const sink = new Sink(this, normalizedHeader, callback);
 
     if (b4a.isBuffer(bufferOrCallback)) {
-      header.size = bufferOrCallback.byteLength;
+      normalizedHeader.size = bufferOrCallback.byteLength;
       sink.write(bufferOrCallback);
       sink.end();
       return sink;
@@ -233,7 +248,7 @@ class TarPack extends Readable {
     this.push(null);
   }
 
-  _done(stream): void {
+  _done(stream: Sink): void {
     if (stream !== this._stream) return;
 
     this._stream = null;
@@ -242,7 +257,7 @@ class TarPack extends Readable {
     if (this._pending.length) this._pending.shift()._continueOpen();
   }
 
-  _encode(header): void {
+  _encode(header: TarHeader): void {
     if (!header.pax) {
       const buf = headers.encode(header);
       if (buf) {
@@ -260,7 +275,7 @@ class TarPack extends Readable {
       pax: header.pax,
     });
 
-    const newHeader = {
+    const newHeader: Omit<TarHeader, "pax" | "typeflag"> = {
       name: "PaxHeader",
       mode: header.mode,
       uid: header.uid,
@@ -273,7 +288,7 @@ class TarPack extends Readable {
       gname: header.gname,
       devmajor: header.devmajor,
       devminor: header.devminor,
-    } satisfies TarHeader;
+    };
 
     this.push(headers.encode(newHeader));
     this.push(paxHeader);

@@ -117,7 +117,13 @@ function decodeLongPath(buf: Buffer, encoding: BufferEncoding): string {
   return decodeStr(buf, 0, buf.length, encoding);
 }
 
-function encodePax(opts): Buffer {
+interface EncodePaxOptions {
+  name?: string;
+  linkname?: string;
+  pax?: Record<string, string>;
+}
+
+function encodePax(opts: EncodePaxOptions): Buffer {
   // TODO: encode more stuff in pax
   let result = "";
   if (opts.name) result += addLength(" path=" + opts.name + "\n");
@@ -153,7 +159,7 @@ function decodePax(buf: Buffer): Record<string, string> {
 
 interface EncodeOptions {
   name: string;
-  typeflag: number;
+  typeflag?: number;
   linkname?: string;
   mode: number;
   uid: number;
@@ -217,7 +223,21 @@ function decode(
   buf: Buffer,
   filenameEncoding: BufferEncoding,
   allowUnknownFormat?: boolean,
-) {
+): {
+  name: string;
+  mode: number;
+  uid: number;
+  gid: number;
+  size: number;
+  mtime: Date;
+  type: HeaderType;
+  linkname: string;
+  uname: string;
+  gname: string;
+  devmajor: number;
+  devminor: number;
+  pax: null;
+} {
   let typeflag = buf[156] === 0 ? 0 : buf[156] - ZERO_OFFSET;
 
   let name = decodeStr(buf, 0, 100, filenameEncoding);
@@ -332,7 +352,7 @@ function toType(flag: number): HeaderType | null {
   return null;
 }
 
-function toTypeflag(flag) {
+function toTypeflag(flag: HeaderType): number {
   switch (flag) {
     case "file":
       return 0;
@@ -357,27 +377,32 @@ function toTypeflag(flag) {
   return 0;
 }
 
-function indexOf(block, num: number, offset: number, end: number) {
+function indexOf(
+  block: Buffer,
+  num: number,
+  offset: number,
+  end: number,
+): number {
   for (; offset < end; offset++) {
     if (block[offset] === num) return offset;
   }
   return end;
 }
 
-function cksum(block) {
+function cksum(block: Buffer): number {
   let sum = 8 * 32;
   for (let i = 0; i < 148; i++) sum += block[i];
   for (let j = 156; j < 512; j++) sum += block[j];
   return sum;
 }
 
-function encodeOct(num: number, n) {
+function encodeOct(num: number, n: number): string {
   const val = num.toString(8);
   if (val.length > n) return SEVENS.slice(0, n) + " ";
   return ZEROS.slice(0, n - val.length) + val + " ";
 }
 
-function encodeSizeBin(num, buf, off) {
+function encodeSizeBin(num: number, buf: Buffer, off: number): void {
   buf[off] = 0x80;
   for (let i = 11; i > 0; i--) {
     buf[off + i] = num & 0xff;
@@ -385,7 +410,7 @@ function encodeSizeBin(num, buf, off) {
   }
 }
 
-function encodeSize(num, buf: Buffer, off: number): void {
+function encodeSize(num: number, buf: Buffer, off: number): void {
   if (num.toString(8).length > 11) {
     encodeSizeBin(num, buf, off);
   } else {

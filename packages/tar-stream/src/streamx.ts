@@ -375,7 +375,7 @@ class Readable extends Stream {
     }
   }
 
-  _read(callback: (err: Error | null) => void): void {
+  _read(callback: (err?: Error | null) => void): void {
     callback(null);
   }
 
@@ -787,12 +787,17 @@ interface ReadableStateOptions {
   highWaterMark: number;
   map: unknown;
   mapReadable: unknown;
+  byteLength: number;
+  byteLengthReadable: number;
 }
 
 class ReadableState {
   stream: Readable;
   queue: FIFO;
+  highWaterMark: number;
+  buffered: number;
   readAhead: boolean;
+  error: Error | null;
 
   constructor(stream: Readable, options?: Partial<ReadableStateOptions>) {
     const {
