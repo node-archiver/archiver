@@ -90,7 +90,7 @@ function decodeOct(val: Buffer, offset: number, length: number): number {
     );
     while (offset < end && val[offset] === 0) offset++;
     if (end === offset) return 0;
-    return parseInt(b4a.toString(val.subarray(offset, end)), 8);
+    return parseInt(val.subarray(offset, end).toString(), 8);
   }
 }
 
@@ -170,10 +170,10 @@ function encode(opts): Buffer {
     return null;
   if (opts.linkname && Buffer.byteLength(opts.linkname) > 100) return null;
 
-  b4a.toBuffer(buf).write(name);
-  b4a.toBuffer(buf).write(encodeOct(opts.mode & MASK, 6), 100);
-  b4a.toBuffer(buf).write(encodeOct(opts.uid, 6), 108);
-  b4a.toBuffer(buf).write(encodeOct(opts.gid, 6), 116);
+  buf.write(name);
+  buf.write(encodeOct(opts.mode & MASK, 6), 100);
+  buf.write(encodeOct(opts.uid, 6), 108);
+  buf.write(encodeOct(opts.gid, 6), 116);
   encodeSize(opts.size, buf, 124);
   b4a
     .toBuffer(buf)
@@ -181,18 +181,18 @@ function encode(opts): Buffer {
 
   buf[156] = ZERO_OFFSET + toTypeflag(opts.type);
 
-  if (opts.linkname) b4a.toBuffer(buf).write(opts.linkname, 157);
+  if (opts.linkname) buf.write(opts.linkname, 157);
 
   b4a.copy(USTAR_MAGIC, buf, MAGIC_OFFSET);
   b4a.copy(USTAR_VER, buf, VERSION_OFFSET);
-  if (opts.uname) b4a.toBuffer(buf).write(opts.uname, 265);
-  if (opts.gname) b4a.toBuffer(buf).write(opts.gname, 297);
-  b4a.toBuffer(buf).write(encodeOct(opts.devmajor || 0, 6), 329);
-  b4a.toBuffer(buf).write(encodeOct(opts.devminor || 0, 6), 337);
+  if (opts.uname) buf.write(opts.uname, 265);
+  if (opts.gname) buf.write(opts.gname, 297);
+  buf.write(encodeOct(opts.devmajor || 0, 6), 329);
+  buf.write(encodeOct(opts.devminor || 0, 6), 337);
 
-  if (prefix) b4a.toBuffer(buf).write(prefix, 345);
+  if (prefix) buf.write(prefix, 345);
 
-  b4a.toBuffer(buf).write(encodeOct(cksum(buf), 6), 148);
+  buf.write(encodeOct(cksum(buf), 6), 148);
 
   return buf;
 }
@@ -201,7 +201,7 @@ function decode(
   buf: Buffer,
   filenameEncoding: BufferEncoding,
   allowUnknownFormat?: boolean,
-): TarHeader {
+) {
   let typeflag = buf[156] === 0 ? 0 : buf[156] - ZERO_OFFSET;
 
   let name = decodeStr(buf, 0, 100, filenameEncoding);
@@ -263,7 +263,7 @@ function decode(
   };
 }
 
-function isUSTAR(buf) {
+function isUSTAR(buf: Buffer) {
   return b4a.equals(USTAR_MAGIC, buf.subarray(MAGIC_OFFSET, MAGIC_OFFSET + 6));
 }
 
@@ -369,11 +369,11 @@ function encodeSizeBin(num, buf, off) {
   }
 }
 
-function encodeSize(num, buf, off) {
+function encodeSize(num, buf: Buffer, off: number): void {
   if (num.toString(8).length > 11) {
     encodeSizeBin(num, buf, off);
   } else {
-    b4a.toBuffer(buf).write(encodeOct(num, 11), off);
+    buf.write(encodeOct(num, 11), off);
   }
 }
 
