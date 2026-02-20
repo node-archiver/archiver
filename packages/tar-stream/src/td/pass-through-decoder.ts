@@ -1,7 +1,9 @@
 import * as b4a from "../b4a";
 
 class PassThroughDecoder {
-  constructor(encoding) {
+  encoding?: BufferEncoding;
+
+  constructor(encoding?: "ascii" | "latin1" | "hex") {
     this.encoding = encoding;
   }
 
@@ -9,7 +11,7 @@ class PassThroughDecoder {
     return 0;
   }
 
-  decode(data) {
+  decode(data): string {
     return b4a.toString(data, this.encoding);
   }
 

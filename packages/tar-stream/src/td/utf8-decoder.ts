@@ -4,15 +4,17 @@ import * as b4a from "../b4a";
  * https://encoding.spec.whatwg.org/#utf-8-decoder
  */
 class UTF8Decoder {
+  bytesSeen: 0 | 1;
+
   constructor() {
     this._reset();
   }
 
-  get remaining() {
+  get remaining(): 0 | 1 {
     return this.bytesSeen;
   }
 
-  decode(data) {
+  decode(data): string {
     if (data.byteLength === 0) return "";
 
     if (this.bytesNeeded === 0 && trailingIncomplete(data, 0) === 0) {
@@ -108,13 +110,13 @@ class UTF8Decoder {
     return result;
   }
 
-  flush() {
+  flush(): "" | "\ufffd" {
     const result = this.bytesNeeded > 0 ? "\ufffd" : "";
     this._reset();
     return result;
   }
 
-  _reset() {
+  _reset(): void {
     this.codePoint = 0;
     this.bytesNeeded = 0;
     this.bytesSeen = 0;
@@ -123,7 +125,7 @@ class UTF8Decoder {
   }
 }
 
-function trailingIncomplete(data, start) {
+function trailingIncomplete(data, start: number): number {
   const len = data.byteLength;
   if (len <= start) return 0;
 
@@ -147,7 +149,7 @@ function trailingIncomplete(data, start) {
   return available < needed ? available : 0;
 }
 
-function trailingBytesSeen(data) {
+function trailingBytesSeen(data): 0 | 1 {
   const len = data.byteLength;
   if (len === 0) return 0;
 

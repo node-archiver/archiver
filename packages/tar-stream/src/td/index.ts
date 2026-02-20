@@ -2,7 +2,10 @@ import { PassThroughDecoder } from "./pass-through-decoder";
 import { UTF8Decoder } from "./utf8-decoder";
 
 class TextDecoder {
-  constructor(encoding = "utf8") {
+  encoding: BufferEncoding;
+  decoder: PassThroughDecoder | UTF8Decoder;
+
+  constructor(encoding: BufferEncoding = "utf8") {
     this.encoding = normalizeEncoding(encoding);
 
     switch (this.encoding) {
@@ -21,17 +24,17 @@ class TextDecoder {
     return this.decoder.remaining;
   }
 
-  push(data) {
+  push(data): string {
     if (typeof data === "string") return data;
     return this.decoder.decode(data);
   }
 
   // For Node.js compatibility
-  write(data) {
+  write(data): string {
     return this.push(data);
   }
 
-  end(data) {
+  end(data): string {
     let result = "";
     if (data) result = this.push(data);
     result += this.decoder.flush();
@@ -39,10 +42,12 @@ class TextDecoder {
   }
 }
 
-function normalizeEncoding(encoding) {
-  encoding = encoding.toLowerCase();
+function normalizeEncoding(
+  encoding: BufferEncoding,
+): "ascii" | "utf8" | "utf16le" | "base64" | "latin1" | "hex" {
+  const encoding_ = encoding.toLowerCase();
 
-  switch (encoding) {
+  switch (encoding_) {
     case "utf8":
     case "utf-8":
       return "utf8";
@@ -57,9 +62,9 @@ function normalizeEncoding(encoding) {
     case "base64":
     case "ascii":
     case "hex":
-      return encoding;
+      return encoding_;
     default:
-      throw new Error("Unknown encoding: " + encoding);
+      throw new Error("Unknown encoding: " + encoding_);
   }
 }
 

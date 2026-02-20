@@ -1,4 +1,11 @@
 class FixedFIFO {
+  buffer: Buffer[];
+
+  mask: number;
+  top: number;
+  btm: number;
+  next: FixedFIFO;
+
   constructor(hwm: number) {
     if (!(hwm > 0) || ((hwm - 1) & hwm) !== 0) {
       throw new Error("Max size for a FixedFIFO should be a power of two");
@@ -11,20 +18,20 @@ class FixedFIFO {
     this.next = null;
   }
 
-  clear() {
+  clear(): void {
     this.top = this.btm = 0;
     this.next = null;
     this.buffer.fill(undefined);
   }
 
-  push(data) {
+  push(data: Buffer): boolean {
     if (this.buffer[this.top] !== undefined) return false;
     this.buffer[this.top] = data;
     this.top = (this.top + 1) & this.mask;
     return true;
   }
 
-  shift() {
+  shift(): Buffer {
     const last = this.buffer[this.btm];
     if (last === undefined) return undefined;
     this.buffer[this.btm] = undefined;
@@ -32,16 +39,18 @@ class FixedFIFO {
     return last;
   }
 
-  peek() {
+  peek(): Buffer {
     return this.buffer[this.btm];
   }
 
-  isEmpty() {
+  isEmpty(): boolean {
     return this.buffer[this.btm] === undefined;
   }
 }
 
 class FastFIFO {
+  head: FixedFIFO;
+  tail: FixedFIFO;
   length: number;
 
   constructor() {
@@ -50,13 +59,13 @@ class FastFIFO {
     this.length = 0;
   }
 
-  clear() {
+  clear(): void {
     this.head = this.tail;
     this.head.clear();
     this.length = 0;
   }
 
-  push(val) {
+  push(val: Buffer): void {
     this.length++;
     if (!this.head.push(val)) {
       const prev = this.head;
@@ -65,7 +74,7 @@ class FastFIFO {
     }
   }
 
-  shift() {
+  shift(): Buffer {
     if (this.length !== 0) this.length--;
     const val = this.tail.shift();
     if (val === undefined && this.tail.next) {
@@ -78,13 +87,13 @@ class FastFIFO {
     return val;
   }
 
-  peek() {
+  peek(): Buffer {
     const val = this.tail.peek();
     if (val === undefined && this.tail.next) return this.tail.next.peek();
     return val;
   }
 
-  isEmpty() {
+  isEmpty(): boolean {
     return this.length === 0;
   }
 }

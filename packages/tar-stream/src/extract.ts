@@ -5,6 +5,12 @@ import { Writable, Readable, getStreamError } from "./streamx";
 const EMPTY = Buffer.alloc(0);
 
 class BufferList {
+  buffered: number;
+  shifted: number;
+  queue: FIFO;
+
+  private _offset: number;
+
   constructor() {
     this.buffered = 0;
     this.shifted = 0;
@@ -13,16 +19,16 @@ class BufferList {
     this._offset = 0;
   }
 
-  push(buffer) {
+  push(buffer: Buffer): void {
     this.buffered += buffer.byteLength;
     this.queue.push(buffer);
   }
 
-  shiftFirst(size) {
+  shiftFirst(size: number): Buffer {
     return this._buffered === 0 ? null : this._next(size);
   }
 
-  shift(size) {
+  shift(size: number): Buffer {
     if (size > this.buffered) return null;
     if (size === 0) return EMPTY;
 
@@ -40,7 +46,7 @@ class BufferList {
     return Buffer.concat(chunks);
   }
 
-  _next(size) {
+  _next(size: number): Buffer {
     const buf = this.queue.peek();
     const rem = buf.byteLength - this._offset;
 
@@ -72,7 +78,7 @@ class Source extends Readable {
     this._parent = self;
   }
 
-  _read(cb) {
+  _read(cb): void {
     if (this.header.size === 0) {
       this.push(null);
     }
@@ -82,11 +88,11 @@ class Source extends Readable {
     cb(null);
   }
 
-  _predestroy() {
+  _predestroy(): void {
     this._parent.destroy(getStreamError(this));
   }
 
-  _detach() {
+  _detach(): void {
     if (this._parent._stream === this) {
       this._parent._stream = null;
       this._parent._missing = overflow(this.header.size);
@@ -94,16 +100,22 @@ class Source extends Readable {
     }
   }
 
-  _destroy(cb) {
+  _destroy(cb): void {
     this._detach();
     cb(null);
   }
 }
 
-class Extract extends Writable {
-  private _buffer: BufferList;
+interface TarExtractOptions {
+  filenameEncoding?: string;
+  allowUnknownFormat?: boolean;
+}
 
-  constructor(opts) {
+class TarExtract extends Writable {
+  private _buffer: BufferList;
+  private _stream: null | Source;
+
+  constructor(opts?: TarExtractOptions) {
     super(opts);
 
     if (!opts) opts = {};
@@ -114,7 +126,7 @@ class Extract extends Writable {
     this._stream = null;
     this._missing = 0;
     this._longHeader = false;
-    this._callback = noop;
+    this._callback = () => {};
     this._locked = false;
     this._finished = false;
     this._pax = null;
@@ -126,7 +138,7 @@ class Extract extends Writable {
     this._unlockBound = this._unlock.bind(this);
   }
 
-  _unlock(err) {
+  _unlock(err?: Error): void {
     this._locked = false;
 
     if (err) {
@@ -138,7 +150,7 @@ class Extract extends Writable {
     this._update();
   }
 
-  _consumeHeader() {
+  _consumeHeader(): boolean {
     if (this._locked) return false;
 
     this._offset = this._buffer.shifted;
@@ -181,7 +193,7 @@ class Extract extends Writable {
     return true;
   }
 
-  _applyLongHeaders() {
+  _applyLongHeaders(): void {
     if (this._gnuLongPath) {
       this._header.name = this._gnuLongPath;
       this._gnuLongPath = null;
@@ -201,7 +213,7 @@ class Extract extends Writable {
     }
   }
 
-  _decodeLongHeader(buf) {
+  _decodeLongHeader(buf: Buffer): void {
     switch (this._header.type) {
       case "gnu-long-path":
         this._gnuLongPath = headers.decodeLongPath(buf, this._filenameEncoding);
@@ -224,7 +236,7 @@ class Extract extends Writable {
     }
   }
 
-  _consumeLongHeader() {
+  _consumeLongHeader(): boolean {
     this._longHeader = false;
     this._missing = overflow(this._header.size);
 
@@ -240,7 +252,7 @@ class Extract extends Writable {
     return true;
   }
 
-  _consumeStream() {
+  _consumeStream(): boolean {
     const buf = this._buffer.shiftFirst(this._missing);
     if (buf === null) return false;
 
@@ -256,11 +268,11 @@ class Extract extends Writable {
     return drained;
   }
 
-  _createStream() {
+  _createStream(): Source {
     return new Source(this, this._header, this._offset);
   }
 
-  _update() {
+  _update(): boolean {
     while (this._buffer.buffered > 0 && !this.destroying) {
       if (this._missing > 0) {
         if (this._stream !== null) {
@@ -286,28 +298,28 @@ class Extract extends Writable {
     this._continueWrite(null);
   }
 
-  _continueWrite(err) {
+  _continueWrite(err): void {
     const cb = this._callback;
-    this._callback = noop;
+    this._callback = () => {};
     cb(err);
   }
 
-  _write(data, cb) {
+  _write(data, cb): void {
     this._callback = cb;
     this._buffer.push(data);
     this._update();
   }
 
-  _final(cb) {
+  _final(cb): void {
     this._finished = this._missing === 0 && this._buffer.buffered === 0;
     cb(this._finished ? null : new Error("Unexpected end of data"));
   }
 
-  _predestroy() {
+  _predestroy(): void {
     this._continueWrite(null);
   }
 
-  _destroy(cb) {
+  _destroy(cb): void {
     if (this._stream) this._stream.destroy(getStreamError(this));
     cb(null);
   }
@@ -330,8 +342,8 @@ class Extract extends Writable {
     this.on("close", onclose);
 
     return {
-      [Symbol.asyncIterator]() {
-        return this;
+      [Symbol.asyncIterator](): TarExtract {
+        return extract;
       },
       next() {
         return new Promise(onnext);
@@ -373,9 +385,9 @@ class Extract extends Writable {
       }
     }
 
-    function onentry(header, stream, callback) {
+    function onentry(header, stream, callback): void {
       entryCallback = callback;
-      stream.on("error", noop); // no way around this due to tick sillyness
+      stream.on("error", () => {}); // no way around this due to tick sillyness
 
       if (promiseResolve) {
         promiseResolve({ value: stream, done: false });
@@ -385,7 +397,7 @@ class Extract extends Writable {
       }
     }
 
-    function onclose() {
+    function onclose(): void {
       consumeCallback(error);
       if (!promiseResolve) return;
       if (error) promiseReject(error);
@@ -393,29 +405,33 @@ class Extract extends Writable {
       promiseResolve = promiseReject = null;
     }
 
-    function destroy(err) {
+    function destroy(
+      err?: Error | null,
+    ): Promise<{ value: undefined; done: true }> {
       extract.destroy(err);
       consumeCallback(err);
-      return new Promise((resolve, reject) => {
-        if (extract.destroyed) return resolve({ value: undefined, done: true });
-        extract.once("close", function () {
-          if (err) reject(err);
-          else resolve({ value: undefined, done: true });
-        });
-      });
+
+      return new Promise<{ value: undefined; done: true }>(
+        (resolve, reject) => {
+          if (extract.destroyed)
+            return resolve({ value: undefined, done: true });
+          extract.once("close", function () {
+            if (err) reject(err);
+            else resolve({ value: undefined, done: true });
+          });
+        },
+      );
     }
   }
 }
 
-function noop() {}
-
-function overflow(size) {
+function overflow(size: number): number {
   size &= 511;
   return size && 512 - size;
 }
 
-function extract(opts?) {
-  return new Extract(opts);
+function extract(opts?: TarExtractOptions): TarExtract {
+  return new TarExtract(opts);
 }
 
-export { extract, type Extract };
+export { extract, type TarExtract, type TarExtractOptions };

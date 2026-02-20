@@ -11,11 +11,112 @@ const MASK = 0o7777;
 const MAGIC_OFFSET = 257;
 const VERSION_OFFSET = 263;
 
-export function decodeLongPath(buf, encoding) {
+export type HeaderType =
+  | "symlink"
+  | "file"
+  | "block-device"
+  | "character-device"
+  | "directory"
+  | "fifo"
+  | "contiguous-file"
+  | "pax-header"
+  | "link"
+  | "pax-global-header"
+  | "gnu-long-link-path"
+  | "gnu-long-path";
+
+export interface TarHeader {
+  name: string;
+  mode: number;
+  uid: number;
+  gid: number;
+  pax: null | { path?: string; special: string };
+  size: number;
+  mtime: Date;
+  type: HeaderType;
+  linkname: string;
+  uname: string;
+  gname: string;
+  devmajor: number;
+  devminor: number;
+}
+
+/**
+ * Copied from the node-tar repo and modified to meet tar-stream coding standard.
+ *
+ * Source: https://github.com/npm/node-tar/blob/51b6627a1f357d2eb433e7378e5f05e83b7aa6cd/lib/header.js#L349
+ */
+function parse256(buf) {
+  // first byte MUST be either 80 or FF
+  // 80 for positive, FF for 2's comp
+  let positive;
+  if (buf[0] === 0x80) positive = true;
+  else if (buf[0] === 0xff) positive = false;
+  else return null;
+
+  // build up a base-256 tuple from the least sig to the highest
+  const tuple = [];
+  let i;
+  for (i = buf.length - 1; i > 0; i--) {
+    const byte = buf[i];
+    if (positive) tuple.push(byte);
+    else tuple.push(0xff - byte);
+  }
+
+  let sum = 0;
+  const l = tuple.length;
+  for (i = 0; i < l; i++) {
+    sum += tuple[i] * Math.pow(256, i);
+  }
+
+  return positive ? sum : -1 * sum;
+}
+
+function decodeOct(val, offset, length) {
+  val = val.subarray(offset, offset + length);
+  offset = 0;
+
+  // If prefixed with 0x80 then parse as a base-256 integer
+  if (val[offset] & 0x80) {
+    return parse256(val);
+  } else {
+    // Older versions of tar can prefix with spaces
+    while (offset < val.length && val[offset] === 32) offset++;
+    const end = clamp(
+      indexOf(val, 32, offset, val.length),
+      val.length,
+      val.length,
+    );
+    while (offset < end && val[offset] === 0) offset++;
+    if (end === offset) return 0;
+    return parseInt(b4a.toString(val.subarray(offset, end)), 8);
+  }
+}
+
+function decodeStr(
+  val: Buffer,
+  offset: number,
+  length: number,
+  encoding?: BufferEncoding,
+): string {
+  return val
+    .subarray(offset, indexOf(val, 0, offset, offset + length))
+    .toString(encoding);
+}
+
+function addLength(str: string) {
+  const len = Buffer.byteLength(str);
+  let digits = Math.floor(Math.log(len) / Math.log(10)) + 1;
+  if (len + digits >= Math.pow(10, digits)) digits++;
+
+  return len + digits + str;
+}
+
+function decodeLongPath(buf: Buffer, encoding: BufferEncoding): string {
   return decodeStr(buf, 0, buf.length, encoding);
 }
 
-export function encodePax(opts) {
+function encodePax(opts): Buffer {
   // TODO: encode more stuff in pax
   let result = "";
   if (opts.name) result += addLength(" path=" + opts.name + "\n");
@@ -29,8 +130,8 @@ export function encodePax(opts) {
   return Buffer.from(result);
 }
 
-export function decodePax(buf) {
-  const result = {};
+function decodePax(buf: Buffer): Record<string, string> {
+  const result: Record<string, string> = {};
 
   while (buf.length) {
     let i = 0;
@@ -49,7 +150,7 @@ export function decodePax(buf) {
   return result;
 }
 
-export function encode(opts) {
+function encode(opts): Buffer {
   const buf = Buffer.alloc(512);
   let name = opts.name;
   let prefix = "";
@@ -68,32 +169,38 @@ export function encode(opts) {
     return null;
   if (opts.linkname && Buffer.byteLength(opts.linkname) > 100) return null;
 
-  b4a.write(buf, name);
-  b4a.write(buf, encodeOct(opts.mode & MASK, 6), 100);
-  b4a.write(buf, encodeOct(opts.uid, 6), 108);
-  b4a.write(buf, encodeOct(opts.gid, 6), 116);
+  b4a.toBuffer(buf).write(name);
+  b4a.toBuffer(buf).write(encodeOct(opts.mode & MASK, 6), 100);
+  b4a.toBuffer(buf).write(encodeOct(opts.uid, 6), 108);
+  b4a.toBuffer(buf).write(encodeOct(opts.gid, 6), 116);
   encodeSize(opts.size, buf, 124);
-  b4a.write(buf, encodeOct((opts.mtime.getTime() / 1000) | 0, 11), 136);
+  b4a
+    .toBuffer(buf)
+    .write(encodeOct((opts.mtime.getTime() / 1000) | 0, 11), 136);
 
   buf[156] = ZERO_OFFSET + toTypeflag(opts.type);
 
-  if (opts.linkname) b4a.write(buf, opts.linkname, 157);
+  if (opts.linkname) b4a.toBuffer(buf).write(opts.linkname, 157);
 
   b4a.copy(USTAR_MAGIC, buf, MAGIC_OFFSET);
   b4a.copy(USTAR_VER, buf, VERSION_OFFSET);
-  if (opts.uname) b4a.write(buf, opts.uname, 265);
-  if (opts.gname) b4a.write(buf, opts.gname, 297);
-  b4a.write(buf, encodeOct(opts.devmajor || 0, 6), 329);
-  b4a.write(buf, encodeOct(opts.devminor || 0, 6), 337);
+  if (opts.uname) b4a.toBuffer(buf).write(opts.uname, 265);
+  if (opts.gname) b4a.toBuffer(buf).write(opts.gname, 297);
+  b4a.toBuffer(buf).write(encodeOct(opts.devmajor || 0, 6), 329);
+  b4a.toBuffer(buf).write(encodeOct(opts.devminor || 0, 6), 337);
 
-  if (prefix) b4a.write(buf, prefix, 345);
+  if (prefix) b4a.toBuffer(buf).write(prefix, 345);
 
-  b4a.write(buf, encodeOct(cksum(buf), 6), 148);
+  b4a.toBuffer(buf).write(encodeOct(cksum(buf), 6), 148);
 
   return buf;
 }
 
-export function decode(buf, filenameEncoding, allowUnknownFormat) {
+function decode(
+  buf: Buffer,
+  filenameEncoding: BufferEncoding,
+  allowUnknownFormat?: boolean,
+): TarHeader {
   let typeflag = buf[156] === 0 ? 0 : buf[156] - ZERO_OFFSET;
 
   let name = decodeStr(buf, 0, 100, filenameEncoding);
@@ -176,7 +283,7 @@ function clamp(index, len, defaultValue) {
   return 0;
 }
 
-function toType(flag) {
+function toType(flag: number): HeaderType | null {
   switch (flag) {
     case 0:
       return "file";
@@ -233,7 +340,7 @@ function toTypeflag(flag) {
   return 0;
 }
 
-function indexOf(block, num, offset, end) {
+function indexOf(block, num: number, offset: number, end: number) {
   for (; offset < end; offset++) {
     if (block[offset] === num) return offset;
   }
@@ -265,73 +372,8 @@ function encodeSize(num, buf, off) {
   if (num.toString(8).length > 11) {
     encodeSizeBin(num, buf, off);
   } else {
-    b4a.write(buf, encodeOct(num, 11), off);
+    b4a.toBuffer(buf).write(encodeOct(num, 11), off);
   }
 }
 
-/* Copied from the node-tar repo and modified to meet
- * tar-stream coding standard.
- *
- * Source: https://github.com/npm/node-tar/blob/51b6627a1f357d2eb433e7378e5f05e83b7aa6cd/lib/header.js#L349
- */
-function parse256(buf) {
-  // first byte MUST be either 80 or FF
-  // 80 for positive, FF for 2's comp
-  let positive;
-  if (buf[0] === 0x80) positive = true;
-  else if (buf[0] === 0xff) positive = false;
-  else return null;
-
-  // build up a base-256 tuple from the least sig to the highest
-  const tuple = [];
-  let i;
-  for (i = buf.length - 1; i > 0; i--) {
-    const byte = buf[i];
-    if (positive) tuple.push(byte);
-    else tuple.push(0xff - byte);
-  }
-
-  let sum = 0;
-  const l = tuple.length;
-  for (i = 0; i < l; i++) {
-    sum += tuple[i] * Math.pow(256, i);
-  }
-
-  return positive ? sum : -1 * sum;
-}
-
-function decodeOct(val, offset, length) {
-  val = val.subarray(offset, offset + length);
-  offset = 0;
-
-  // If prefixed with 0x80 then parse as a base-256 integer
-  if (val[offset] & 0x80) {
-    return parse256(val);
-  } else {
-    // Older versions of tar can prefix with spaces
-    while (offset < val.length && val[offset] === 32) offset++;
-    const end = clamp(
-      indexOf(val, 32, offset, val.length),
-      val.length,
-      val.length,
-    );
-    while (offset < end && val[offset] === 0) offset++;
-    if (end === offset) return 0;
-    return parseInt(b4a.toString(val.subarray(offset, end)), 8);
-  }
-}
-
-function decodeStr(val, offset, length, encoding) {
-  return b4a.toString(
-    val.subarray(offset, indexOf(val, 0, offset, offset + length)),
-    encoding,
-  );
-}
-
-function addLength(str) {
-  const len = Buffer.byteLength(str);
-  let digits = Math.floor(Math.log(len) / Math.log(10)) + 1;
-  if (len + digits >= Math.pow(10, digits)) digits++;
-
-  return len + digits + str;
-}
+export { decodeLongPath, encodePax, decodePax, decode, encode };

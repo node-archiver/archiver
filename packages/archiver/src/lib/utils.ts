@@ -1,15 +1,9 @@
-import {
-  PassThrough,
-  isReadable,
-  // @ts-expect-error
-  isWritable,
-  type Stream,
-} from "node:stream";
+import { PassThrough, isReadable, isWritable, type Stream } from "node:stream";
 
 export function collectStream(
   source: Stream,
   callback: (err: unknown, sourceBuffer: Buffer) => void,
-) {
+): void {
   const collection: unknown[] = [];
   let size = 0;
 
@@ -99,6 +93,6 @@ export function sanitizePath(filepath) {
     .replace(/^(\.\.\/|\/)+/, "");
 }
 
-export function trailingSlashIt(str) {
+export function trailingSlashIt(str: string): string {
   return str.slice(-1) !== "/" ? str + "/" : str;
 }

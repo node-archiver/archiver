@@ -2,7 +2,13 @@ import { constants } from "node:fs";
 
 import * as b4a from "./b4a";
 import * as headers from "./headers";
-import { Readable, Writable, getStreamError } from "./streamx";
+import type { HeaderType, TarHeader } from "./headers";
+import {
+  Readable,
+  Writable,
+  getStreamError,
+  type ReadableOptions,
+} from "./streamx";
 
 const DMODE = 0o755;
 const FMODE = 0o644;
@@ -10,7 +16,10 @@ const FMODE = 0o644;
 const END_OF_TAR = Buffer.alloc(1024);
 
 class Sink extends Writable {
-  constructor(pack, header, callback) {
+  written: number;
+  header: TarHeader;
+
+  constructor(pack: TarPack, header: TarHeader, callback) {
     super({ mapWritable, eagerOpen: true });
 
     this.written = 0;
@@ -28,12 +37,12 @@ class Sink extends Writable {
     else this._pack._pending.push(this);
   }
 
-  _open(cb) {
+  _open(cb): void {
     this._openCallback = cb;
     if (this._pack._stream === this) this._continueOpen();
   }
 
-  _continuePack(err) {
+  _continuePack(err): void {
     if (this._callback === null) return;
 
     const callback = this._callback;
@@ -67,27 +76,27 @@ class Sink extends Writable {
     cb(null);
   }
 
-  _write(data, cb) {
+  _write(data, callback): void {
     if (this._isLinkname) {
       this._linkname = this._linkname
         ? Buffer.concat([this._linkname, data])
         : data;
-      return cb(null);
+      return callback(null);
     }
 
     if (this._isVoid) {
       if (data.byteLength > 0) {
-        return cb(new Error("No body allowed for this entry"));
+        return callback(new Error("No body allowed for this entry"));
       }
-      return cb();
+      return callback();
     }
 
     this.written += data.byteLength;
-    if (this._pack.push(data)) return cb();
-    this._pack._drain = cb;
+    if (this._pack.push(data)) return callback();
+    this._pack._drain = callback;
   }
 
-  _finish() {
+  _finish(): void {
     if (this._finished) return;
     this._finished = true;
 
@@ -103,25 +112,25 @@ class Sink extends Writable {
     this._pack._done(this);
   }
 
-  _final(cb) {
+  _final(callback: (err: Error | null) => void): void {
     if (this.written !== this.header.size) {
       // corrupting tar
-      return cb(new Error("Size mismatch"));
+      return callback(new Error("Size mismatch"));
     }
 
     this._finish();
-    cb(null);
+    callback(null);
   }
 
-  _getError() {
+  _getError(): Error {
     return getStreamError(this) || new Error("tar entry destroyed");
   }
 
-  _predestroy() {
+  _predestroy(): void {
     this._pack.destroy(this._getError());
   }
 
-  _destroy(cb) {
+  _destroy(cb: () => void): void {
     this._pack._done(this);
 
     this._continuePack(this._finished ? null : this._getError());
@@ -130,26 +139,33 @@ class Sink extends Writable {
   }
 }
 
-class Pack extends Readable {
-  constructor(opts) {
+interface TarPackOptions extends ReadableOptions {}
+
+class TarPack extends Readable {
+  constructor(opts?: TarPackOptions) {
     super(opts);
-    this._drain = noop;
+
+    this._drain = () => {};
     this._finalized = false;
     this._finalizing = false;
     this._pending = [];
     this._stream = null;
   }
 
-  entry(header, buffer, callback?) {
-    if (this._finalized || this.destroying)
-      throw new Error("already finalized or destroyed");
+  entry(header: Partial<TarHeader>, callback?): Sink;
+  entry(header: Partial<TarHeader>, buffer, callback?): Sink;
 
-    if (typeof buffer === "function") {
-      callback = buffer;
-      buffer = null;
+  entry(header: Partial<TarHeader>, bufferOrCallback, callback?): Sink {
+    if (this._finalized || this.destroying) {
+      throw new Error("already finalized or destroyed");
     }
 
-    if (!callback) callback = noop;
+    if (typeof bufferOrCallback === "function") {
+      callback = bufferOrCallback;
+      bufferOrCallback = null;
+    }
+
+    if (!callback) callback = () => {};
 
     if (!header.size || header.type === "symlink") header.size = 0;
     if (!header.type) header.type = modeToType(header.mode);
@@ -158,13 +174,14 @@ class Pack extends Readable {
     if (!header.gid) header.gid = 0;
     if (!header.mtime) header.mtime = new Date();
 
-    if (typeof buffer === "string") buffer = Buffer.from(buffer);
+    if (typeof bufferOrCallback === "string")
+      bufferOrCallback = Buffer.from(bufferOrCallback);
 
     const sink = new Sink(this, header, callback);
 
-    if (b4a.isBuffer(buffer)) {
-      header.size = buffer.byteLength;
-      sink.write(buffer);
+    if (b4a.isBuffer(bufferOrCallback)) {
+      header.size = bufferOrCallback.byteLength;
+      sink.write(bufferOrCallback);
       sink.end();
       return sink;
     }
@@ -176,7 +193,7 @@ class Pack extends Readable {
     return sink;
   }
 
-  finalize() {
+  finalize(): void {
     if (this._stream || this._pending.length > 0) {
       this._finalizing = true;
       return;
@@ -189,7 +206,7 @@ class Pack extends Readable {
     this.push(null);
   }
 
-  _done(stream) {
+  _done(stream): void {
     if (stream !== this._stream) return;
 
     this._stream = null;
@@ -198,7 +215,7 @@ class Pack extends Readable {
     if (this._pending.length) this._pending.shift()._continueOpen();
   }
 
-  _encode(header) {
+  _encode(header): void {
     if (!header.pax) {
       const buf = headers.encode(header);
       if (buf) {
@@ -209,7 +226,7 @@ class Pack extends Readable {
     this._encodePax(header);
   }
 
-  _encodePax(header) {
+  _encodePax(header: TarHeader): void {
     const paxHeader = headers.encodePax({
       name: header.name,
       linkname: header.linkname,
@@ -229,7 +246,7 @@ class Pack extends Readable {
       gname: header.gname,
       devmajor: header.devmajor,
       devminor: header.devminor,
-    };
+    } satisfies TarHeader;
 
     this.push(headers.encode(newHeader));
     this.push(paxHeader);
@@ -240,13 +257,13 @@ class Pack extends Readable {
     this.push(headers.encode(newHeader));
   }
 
-  _doDrain() {
+  _doDrain(): void {
     const drain = this._drain;
-    this._drain = noop;
+    this._drain = () => {};
     drain();
   }
 
-  _predestroy() {
+  _predestroy(): void {
     const err = getStreamError(this);
 
     if (this._stream) this._stream.destroy(err);
@@ -260,13 +277,13 @@ class Pack extends Readable {
     this._doDrain();
   }
 
-  _read(cb) {
+  _read(cb: () => void): void {
     this._doDrain();
     cb();
   }
 }
 
-function modeToType(mode) {
+function modeToType(mode: number): HeaderType {
   switch (mode & constants.S_IFMT) {
     case constants.S_IFBLK:
       return "block-device";
@@ -283,9 +300,7 @@ function modeToType(mode) {
   return "file";
 }
 
-function noop() {}
-
-function overflow(self, size) {
+function overflow(self, size: number): void {
   size &= 511;
   if (size) self.push(END_OF_TAR.subarray(0, 512 - size));
 }
@@ -294,8 +309,8 @@ function mapWritable(buf) {
   return b4a.isBuffer(buf) ? buf : Buffer.from(buf);
 }
 
-function pack(opts?) {
-  return new Pack(opts);
+function pack(opts?: TarPackOptions): TarPack {
+  return new TarPack(opts);
 }
 
-export { pack, type Pack };
+export { pack, type TarPack, type TarPackOptions };

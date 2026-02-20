@@ -5,7 +5,7 @@ import * as TarStream from "@archiver/tar-stream";
 
 import { collectStream } from "../utils";
 
-type Pack = ReturnType<typeof TarStream.pack>;
+type TarPack = ReturnType<typeof TarStream.pack>;
 
 interface TarOptions {
   gzip: boolean;
@@ -13,7 +13,7 @@ interface TarOptions {
 }
 
 class Tar {
-  engine: Pack;
+  engine: TarPack;
   compressor: Gzip | null;
   options: TarOptions;
 
@@ -56,12 +56,8 @@ class Tar {
       collectStream(source as Stream, append);
     }
   }
-  /**
-   * [finalize description]
-   *
-   * @return void
-   */
-  finalize() {
+
+  finalize(): void {
     this.engine.finalize();
   }
 
@@ -72,7 +68,7 @@ class Tar {
     return this.engine.on.apply(this.engine, arguments);
   }
 
-  pipe(destination: string, options): zlib.Gzip {
+  pipe(destination: string, options): Gzip {
     if (this.compressor) {
       return this.engine.pipe
         .apply(this.engine, [this.compressor])
