@@ -56,9 +56,11 @@ class Sink extends Writable {
 
     const cb = this._openCallback;
     this._openCallback = null;
+
     if (cb === null) return;
 
     if (this._pack.destroying) return cb(new Error("pack stream destroyed"));
+
     if (this._pack._finalized)
       return cb(new Error("pack stream is already finalized"));
 
