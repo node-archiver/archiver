@@ -130,8 +130,6 @@ const WRITE_UPDATE_SYNC_STATUS =
   WRITE_UPDATING | OPEN_STATUS | WRITE_NEXT_TICK | WRITE_PRIMARY;
 const WRITE_DROP_DATA = WRITE_FINISHING | WRITE_DONE | DESTROY_STATUS;
 
-const asyncIterator = Symbol.asyncIterator || Symbol("asyncIterator");
-
 class WritableState {
   constructor(
     stream,
@@ -328,7 +326,7 @@ class ReadableState {
     pipeTo.emit("pipe", this.stream);
   }
 
-  push(data) {
+  push(data: Buffer) {
     const stream = this.stream;
 
     if (data === null) {
@@ -397,7 +395,7 @@ class ReadableState {
     return null;
   }
 
-  drain() {
+  drain(): void {
     const stream = this.stream;
 
     while (
@@ -412,7 +410,7 @@ class ReadableState {
     }
   }
 
-  update() {
+  update(): void {
     const stream = this.stream;
 
     stream._duplexState |= READ_UPDATING;
@@ -444,7 +442,7 @@ class ReadableState {
     stream._duplexState &= READ_NOT_UPDATING;
   }
 
-  updateNonPrimary() {
+  updateNonPrimary(): void {
     const stream = this.stream;
 
     if ((stream._duplexState & READ_ENDING_STATUS) === READ_ENDING) {
@@ -469,26 +467,26 @@ class ReadableState {
     }
   }
 
-  continueUpdate() {
+  continueUpdate(): boolean {
     if ((this.stream._duplexState & READ_NEXT_TICK) === 0) return false;
     this.stream._duplexState &= READ_NOT_NEXT_TICK;
     return true;
   }
 
-  updateCallback() {
+  updateCallback(): void {
     if ((this.stream._duplexState & READ_UPDATE_SYNC_STATUS) === READ_PRIMARY)
       this.update();
     else this.updateNextTick();
   }
 
-  updateNextTickIfOpen() {
+  updateNextTickIfOpen(): void {
     if ((this.stream._duplexState & READ_NEXT_TICK_OR_OPENING) !== 0) return;
     this.stream._duplexState |= READ_NEXT_TICK;
     if ((this.stream._duplexState & READ_UPDATING) === 0)
       qmt(this.afterUpdateNextTick);
   }
 
-  updateNextTick() {
+  updateNextTick(): void {
     if ((this.stream._duplexState & READ_NEXT_TICK) !== 0) return;
     this.stream._duplexState |= READ_NEXT_TICK;
     if ((this.stream._duplexState & READ_UPDATING) === 0)
@@ -738,7 +736,7 @@ class Stream extends EventEmitter {
     return (this._duplexState & DESTROY_STATUS) !== 0;
   }
 
-  destroy(err?): void {
+  destroy(err?: Error): void {
     if ((this._duplexState & DESTROY_STATUS) === 0) {
       if (!err) err = STREAM_DESTROYED;
       this._duplexState = (this._duplexState | DESTROYING) & NON_PRIMARY;
@@ -812,7 +810,7 @@ class Readable extends Stream {
     return this._readableState.read();
   }
 
-  push(data) {
+  push(data: Buffer) {
     this._readableState.updateNextTickIfOpen();
     return this._readableState.push(data);
   }
@@ -822,7 +820,7 @@ class Readable extends Stream {
     return this._readableState.unshift(data);
   }
 
-  resume() {
+  resume(): this {
     this._duplexState |= READ_RESUMED_READ_AHEAD;
     this._readableState.updateNextTick();
     return this;
@@ -863,8 +861,8 @@ class Readable extends Stream {
 
   static from(data, opts) {
     if (isReadStreamx(data)) return data;
-    if (data[asyncIterator])
-      return this._fromAsyncIterator(data[asyncIterator](), opts);
+    if (data[Symbol.asyncIterator])
+      return this._fromAsyncIterator(data[Symbol.asyncIterator](), opts);
     if (!Array.isArray(data)) data = data === undefined ? [] : [data];
 
     let i = 0;
@@ -877,18 +875,18 @@ class Readable extends Stream {
     });
   }
 
-  static isBackpressured(rs) {
+  static isBackpressured(rs): boolean {
     return (
       (rs._duplexState & READ_BACKPRESSURE_STATUS) !== 0 ||
       rs._readableState.buffered >= rs._readableState.highWaterMark
     );
   }
 
-  static isPaused(rs) {
+  static isPaused(rs): boolean {
     return (rs._duplexState & READ_RESUMED) === 0;
   }
 
-  [asyncIterator]() {
+  [Symbol.asyncIterator]() {
     const stream = this;
 
     let error = null;
@@ -902,11 +900,12 @@ class Readable extends Stream {
     this.on("close", onclose);
 
     return {
-      [asyncIterator]() {
+      [Symbol.asyncIterator]() {
         return this;
       },
+
       next() {
-        return new Promise(function (resolve, reject) {
+        return new Promise((resolve, reject) => {
           promiseResolve = resolve;
           promiseReject = reject;
           const data = stream.read();
@@ -944,7 +943,8 @@ class Readable extends Stream {
       return new Promise((resolve, reject) => {
         if (stream._duplexState & DESTROYED)
           return resolve({ value: undefined, done: true });
-        stream.once("close", function () {
+
+        stream.once("close", () => {
           if (err) reject(err);
           else resolve({ value: undefined, done: true });
         });

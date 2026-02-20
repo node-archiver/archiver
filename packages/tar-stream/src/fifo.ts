@@ -1,8 +1,10 @@
 class FixedFIFO {
-  next: FixedFIFO;
+  buffer: Buffer[];
 
+  mask: number;
   top: number;
   btm: number;
+  next: FixedFIFO;
 
   constructor(hwm: number) {
     if (!(hwm > 0) || ((hwm - 1) & hwm) !== 0) {
@@ -22,14 +24,14 @@ class FixedFIFO {
     this.buffer.fill(undefined);
   }
 
-  push(data): boolean {
+  push(data: Buffer): boolean {
     if (this.buffer[this.top] !== undefined) return false;
     this.buffer[this.top] = data;
     this.top = (this.top + 1) & this.mask;
     return true;
   }
 
-  shift() {
+  shift(): Buffer {
     const last = this.buffer[this.btm];
     if (last === undefined) return undefined;
     this.buffer[this.btm] = undefined;
@@ -37,7 +39,7 @@ class FixedFIFO {
     return last;
   }
 
-  peek() {
+  peek(): Buffer {
     return this.buffer[this.btm];
   }
 
@@ -63,7 +65,7 @@ class FastFIFO {
     this.length = 0;
   }
 
-  push(val): void {
+  push(val: Buffer): void {
     this.length++;
     if (!this.head.push(val)) {
       const prev = this.head;
@@ -72,7 +74,7 @@ class FastFIFO {
     }
   }
 
-  shift() {
+  shift(): Buffer {
     if (this.length !== 0) this.length--;
     const val = this.tail.shift();
     if (val === undefined && this.tail.next) {
@@ -85,7 +87,7 @@ class FastFIFO {
     return val;
   }
 
-  peek() {
+  peek(): Buffer {
     const val = this.tail.peek();
     if (val === undefined && this.tail.next) return this.tail.next.peek();
     return val;

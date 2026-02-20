@@ -26,7 +26,7 @@ class BufferList {
     return this._buffered === 0 ? null : this._next(size);
   }
 
-  shift(size) {
+  shift(size): Buffer {
     if (size > this.buffered) return null;
     if (size === 0) return EMPTY;
 
@@ -44,7 +44,7 @@ class BufferList {
     return Buffer.concat(chunks);
   }
 
-  _next(size) {
+  _next(size): Buffer {
     const buf = this.queue.peek();
     const rem = buf.byteLength - this._offset;
 
@@ -76,7 +76,7 @@ class Source extends Readable {
     this._parent = self;
   }
 
-  _read(cb) {
+  _read(cb): void {
     if (this.header.size === 0) {
       this.push(null);
     }
@@ -86,11 +86,11 @@ class Source extends Readable {
     cb(null);
   }
 
-  _predestroy() {
+  _predestroy(): void {
     this._parent.destroy(getStreamError(this));
   }
 
-  _detach() {
+  _detach(): void {
     if (this._parent._stream === this) {
       this._parent._stream = null;
       this._parent._missing = overflow(this.header.size);
@@ -98,16 +98,21 @@ class Source extends Readable {
     }
   }
 
-  _destroy(cb) {
+  _destroy(cb): void {
     this._detach();
     cb(null);
   }
 }
 
-class Extract extends Writable {
+interface TarExtractOptions {
+  filenameEncoding?: string;
+  allowUnknownFormat?: boolean;
+}
+
+class TarExtract extends Writable {
   private _buffer: BufferList;
 
-  constructor(opts) {
+  constructor(opts?: TarExtractOptions) {
     super(opts);
 
     if (!opts) opts = {};
@@ -130,7 +135,7 @@ class Extract extends Writable {
     this._unlockBound = this._unlock.bind(this);
   }
 
-  _unlock(err) {
+  _unlock(err?: Error): void {
     this._locked = false;
 
     if (err) {
@@ -142,7 +147,7 @@ class Extract extends Writable {
     this._update();
   }
 
-  _consumeHeader() {
+  _consumeHeader(): boolean {
     if (this._locked) return false;
 
     this._offset = this._buffer.shifted;
@@ -377,7 +382,7 @@ class Extract extends Writable {
       }
     }
 
-    function onentry(header, stream, callback) {
+    function onentry(header, stream, callback): void {
       entryCallback = callback;
       stream.on("error", noop); // no way around this due to tick sillyness
 
@@ -389,7 +394,7 @@ class Extract extends Writable {
       }
     }
 
-    function onclose() {
+    function onclose(): void {
       consumeCallback(error);
       if (!promiseResolve) return;
       if (error) promiseReject(error);
@@ -397,16 +402,20 @@ class Extract extends Writable {
       promiseResolve = promiseReject = null;
     }
 
-    function destroy(err) {
+    function destroy(err?: Error): Promise<{ value: undefined; done: true }> {
       extract.destroy(err);
       consumeCallback(err);
-      return new Promise((resolve, reject) => {
-        if (extract.destroyed) return resolve({ value: undefined, done: true });
-        extract.once("close", function () {
-          if (err) reject(err);
-          else resolve({ value: undefined, done: true });
-        });
-      });
+
+      return new Promise<{ value: undefined; done: true }>(
+        (resolve, reject) => {
+          if (extract.destroyed)
+            return resolve({ value: undefined, done: true });
+          extract.once("close", function () {
+            if (err) reject(err);
+            else resolve({ value: undefined, done: true });
+          });
+        },
+      );
     }
   }
 }
@@ -418,8 +427,8 @@ function overflow(size) {
   return size && 512 - size;
 }
 
-function extract(opts?) {
-  return new Extract(opts);
+function extract(opts?: TarExtractOptions): TarExtract {
+  return new TarExtract(opts);
 }
 
-export { extract, type Extract as TarExtract };
+export { extract, type TarExtract, type TarExtractOptions };

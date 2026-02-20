@@ -22,25 +22,25 @@ type HeaderType =
 
 interface TarHeader {
   name: string;
-  mode: unknown;
-  uid: unknown;
-  gid: unknown;
+  mode: number;
+  uid: number;
+  gid: number;
   pax: null | { path?: string; special: string };
   size: number;
-  mtime: unknown;
+  mtime: Date;
   type: HeaderType;
   linkname: string;
-  uname: unknown;
-  gname: unknown;
-  devmajor: unknown;
-  devminor: unknown;
+  uname: string;
+  gname: string;
+  devmajor: number;
+  devminor: number;
 }
 
 class Sink extends Writable {
   written: number;
   header: TarHeader;
 
-  constructor(pack: Pack, header: TarHeader, callback) {
+  constructor(pack: TarPack, header: TarHeader, callback) {
     super({ mapWritable, eagerOpen: true });
 
     this.written = 0;
@@ -160,10 +160,10 @@ class Sink extends Writable {
   }
 }
 
-interface PackOptions extends ReadableOptions {}
+interface TarPackOptions extends ReadableOptions {}
 
-class Pack extends Readable {
-  constructor(opts?: PackOptions) {
+class TarPack extends Readable {
+  constructor(opts?: TarPackOptions) {
     super(opts);
 
     this._drain = () => {};
@@ -330,8 +330,8 @@ function mapWritable(buf) {
   return b4a.isBuffer(buf) ? buf : Buffer.from(buf);
 }
 
-function pack(opts?: PackOptions): Pack {
-  return new Pack(opts);
+function pack(opts?: TarPackOptions): TarPack {
+  return new TarPack(opts);
 }
 
-export { pack, type Pack as TarPack };
+export { pack, type TarPack, type TarPackOptions };

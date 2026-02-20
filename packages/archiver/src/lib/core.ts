@@ -694,7 +694,7 @@ class Archiver extends Transform {
    * right after calling this method so you should set listeners beforehand to
    * properly detect stream completion.
    */
-  finalize() {
+  finalize(): Promise<void> {
     if (this._state.aborted) {
       const abortedError = new ArchiverError("ABORTED");
       this.emit("error", abortedError);
@@ -709,15 +709,15 @@ class Archiver extends Transform {
     if (this._pending === 0 && this._queue.idle() && this._statQueue.idle()) {
       this._finalize();
     }
-    const self = this;
-    return new Promise(function (resolve, reject) {
+
+    return new Promise<void>((resolve, reject) => {
       let errored;
-      self._module.on("end", function () {
+      this._module.on("end", function () {
         if (!errored) {
           resolve();
         }
       });
-      self._module.on("error", function (err) {
+      this._module.on("error", function (err) {
         errored = true;
         reject(err);
       });
