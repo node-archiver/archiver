@@ -260,7 +260,10 @@ function newListener(name) {
   }
 }
 
-interface StreamOptions {}
+interface StreamOptions {
+  open?(callback: (err?: Error) => void): void;
+  predestroy?(): void;
+}
 
 class Stream extends EventEmitter {
   protected _duplexState: number;
@@ -292,7 +295,7 @@ class Stream extends EventEmitter {
     callback(null);
   }
 
-  _destroy(callback): void {
+  _destroy(callback: (err?: Error | null) => void): void {
     callback(null);
   }
 
@@ -395,7 +398,7 @@ class Readable extends Stream {
     return this._readableState.push(data);
   }
 
-  unshift(data): void {
+  unshift(data: Buffer): void {
     this._readableState.updateNextTickIfOpen();
     return this._readableState.unshift(data);
   }
@@ -414,16 +417,23 @@ class Readable extends Stream {
     return this;
   }
 
-  static _fromAsyncIterator(ite, opts): Readable {
+  static _fromAsyncIterator(
+    iterator,
+    opts?: Partial<ReadableOptions>,
+  ): Readable {
     let destroy;
 
     const rs = new Readable({
       ...opts,
       read(callback) {
-        ite.next().then(push).then(callback.bind(null, null)).catch(callback);
+        iterator
+          .next()
+          .then(push)
+          .then(callback.bind(null, null))
+          .catch(callback);
       },
       predestroy() {
-        destroy = ite.return();
+        destroy = iterator.return();
       },
       destroy(callback) {
         if (!destroy) return callback(null);
@@ -439,10 +449,12 @@ class Readable extends Stream {
     }
   }
 
-  static from(data, opts) {
+  static from(data, opts?: Partial<ReadableOptions>) {
     if (isReadStreamx(data)) return data;
+
     if (data[Symbol.asyncIterator])
       return this._fromAsyncIterator(data[Symbol.asyncIterator](), opts);
+
     if (!Array.isArray(data)) data = data === undefined ? [] : [data];
 
     let i = 0;
@@ -539,7 +551,7 @@ class Readable extends Stream {
   }
 }
 
-interface WritableOptions extends StreamOptions {}
+interface WritableOptions extends StreamOptions, WritableStateOptions {}
 
 class Writable extends Stream {
   constructor(opts?: WritableOptions) {
@@ -565,15 +577,15 @@ class Writable extends Stream {
     this._writableState.updateNextTick();
   }
 
-  _writev(batch, callback): void {
+  _writev(batch, callback: (err?: Error | null) => void): void {
     callback(null);
   }
 
-  _write(data, callback): void {
+  _write(data: Buffer, callback: (err?: Error) => void): void {
     this._writableState.autoBatch(data, callback);
   }
 
-  _final(callback): void {
+  _final(callback: (err?: Error | null) => void): void {
     callback(null);
   }
 
@@ -636,19 +648,25 @@ function isTypedArray(data) {
   );
 }
 
-function defaultByteLength(data) {
+function defaultByteLength(data): number {
   return isTypedArray(data) ? data.byteLength : 1024;
 }
 
-function isWritev(s) {
+function isWritev(s): boolean {
   return s._writev !== Writable.prototype._writev;
 }
 
-interface WritableStateOptions {}
+interface WritableStateOptions {
+  highWaterMark: number;
+  map: ((data: Buffer) => Buffer) | null;
+  mapWritable: (data: Buffer) => Buffer;
+}
 
 class WritableState {
   stream: Stream;
   queue: FIFO;
+  highWaterMark: number;
+  buffered: number;
 
   constructor(stream: Stream, options?: WritableStateOptions) {
     const {
@@ -676,7 +694,7 @@ class WritableState {
     return (this.stream._duplexState & WRITE_DONE) !== 0;
   }
 
-  push(data): boolean {
+  push(data: Buffer): boolean {
     if ((this.stream._duplexState & WRITE_DROP_DATA) !== 0) return false;
     if (this.map !== null) data = this.map(data);
 
@@ -692,7 +710,7 @@ class WritableState {
     return false;
   }
 
-  shift() {
+  shift(): Buffer {
     const data = this.queue.shift();
 
     this.buffered -= this.byteLength(data);
@@ -701,15 +719,15 @@ class WritableState {
     return data;
   }
 
-  end(data?): void {
+  end(data?: Buffer): void {
     if (typeof data === "function") this.stream.once("finish", data);
     else if (data !== undefined && data !== null) this.push(data);
     this.stream._duplexState =
       (this.stream._duplexState | WRITE_FINISHING) & WRITE_NON_PRIMARY;
   }
 
-  autoBatch(data, callback) {
-    const buffer = [];
+  autoBatch(data: Buffer, callback: (err?: Error | null) => void): void {
+    const buffer: Buffer[] = [];
     const stream = this.stream;
 
     buffer.push(data);
@@ -785,8 +803,8 @@ class WritableState {
 
 interface ReadableStateOptions {
   highWaterMark: number;
-  map: unknown;
-  mapReadable: unknown;
+  map: ((data: Buffer) => Buffer) | null;
+  mapReadable(data: Buffer): Buffer;
   byteLength: number;
   byteLengthReadable: number;
 }
@@ -890,8 +908,8 @@ class ReadableState {
     return data;
   }
 
-  unshift(data): void {
-    const pending = [this.map !== null ? this.map(data) : data];
+  unshift(data: Buffer): void {
+    const pending: Buffer[] = [this.map !== null ? this.map(data) : data];
     while (this.buffered > 0) pending.push(this.shift());
 
     for (let i = 0; i < pending.length - 1; i++) {

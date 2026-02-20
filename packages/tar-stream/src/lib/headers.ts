@@ -219,11 +219,7 @@ function encode(opts: EncodeOptions): Buffer {
   return buf;
 }
 
-function decode(
-  buf: Buffer,
-  filenameEncoding: BufferEncoding,
-  allowUnknownFormat?: boolean,
-): {
+interface DecodedHeader {
   name: string;
   mode: number;
   uid: number;
@@ -237,7 +233,13 @@ function decode(
   devmajor: number;
   devminor: number;
   pax: null;
-} {
+}
+
+function decode(
+  buf: Buffer,
+  filenameEncoding: BufferEncoding,
+  allowUnknownFormat?: boolean,
+): DecodedHeader {
   let typeflag = buf[156] === 0 ? 0 : buf[156] - ZERO_OFFSET;
 
   let name = decodeStr(buf, 0, 100, filenameEncoding);
@@ -299,14 +301,14 @@ function decode(
   };
 }
 
-function isUSTAR(buf: Buffer) {
-  return b4a.equals(USTAR_MAGIC, buf.subarray(MAGIC_OFFSET, MAGIC_OFFSET + 6));
+function isUSTAR(buf: Buffer): boolean {
+  return USTAR_MAGIC.equals(buf.subarray(MAGIC_OFFSET, MAGIC_OFFSET + 6));
 }
 
-function isGNU(buf) {
+function isGNU(buf: Buffer): boolean {
   return (
-    b4a.equals(GNU_MAGIC, buf.subarray(MAGIC_OFFSET, MAGIC_OFFSET + 6)) &&
-    b4a.equals(GNU_VER, buf.subarray(VERSION_OFFSET, VERSION_OFFSET + 2))
+    GNU_MAGIC.equals(buf.subarray(MAGIC_OFFSET, MAGIC_OFFSET + 6)) &&
+    GNU_VER.equals(buf.subarray(VERSION_OFFSET, VERSION_OFFSET + 2))
   );
 }
 

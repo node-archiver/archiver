@@ -29,6 +29,7 @@ class Sink extends Writable {
   private _isVoid: boolean;
   private _finished: boolean;
   private _pack: TarPack;
+  private _linkname: Buffer | null;
 
   constructor(
     pack: TarPack,
@@ -96,11 +97,12 @@ class Sink extends Writable {
     callback(null);
   }
 
-  _write(data, callback): void {
+  _write(data: Buffer, callback: (arg?: Error | null) => void): void {
     if (this._isLinkname) {
       this._linkname = this._linkname
         ? Buffer.concat([this._linkname, data])
         : data;
+
       return callback(null);
     }
 
@@ -122,7 +124,7 @@ class Sink extends Writable {
 
     if (this._isLinkname) {
       this.header.linkname = this._linkname
-        ? b4a.toString(this._linkname, "utf-8")
+        ? this._linkname.toString("utf-8")
         : "";
       this._pack._encode(this.header);
     }

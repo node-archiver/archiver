@@ -68,10 +68,16 @@ class BufferList {
   }
 }
 
+interface SourceHeader {
+  size: number;
+}
+
 class Source extends Readable {
   private _parent: TarExtract;
+  header: SourceHeader;
+  offset: number;
 
-  constructor(self: TarExtract, header, offset) {
+  constructor(self: TarExtract, header: SourceHeader, offset: number) {
     super();
 
     this.header = header;
@@ -80,7 +86,7 @@ class Source extends Readable {
     this._parent = self;
   }
 
-  _read(callback): void {
+  _read(callback: (err?: Error | null) => void): void {
     if (this.header.size === 0) {
       this.push(null);
     }
@@ -102,7 +108,7 @@ class Source extends Readable {
     }
   }
 
-  _destroy(callback): void {
+  _destroy(callback: (err?: Error | null) => void): void {
     this._detach();
     callback(null);
   }
@@ -115,7 +121,13 @@ interface TarExtractOptions {
 
 class TarExtract extends Writable {
   private _buffer: BufferList;
+  private _offset: number;
   private _stream: null | Source;
+  private _missing: number;
+  private _longHeader: boolean;
+  private _callback?: (err?: Error | null) => void;
+  private _locked: boolean;
+  private _finished: boolean;
 
   constructor(opts?: TarExtractOptions) {
     super(opts);
@@ -300,19 +312,19 @@ class TarExtract extends Writable {
     this._continueWrite(null);
   }
 
-  _continueWrite(err): void {
+  _continueWrite(err?: Error | null): void {
     const callback = this._callback;
     this._callback = () => {};
     callback(err);
   }
 
-  _write(data, callback): void {
+  _write(data: Buffer, callback?: (err?: Error | null) => void): void {
     this._callback = callback;
     this._buffer.push(data);
     this._update();
   }
 
-  _final(callback): void {
+  _final(callback: (err?: Error | null) => void): void {
     this._finished = this._missing === 0 && this._buffer.buffered === 0;
     callback(this._finished ? null : new Error("Unexpected end of data"));
   }
@@ -321,7 +333,7 @@ class TarExtract extends Writable {
     this._continueWrite(null);
   }
 
-  _destroy(callback): void {
+  _destroy(callback: (err?: Error | null) => void): void {
     if (this._stream) this._stream.destroy(getStreamError(this));
     callback(null);
   }
@@ -347,13 +359,13 @@ class TarExtract extends Writable {
       [Symbol.asyncIterator](): TarExtract {
         return extract;
       },
-      next() {
-        return new Promise(onnext);
+      next(): Promise<{ value: unknown; done: boolean }> {
+        return new Promise<{ value: unknown; done: boolean }>(onnext);
       },
-      return() {
+      return(): Promise<{ value: undefined; done: true }> {
         return destroy(null);
       },
-      throw(err) {
+      throw(err?: Error): Promise<{ value: undefined; done: true }> {
         return destroy(err);
       },
     };
