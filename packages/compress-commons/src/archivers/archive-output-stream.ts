@@ -33,7 +33,7 @@ function normalizeInputSource(
   return source;
 }
 
-class ArchiveOutputStream extends Transform {
+abstract class ArchiveOutputStream extends Transform {
   offset: number;
 
   protected _archive: {
@@ -54,21 +54,17 @@ class ArchiveOutputStream extends Transform {
     };
   }
 
-  _appendBuffer(
+  abstract _appendBuffer(
     ae: ArchiveEntry,
     source: Buffer,
     callback: (error: Error) => void,
-  ): void {
-    // scaffold only
-  }
+  ): void;
 
-  _appendStream(
+  abstract _appendStream(
     ae: ArchiveEntry,
     source: Stream,
     callback: (error: Error) => void,
-  ): void {
-    // scaffold only
-  }
+  ): void;
 
   _emitErrorCallback(err: Error): void {
     if (err) {
@@ -76,13 +72,9 @@ class ArchiveOutputStream extends Transform {
     }
   }
 
-  _finish(ae?: ArchiveEntry): void {
-    // scaffold only
-  }
+  abstract _finish(ae?: ArchiveEntry): void;
 
-  _normalizeEntry(ae: ArchiveEntry): void {
-    // scaffold only
-  }
+  abstract _normalizeEntry(ae: ArchiveEntry): void;
 
   _transform(
     chunk: string | Buffer,

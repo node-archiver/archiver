@@ -2,6 +2,9 @@ import { Transform, type TransformCallback } from "node:stream";
 import { DeflateRaw, type ZlibOptions } from "node:zlib";
 import { crc32 } from "node:zlib";
 
+/**
+ * @private
+ */
 class CRC32Stream extends Transform {
   checksum: number;
   rawSize: number;
@@ -39,6 +42,9 @@ class CRC32Stream extends Transform {
   }
 }
 
+/**
+ * @private
+ */
 class DeflateCRC32Stream extends DeflateRaw {
   checksum: number;
   rawSize: number;
