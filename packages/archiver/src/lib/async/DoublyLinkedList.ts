@@ -23,12 +23,12 @@ class DoublyLinkedList {
     return node;
   }
 
-  empty() {
+  empty(): this {
     while (this.head) this.shift();
     return this;
   }
 
-  insertAfter(node, newNode) {
+  insertAfter(node, newNode): void {
     newNode.prev = node;
     newNode.next = node.next;
     if (node.next) node.next.prev = newNode;

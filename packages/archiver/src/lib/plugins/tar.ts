@@ -9,7 +9,7 @@ import { collectStream } from "../utils";
 
 interface TarEntryData extends EntryData {}
 
-interface TarOptions {
+interface TarOptions extends Partial<tar.TarPackOptions> {
   gzip: boolean;
   gzipOptions?: ZlibOptions;
 }

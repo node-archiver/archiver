@@ -12,6 +12,10 @@ function onlyOnce(fn) {
 
 interface Queue {
   _tasks: DoublyLinkedList;
+
+  paused: boolean;
+
+  process(): void;
 }
 
 function queue(worker, concurrency: number, payload: 1 = 1): Queue {
@@ -44,7 +48,7 @@ function queue(worker, concurrency: number, payload: 1 = 1): Queue {
     events[event].push(handleAndRemove);
   }
 
-  function off(event, handler) {
+  function off(event, handler?) {
     if (!event) return Object.keys(events).forEach((ev) => (events[ev] = []));
     if (!handler) return (events[event] = []);
     events[event] = events[event].filter((ev) => ev !== handler);
