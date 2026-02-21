@@ -5,7 +5,7 @@ import {
   symlinkSync,
   unlinkSync,
   writeFileSync,
-  WriteStream,
+  createWriteStream,
   mkdirSync,
 } from "node:fs";
 
@@ -165,7 +165,7 @@ describe("plugins", () => {
 
     beforeAll((done) => {
       archive = new ZipArchive({ comment: "archive comment" });
-      const testStream = new WriteStream("tmp/plugin.zip");
+      const testStream = createWriteStream("tmp/plugin.zip");
 
       testStream.on("close", () => {
         yauzl.open("tmp/plugin.zip", (err, zip) => {

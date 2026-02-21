@@ -1,10 +1,9 @@
 import type { Stream } from "node:stream";
+import type { ZlibOptions } from "node:zlib";
 
-import { ZipStream } from "@archiver/zip-stream";
+import { ZipStream, type FileEntryData } from "@archiver/zip-stream";
 
-interface ZipEntryData {}
-
-interface ZlibOptions {}
+interface ZipEntryData extends FileEntryData {}
 
 interface ZipOptions {
   /**
@@ -47,19 +46,11 @@ class Zip {
     this.engine = new ZipStream(normalizedOptions);
   }
 
-  /**
-   * @param  {ZipEntryData} data
-   * @param  {String} data.name Sets the entry name including internal path.
-   * @param  {(String|Date)} [data.date=NOW()] Sets the entry date.
-   * @param  {Number} [data.mode=D:0755/F:0644] Sets the entry permissions.
-   * @param  {String} [data.prefix] Sets a path prefix for the entry name. Useful
-   * when working with methods like `directory` or `glob`.
-   * @param  {fs.Stats} [data.stats] Sets the fs stat data for this entry allowing
-   * for reduction of fs stat calls when stat data is already known.
-   * @param  {Boolean} [data.store=ZipOptions.store] Sets the compression method to STORE.
-   * @param  {Function} callback
-   */
-  append(source: Buffer | Stream, data: ZipEntryData, callback): void {
+  append(
+    source: Buffer | Stream,
+    data: ZipEntryData,
+    callback?: (error: Error) => void,
+  ): void {
     this.engine.entry(source, data, callback);
   }
 
@@ -67,22 +58,15 @@ class Zip {
     this.engine.finalize();
   }
 
-  /**
-   * @return this.engine
-   */
-  on() {
+  on(): ZipStream {
     return this.engine.on.apply(this.engine, arguments);
   }
-  /**
-   * @return this.engine
-   */
-  pipe() {
+
+  pipe(): ZipStream {
     return this.engine.pipe.apply(this.engine, arguments);
   }
-  /**
-   * @return this.engine
-   */
-  unpipe() {
+
+  unpipe(): ZipStream {
     return this.engine.unpipe.apply(this.engine, arguments);
   }
 }
