@@ -18,9 +18,9 @@ interface EntryData {
   /** Sets the entry name including internal path. */
   name: string;
   /** Sets the entry date. */
-  date?: Date | string;
+  date?: Date;
   /** Sets the entry permissions. */
-  mode?: number;
+  mode?: number | null;
   /**
    * Sets a path prefix for the entry name.
    * Useful when working with methods like `directory` or `glob`.
@@ -30,7 +30,7 @@ interface EntryData {
   stats?: fs.Stats;
 }
 
-function normalizeEntryData(data: EntryData, stats?: fs.Stats) {
+function normalizeEntryData(data: EntryData, stats?: fs.Stats): EntryData {
   const normalizedData = {
     type: "file",
     name: null,
@@ -117,7 +117,9 @@ interface TransformOptions {
   objectMode?: boolean;
 }
 
-interface QueueTask {}
+interface QueueTask {
+  data: EntryData;
+}
 
 interface ProgressData {
   entries: {
@@ -132,16 +134,28 @@ interface ProgressData {
 
 interface ArchiverOptions extends CoreOptions, TransformOptions {}
 
+interface ArchiverModule {
+  append(
+    source: Stream | Buffer<ArrayBufferLike>,
+    data: EntryData,
+    callback?: (error: Error | null) => void,
+  ): void;
+
+  finalize(): void;
+}
+
 class Archiver extends Transform {
   _supportsDirectory = false;
   _supportsSymlink = false;
 
   options: ArchiverOptions;
 
-  _module: Archiver;
+  _module: ArchiverModule;
 
   private _pointer: number;
   private _pending: number;
+  private _entriesCount: number;
+  private _entriesProcessedCount: number;
 
   private _state: {
     aborted: boolean;
@@ -150,6 +164,8 @@ class Archiver extends Transform {
     finalized: boolean;
     modulePiped: boolean;
   };
+  private _fsEntriesTotalBytes: number;
+  private _fsEntriesProcessedBytes: number;
 
   constructor(options?: Partial<ArchiverOptions>) {
     const normalizedOptions = {
@@ -162,6 +178,7 @@ class Archiver extends Transform {
 
     this.options = normalizedOptions;
 
+    // @ts-expect-error
     this._module = null;
 
     this._pending = 0;
@@ -170,13 +187,16 @@ class Archiver extends Transform {
     this._entriesProcessedCount = 0;
     this._fsEntriesTotalBytes = 0;
     this._fsEntriesProcessedBytes = 0;
+
     this._queue = queue(this._onQueueTask.bind(this), 1);
     this._queue.drain(this._onQueueDrain.bind(this));
+
     this._statQueue = queue(
       this._onStatQueueTask.bind(this),
       normalizedOptions.statConcurrency,
     );
     this._statQueue.drain(this._onQueueDrain.bind(this));
+
     this._state = {
       aborted: false,
       finalize: false,
@@ -318,10 +338,8 @@ class Archiver extends Transform {
   private _moduleFinalize(): void {
     if (typeof this._module.finalize === "function") {
       this._module.finalize();
-    } else if (typeof this._module.end === "function") {
-      this._module.end();
     } else {
-      this.emit("error", new ArchiverError("NOENDMETHOD"));
+      this.emit("error", new ArchiverError("NOFINALIZEMETHOD"));
     }
   }
 
@@ -519,7 +537,7 @@ class Archiver extends Transform {
    * event is fired.
    */
   append(
-    source: Buffer | Stream | string,
+    source: Buffer | Stream | string | null,
     data: EntryData,
     _callback?: unknown,
   ): this {
@@ -547,7 +565,7 @@ class Archiver extends Transform {
     } else {
       this.emit(
         "error",
-        new ArchiverError("INPUTSTEAMBUFFERREQUIRED", { name: data.name }),
+        new ArchiverError("INPUTSTREAMBUFFERREQUIRED", { name: data.name }),
       );
       return this;
     }
@@ -565,7 +583,7 @@ class Archiver extends Transform {
   directory(
     dirpath: string,
     destpath: string,
-    data: EntryData | ((entryData: EntryData) => EntryData),
+    data?: EntryData | ((entryData: EntryData) => EntryData),
   ): this {
     if (this._state.finalize || this._state.aborted) {
       this.emit("error", new ArchiverError("QUEUECLOSED"));
@@ -724,7 +742,7 @@ class Archiver extends Transform {
    *
    * This does NOT interact with filesystem and is used for programmatically creating symlinks.
    */
-  symlink(filepath: string, target: string, mode: number): this {
+  symlink(filepath: string, target: string, mode?: number): this {
     if (this._state.finalize || this._state.aborted) {
       this.emit("error", new ArchiverError("QUEUECLOSED"));
       return this;
@@ -747,8 +765,9 @@ class Archiver extends Transform {
       );
       return this;
     }
-    const data = {};
-    data.type = "symlink";
+
+    const data = { type: "symlink" };
+
     data.name = filepath.replace(/\\/g, "/");
     data.linkname = target.replace(/\\/g, "/");
     data.sourceType = "buffer";
@@ -775,5 +794,6 @@ export {
   Archiver,
   type ArchiverOptions,
   type ProgressData,
+  type EntryData,
   normalizeEntryData,
 };

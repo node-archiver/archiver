@@ -10,7 +10,7 @@ import { collectStream } from "../utils";
 class Json extends Transform {
   files: unknown[];
 
-  constructor(options: TransformOptions) {
+  constructor(options?: TransformOptions) {
     super(options);
     this.files = [];
   }

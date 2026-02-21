@@ -1,6 +1,5 @@
+import { wrapAsync } from "./asyncify";
 import { DoublyLinkedList } from "./DoublyLinkedList";
-import { _setImmediate as setImmediate } from "./setImmediate";
-import { wrapAsync } from "./wrapAsync";
 
 function onlyOnce(fn) {
   return function (...args) {
@@ -80,7 +79,7 @@ function queue(worker, concurrency: number, payload: 1 = 1) {
 
     if (!processingScheduled) {
       processingScheduled = true;
-      (0, setImmediate)(() => {
+      queueMicrotask(() => {
         processingScheduled = false;
         q.process();
       });
@@ -129,7 +128,7 @@ function queue(worker, concurrency: number, payload: 1 = 1) {
   function _maybeDrain(data) {
     if (data.length === 0 && q.idle()) {
       // call drain immediately if there are no tasks
-      (0, setImmediate)(() => trigger("drain"));
+      queueMicrotask(() => trigger("drain"));
       return true;
     }
     return false;
@@ -255,7 +254,7 @@ function queue(worker, concurrency: number, payload: 1 = 1) {
         return;
       }
       q.paused = false;
-      (0, setImmediate)(q.process);
+      queueMicrotask(q.process);
     },
   };
   // define these as fixed properties, so people get useful errors when updating

@@ -3,7 +3,10 @@ import { type Gzip, type ZlibOptions, createGzip } from "node:zlib";
 
 import * as tar from "@archiver/tar-stream";
 
+import type { EntryData } from "../core";
 import { collectStream } from "../utils";
+
+interface TarEntryData extends EntryData {}
 
 interface TarOptions {
   gzip: boolean;
@@ -30,29 +33,34 @@ class Tar {
     this.engine.emit("error", err);
   }
 
-  append(source: Buffer | Stream, data, callback): void {
-    data.mtime = data.date;
-    const append = (err, sourceBuffer: Buffer) => {
+  append(
+    source: Buffer | Stream,
+    data: TarEntryData,
+    callback: (error: Error | null, data?: TarEntryData) => void,
+  ): void {
+    const normalizedData = { ...data, mtime: data.date };
+
+    const append = (err: Error | null, sourceBuffer: Buffer) => {
       if (err) {
         callback(err);
         return;
       }
-      this.engine.entry(data, sourceBuffer, function (err) {
-        callback(err, data);
+      this.engine.entry(normalizedData, sourceBuffer, function (err) {
+        callback(err, normalizedData);
       });
     };
 
-    if (data.sourceType === "buffer") {
+    if (normalizedData.sourceType === "buffer") {
       append(null, source as Buffer);
       return;
     }
 
-    if (data.sourceType !== "stream") return;
+    if (normalizedData.sourceType !== "stream") return;
 
-    if (data.stats) {
-      data.size = data.stats.size;
-      const entry = this.engine.entry(data, function (err) {
-        callback(err, data);
+    if (normalizedData.stats) {
+      normalizedData.size = normalizedData.stats.size;
+      const entry = this.engine.entry(normalizedData, function (err) {
+        callback(err, normalizedData);
       });
       source.pipe(entry);
     } else {
@@ -64,10 +72,7 @@ class Tar {
     this.engine.finalize();
   }
 
-  /**
-   * @return this.engine
-   */
-  on() {
+  on(): tar.TarPack {
     return this.engine.on.apply(this.engine, arguments);
   }
 
@@ -81,10 +86,7 @@ class Tar {
     }
   }
 
-  /**
-   * @return this.engine
-   */
-  unpipe() {
+  unpipe(): tar.TarPack {
     if (this.compressor) {
       return this.compressor.unpipe.apply(this.compressor, arguments);
     } else {

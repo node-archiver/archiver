@@ -159,7 +159,7 @@ describe("plugins", () => {
 
   describe("zip", () => {
     let actual = [];
-    let archive;
+    let archive: ZipArchive;
     const entries = {};
     let zipComment = "";
 

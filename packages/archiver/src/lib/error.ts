@@ -9,10 +9,10 @@ const ERROR_CODES = {
     "file filepath argument must be a non-empty string value",
   FINALIZING: "archive already finalizing",
   QUEUECLOSED: "queue closed",
-  NOENDMETHOD: "no suitable finalize/end method defined by module",
+  NOFINALIZEMETHOD: "no suitable finalize method defined by module",
   DIRECTORYNOTSUPPORTED: "support for directory entries not defined by module",
   FORMATSET: "archive format already set",
-  INPUTSTEAMBUFFERREQUIRED:
+  INPUTSTREAMBUFFERREQUIRED:
     "input source must be valid Stream or Buffer instance",
   MODULESET: "module already set",
   SYMLINKNOTSUPPORTED: "support for symlink entries not defined by module",

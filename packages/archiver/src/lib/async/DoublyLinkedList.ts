@@ -3,6 +3,9 @@ function setInitial(dll, node) {
   dll.head = dll.tail = node;
 }
 
+/**
+ * @private
+ */
 class DoublyLinkedList {
   constructor() {
     this.head = this.tail = null;
