@@ -9,7 +9,7 @@ function isAsync(fn) {
   return fn[Symbol.toStringTag] === "AsyncFunction";
 }
 
-function asyncify(func) {
+function asyncify<T>(func: (task: T, callback: () => void) => void) {
   if (isAsync(func)) {
     return function (...args) {
       const callback = args.pop();
@@ -52,16 +52,14 @@ function invokeCallback(callback, error, value?) {
   try {
     callback(error, value);
   } catch (err) {
-    queueMicrotask((e) => {
-      throw e;
-    }, err);
+    queueMicrotask(() => {
+      throw err;
+    });
   }
 }
 
 function wrapAsync<T>(asyncFn: (task: T, callback: () => void) => void) {
-  if (typeof asyncFn !== "function") throw new Error("expected a function");
-
   return isAsync(asyncFn) ? asyncify(asyncFn) : asyncFn;
 }
 
-export { asyncify, wrapAsync, isAsync };
+export { wrapAsync };

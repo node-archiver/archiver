@@ -10,7 +10,11 @@ function onlyOnce(fn) {
   };
 }
 
-function queue(worker, concurrency: number, payload: 1 = 1) {
+interface Queue {
+  _tasks: DoublyLinkedList;
+}
+
+function queue(worker, concurrency: number, payload: 1 = 1): Queue {
   if (concurrency == null) {
     concurrency = 1;
   } else if (concurrency === 0) {
@@ -51,6 +55,7 @@ function queue(worker, concurrency: number, payload: 1 = 1) {
   }
 
   let processingScheduled = false;
+
   function _insert(data, insertAtFront, rejectOnError, callback) {
     if (callback != null && typeof callback !== "function") {
       throw new Error("task callback must be a function");
@@ -149,7 +154,7 @@ function queue(worker, concurrency: number, payload: 1 = 1) {
 
   let isProcessing = false;
 
-  const q = {
+  const q: Queue = {
     _tasks: new DoublyLinkedList(),
     _createTaskItem(data, callback) {
       return {
@@ -172,13 +177,6 @@ function queue(worker, concurrency: number, payload: 1 = 1) {
       }
       return _insert(data, false, false, callback);
     },
-    pushAsync(data, callback) {
-      if (Array.isArray(data)) {
-        if (_maybeDrain(data)) return;
-        return data.map((datum) => _insert(datum, false, true, callback));
-      }
-      return _insert(data, false, true, callback);
-    },
     kill() {
       off();
       q._tasks.empty();
@@ -189,13 +187,6 @@ function queue(worker, concurrency: number, payload: 1 = 1) {
         return data.map((datum) => _insert(datum, true, false, callback));
       }
       return _insert(data, true, false, callback);
-    },
-    unshiftAsync(data, callback) {
-      if (Array.isArray(data)) {
-        if (_maybeDrain(data)) return;
-        return data.map((datum) => _insert(datum, true, true, callback));
-      }
-      return _insert(data, true, true, callback);
     },
     remove(testFn) {
       q._tasks.remove(testFn);
@@ -257,6 +248,7 @@ function queue(worker, concurrency: number, payload: 1 = 1) {
       queueMicrotask(q.process);
     },
   };
+
   // define these as fixed properties, so people get useful errors when updating
   Object.defineProperties(q, {
     saturated: {
