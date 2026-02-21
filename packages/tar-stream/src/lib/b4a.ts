@@ -12,11 +12,7 @@ function copy(
   return toBuffer(source).copy(target, targetStart, start, end);
 }
 
-function equals(a: Buffer, b: Uint8Array): boolean {
-  return toBuffer(a).equals(b);
-}
-
-export function toBuffer(buffer): Buffer {
+function toBuffer(buffer): Buffer {
   if (Buffer.isBuffer(buffer)) return buffer;
   return Buffer.from(buffer.buffer, buffer.byteOffset, buffer.byteLength);
 }
@@ -30,4 +26,4 @@ function toString(
   return toBuffer(buffer).toString(encoding, start, end);
 }
 
-export { isBuffer, copy, equals, toString };
+export { isBuffer, copy, toString };

@@ -8,17 +8,13 @@ import {
   type Stream,
 } from "node:stream";
 
+import { dateify, sanitizePath } from "@archiver/zip-stream/utils";
 import readdirGlob from "readdir-glob";
 
 import { queue } from "./async";
 import { ArchiverError } from "./error";
 import { Readable } from "./lazystream";
-import {
-  dateify,
-  normalizeInputSource,
-  sanitizePath,
-  trailingSlashIt,
-} from "./utils";
+import { normalizeInputSource, trailingSlashIt } from "./utils";
 
 const { ReaddirGlob } = readdirGlob;
 

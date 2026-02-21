@@ -197,9 +197,7 @@ function encode(opts: EncodeOptions): Buffer {
   buf.write(encodeOct(opts.uid, 6), 108);
   buf.write(encodeOct(opts.gid, 6), 116);
   encodeSize(opts.size, buf, 124);
-  b4a
-    .toBuffer(buf)
-    .write(encodeOct((opts.mtime.getTime() / 1000) | 0, 11), 136);
+  buf.write(encodeOct((opts.mtime.getTime() / 1000) | 0, 11), 136);
 
   buf[156] = ZERO_OFFSET + toTypeflag(opts.type);
 
