@@ -249,7 +249,7 @@ class TarPack extends Readable {
 
     const sink = new TarPackSink(this, normalizedHeader, callback);
 
-    if (b4a.isBuffer(bufferOrCallback)) {
+    if (Buffer.isBuffer(bufferOrCallback)) {
       normalizedHeader.size = bufferOrCallback.byteLength;
       sink.write(bufferOrCallback);
       sink.end();
