@@ -583,7 +583,7 @@ class Archiver extends Transform {
   directory(
     dirpath: string,
     destpath: string,
-    data?: EntryData | ((entryData: EntryData) => EntryData),
+    data?: EntryData | ((entryData: EntryData) => EntryData | false),
   ): this {
     if (this._state.finalize || this._state.aborted) {
       this.emit("error", new ArchiverError("QUEUECLOSED"));
@@ -621,10 +621,12 @@ class Archiver extends Transform {
       globber.pause();
       let ignoreMatch = false;
       let entryData = Object.assign({}, data);
+
       entryData.name = match.relative;
       entryData.prefix = destpath;
       entryData.stats = match.stat;
       entryData.callback = globber.resume.bind(globber);
+
       try {
         if (dataFunction) {
           entryData = dataFunction(entryData);
@@ -646,6 +648,7 @@ class Archiver extends Transform {
       }
       this._append(match.absolute, entryData);
     }
+
     const globber = readdirGlob(dirpath, globOptions);
     globber.on("error", onGlobError.bind(this));
     globber.on("match", onGlobMatch.bind(this));
