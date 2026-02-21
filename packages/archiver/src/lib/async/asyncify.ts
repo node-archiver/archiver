@@ -1,8 +1,15 @@
-import { initialParams } from "./initialParams";
-import { _setImmediate as setImmediate } from "./setImmediate";
-import { isAsync } from "./wrapAsync";
+function initialParams(fn) {
+  return function (...args) {
+    const callback = args.pop();
+    return fn.call(this, args, callback);
+  };
+}
 
-function asyncify(func) {
+function isAsync(fn) {
+  return fn[Symbol.toStringTag] === "AsyncFunction";
+}
+
+function asyncify<T>(func: (task: T, callback: () => void) => void) {
   if (isAsync(func)) {
     return function (...args) {
       const callback = args.pop();
@@ -45,10 +52,14 @@ function invokeCallback(callback, error, value?) {
   try {
     callback(error, value);
   } catch (err) {
-    setImmediate((e) => {
-      throw e;
-    }, err);
+    queueMicrotask(() => {
+      throw err;
+    });
   }
 }
 
-export { asyncify };
+function wrapAsync<T>(asyncFn: (task: T, callback: () => void) => void) {
+  return isAsync(asyncFn) ? asyncify(asyncFn) : asyncFn;
+}
+
+export { wrapAsync };

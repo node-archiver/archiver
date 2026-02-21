@@ -1,19 +1,21 @@
+import type { WriteStream } from "node:fs";
 import type { Stream } from "node:stream";
 import { type Gzip, type ZlibOptions, createGzip } from "node:zlib";
 
 import * as tar from "@archiver/tar-stream";
 
+import type { ArchiverModule, EntryData } from "../core";
 import { collectStream } from "../utils";
 
-type TarPack = ReturnType<typeof tar.pack>;
+interface TarEntryData extends EntryData {}
 
-interface TarOptions {
+interface TarOptions extends Partial<tar.TarPackOptions> {
   gzip: boolean;
   gzipOptions?: ZlibOptions;
 }
 
-class Tar {
-  engine: TarPack;
+class Tar implements ArchiverModule {
+  engine: tar.TarPack;
   compressor: Gzip | null;
   options: TarOptions;
 
@@ -32,27 +34,37 @@ class Tar {
     this.engine.emit("error", err);
   }
 
-  append(source: Buffer | Stream, data, callback): void {
-    data.mtime = data.date;
-    const append = (err, sourceBuffer) => {
+  append(
+    source: Buffer | Stream,
+    data: TarEntryData,
+    callback: (error: Error | null, data?: TarEntryData) => void,
+  ): void {
+    const normalizedData = { ...data, mtime: data.date };
+
+    const append = (err: Error | null, sourceBuffer: Buffer) => {
       if (err) {
         callback(err);
         return;
       }
-      this.engine.entry(data, sourceBuffer, function (err) {
-        callback(err, data);
+      this.engine.entry(normalizedData, sourceBuffer, function (err) {
+        callback(err, normalizedData);
       });
     };
 
-    if (data.sourceType === "buffer") {
-      append(null, source);
-    } else if (data.sourceType === "stream" && data.stats) {
-      data.size = data.stats.size;
-      const entry = this.engine.entry(data, function (err) {
-        callback(err, data);
+    if (normalizedData.sourceType === "buffer") {
+      append(null, source as Buffer);
+      return;
+    }
+
+    if (normalizedData.sourceType !== "stream") return;
+
+    if (normalizedData.stats) {
+      normalizedData.size = normalizedData.stats.size;
+      const entry = this.engine.entry(normalizedData, function (err) {
+        callback(err, normalizedData);
       });
-      source.pipe(entry);
-    } else if (data.sourceType === "stream") {
+      (source as Stream).pipe(entry);
+    } else {
       collectStream(source as Stream, append);
     }
   }
@@ -61,27 +73,21 @@ class Tar {
     this.engine.finalize();
   }
 
-  /**
-   * @return this.engine
-   */
-  on() {
+  on(): tar.TarPack {
     return this.engine.on.apply(this.engine, arguments);
   }
 
-  pipe(destination: string, options): Gzip {
+  pipe(destination: WriteStream): Gzip {
     if (this.compressor) {
       return this.engine.pipe
         .apply(this.engine, [this.compressor])
-        .pipe(destination, options);
+        .pipe(destination);
     } else {
       return this.engine.pipe.apply(this.engine, arguments);
     }
   }
 
-  /**
-   * @return this.engine
-   */
-  unpipe() {
+  unpipe(): tar.TarPack {
     if (this.compressor) {
       return this.compressor.unpipe.apply(this.compressor, arguments);
     } else {

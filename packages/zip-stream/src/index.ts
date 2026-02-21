@@ -3,7 +3,7 @@ import type { Stream } from "node:stream";
 import {
   ZipArchiveOutputStream,
   ZipArchiveEntry,
-  type ZipOptions as ZipArchiveOutputStreamOptions,
+  type ZipOptions,
 } from "@archiver/compress-commons";
 
 import { dateify, sanitizePath } from "./utils";
@@ -12,14 +12,12 @@ interface ZlibOptions {
   level?: number;
 }
 
-interface ZipOptions extends ZipArchiveOutputStreamOptions, ZlibOptions {
+interface ZipStreamOptions extends ZipOptions, ZlibOptions {
   /**
    * Sets the zip archive comment.
    * @default ""
    */
   comment: string;
-  /** @default false */
-  forceUTC: boolean;
   /**
    * Prepends a forward slash to archive file paths.
    * @default false
@@ -32,21 +30,34 @@ interface ZipOptions extends ZipArchiveOutputStreamOptions, ZlibOptions {
   store: boolean;
 }
 
-interface EntryData {
+interface FileEntryData {
+  /**
+   * Entry type. Defaults to `directory` if name ends with forward slash
+   * @default "file"
+   */
+  type: "file" | "directory" | "symlink";
+  /** Entry name, including internal path */
   name: string;
-  comment?: string;
-  date?: Date;
-  mode?: number;
-  store?: boolean;
-  type?: "file" | "directory" | "symlink";
-  namePrependSlash?: boolean;
-  linkname?: string;
+  /** Prepends a forward slash to archive file paths. */
+  namePrependSlash: boolean;
+  linkname: string;
+  /** Sets the entry date. Defaults to current date */
+  date: Date;
+  /** Sets the entry permissions. Defaults to D:0755/F:0644 */
+  mode: number;
+  /** Sets the compression method to STORE */
+  store: boolean;
+  /**
+   * Sets the entry comment
+   * @default ""
+   */
+  comment: string;
 }
 
 class ZipStream extends ZipArchiveOutputStream {
-  declare options: ZipOptions;
+  declare options: ZipStreamOptions;
 
-  constructor(options?: Partial<ZipOptions>) {
+  constructor(options?: Partial<ZipStreamOptions>) {
     options ??= {};
 
     options.zlib ??= {};
@@ -59,7 +70,7 @@ class ZipStream extends ZipArchiveOutputStream {
       options.store = true;
     }
 
-    options.namePrependSlash = options.namePrependSlash || false;
+    options.namePrependSlash ??= false;
 
     super(options);
 
@@ -71,8 +82,8 @@ class ZipStream extends ZipArchiveOutputStream {
   /**
    * Normalizes entry data with fallbacks for key properties.
    */
-  private _normalizeFileData(data: EntryData): EntryData {
-    data = {
+  _normalizeFileData(data: Partial<FileEntryData>): FileEntryData {
+    const normalizedData = {
       type: "file",
       name: null,
       namePrependSlash: this.options.namePrependSlash,
@@ -82,23 +93,26 @@ class ZipStream extends ZipArchiveOutputStream {
       store: this.options.store,
       comment: "",
       ...data,
-    };
-    let isDir = data.type === "directory";
-    const isSymlink = data.type === "symlink";
-    if (data.name) {
-      data.name = sanitizePath(data.name);
-      if (!isSymlink && data.name.slice(-1) === "/") {
+    } satisfies FileEntryData;
+
+    let isDir = normalizedData.type === "directory";
+    const isSymlink = normalizedData.type === "symlink";
+
+    if (normalizedData.name) {
+      normalizedData.name = sanitizePath(normalizedData.name);
+      if (!isSymlink && normalizedData.name.slice(-1) === "/") {
         isDir = true;
-        data.type = "directory";
+        normalizedData.type = "directory";
       } else if (isDir) {
-        data.name += "/";
+        normalizedData.name += "/";
       }
     }
+
     if (isDir || isSymlink) {
-      data.store = true;
+      normalizedData.store = true;
     }
-    data.date = dateify(data.date);
-    return data;
+    normalizedData.date = dateify(data.date);
+    return normalizedData;
   }
 
   /**
@@ -107,7 +121,7 @@ class ZipStream extends ZipArchiveOutputStream {
   // @ts-expect-error
   entry(
     source: Buffer | Stream | string,
-    data: EntryData,
+    data: Partial<FileEntryData>,
     callback?: (error: Error) => void,
   ): this {
     if (typeof callback !== "function") {
@@ -168,4 +182,4 @@ class ZipStream extends ZipArchiveOutputStream {
   }
 }
 
-export { ZipStream, type ZipOptions };
+export { ZipStream, type ZipStreamOptions, type FileEntryData };

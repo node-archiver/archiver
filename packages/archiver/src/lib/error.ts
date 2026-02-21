@@ -9,10 +9,10 @@ const ERROR_CODES = {
     "file filepath argument must be a non-empty string value",
   FINALIZING: "archive already finalizing",
   QUEUECLOSED: "queue closed",
-  NOENDMETHOD: "no suitable finalize/end method defined by module",
+  NOFINALIZEMETHOD: "no suitable finalize method defined by module",
   DIRECTORYNOTSUPPORTED: "support for directory entries not defined by module",
   FORMATSET: "archive format already set",
-  INPUTSTEAMBUFFERREQUIRED:
+  INPUTSTREAMBUFFERREQUIRED:
     "input source must be valid Stream or Buffer instance",
   MODULESET: "module already set",
   SYMLINKNOTSUPPORTED: "support for symlink entries not defined by module",
@@ -26,12 +26,13 @@ const ERROR_CODES = {
 type ERROR_CODE = keyof typeof ERROR_CODES;
 
 class ArchiverError extends Error {
-  constructor(
-    public readonly code: ERROR_CODE,
-    public readonly data?: unknown,
-  ) {
+  readonly code: ERROR_CODE;
+  readonly data?: unknown;
+  constructor(code: ERROR_CODE, data?: unknown) {
     super(ERROR_CODES[code] || code);
     Error.captureStackTrace(this, this.constructor);
+    this.code = code;
+    this.data = data;
   }
 }
 

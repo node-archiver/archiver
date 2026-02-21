@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeAll, afterAll } from "bun:test";
 import {
-  WriteStream,
+  createWriteStream,
   chmodSync,
   createReadStream,
   statSync,
@@ -77,11 +77,11 @@ describe("archiver", () => {
 
   describe("api", () => {
     describe("#abort", () => {
-      let archive;
+      let archive: JsonArchive;
 
       beforeAll((done) => {
         archive = new JsonArchive();
-        const testStream = new WriteStream("tmp/abort.json");
+        const testStream = createWriteStream("tmp/abort.json");
         testStream.on("close", () => {
           done();
         });
@@ -104,12 +104,12 @@ describe("archiver", () => {
 
     describe("#append", () => {
       let actual;
-      let archive;
+      let archive: JsonArchive;
       const entries = {};
 
       beforeAll((done) => {
         archive = new JsonArchive();
-        const testStream = new WriteStream("tmp/append.json");
+        const testStream = createWriteStream("tmp/append.json");
         testStream.on("close", () => {
           actual = readJSON("tmp/append.json");
           actual.forEach((entry) => {
@@ -200,7 +200,7 @@ describe("archiver", () => {
 
       beforeAll((done) => {
         archive = new JsonArchive();
-        const testStream = new WriteStream("tmp/directory.json");
+        const testStream = createWriteStream("tmp/directory.json");
         testStream.on("close", () => {
           actual = readJSON("tmp/directory.json");
           actual.forEach((entry) => {
@@ -294,7 +294,7 @@ describe("archiver", () => {
 
       beforeAll((done) => {
         archive = new JsonArchive();
-        const testStream = new WriteStream("tmp/file.json");
+        const testStream = createWriteStream("tmp/file.json");
         testStream.on("close", () => {
           actual = readJSON("tmp/file.json");
           actual.forEach((entry) => {
@@ -358,7 +358,7 @@ describe("archiver", () => {
 
       beforeAll((done) => {
         archive = new JsonArchive();
-        const testStream = new WriteStream("tmp/glob.json");
+        const testStream = createWriteStream("tmp/glob.json");
         testStream.on("close", () => {
           actual = readJSON("tmp/glob.json");
           actual.forEach((entry) => {
@@ -393,7 +393,7 @@ describe("archiver", () => {
     describe("#promise", () => {
       it("should use a promise", (done) => {
         const archive = new JsonArchive();
-        const testStream = new WriteStream("tmp/promise.json");
+        const testStream = createWriteStream("tmp/promise.json");
         archive.pipe(testStream);
         archive
           .append(testBuffer, { name: "buffer.txt", date: testDate })
@@ -412,7 +412,7 @@ describe("archiver", () => {
     describe("#errors", () => {
       it("should allow continue on stat failing", (done) => {
         const archive = new JsonArchive();
-        const testStream = new WriteStream("tmp/errors-stat.json");
+        const testStream = createWriteStream("tmp/errors-stat.json");
         testStream.on("close", () => {
           done();
         });
@@ -426,7 +426,7 @@ describe("archiver", () => {
 
       it("should allow continue on with several stat failings", (done) => {
         const archive = new JsonArchive();
-        const testStream = new WriteStream("tmp/errors-stat.json");
+        const testStream = createWriteStream("tmp/errors-stat.json");
         testStream.on("close", () => {
           done();
         });
@@ -442,12 +442,12 @@ describe("archiver", () => {
 
   describe("#symlink", () => {
     let actual;
-    let archive;
+    let archive: JsonArchive;
     const entries = {};
 
     beforeAll((done) => {
       archive = new JsonArchive();
-      const testStream = new WriteStream("tmp/symlink.json");
+      const testStream = createWriteStream("tmp/symlink.json");
       testStream.on("close", () => {
         actual = readJSON("tmp/symlink.json");
         actual.forEach((entry) => {

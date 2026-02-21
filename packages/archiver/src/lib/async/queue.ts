@@ -1,9 +1,24 @@
+import { wrapAsync } from "./asyncify";
 import { DoublyLinkedList } from "./DoublyLinkedList";
-import { onlyOnce } from "./onlyOnce";
-import { _setImmediate as setImmediate } from "./setImmediate";
-import { wrapAsync } from "./wrapAsync";
 
-function queue(worker, concurrency: number, payload: 1) {
+function onlyOnce(fn) {
+  return function (...args) {
+    if (fn === null) throw new Error("Callback was already called.");
+    const callFn = fn;
+    fn = null;
+    callFn.apply(this, args);
+  };
+}
+
+interface Queue {
+  _tasks: DoublyLinkedList;
+
+  paused: boolean;
+
+  process(): void;
+}
+
+function queue(worker, concurrency: number, payload: 1 = 1): Queue {
   if (concurrency == null) {
     concurrency = 1;
   } else if (concurrency === 0) {
@@ -33,7 +48,7 @@ function queue(worker, concurrency: number, payload: 1) {
     events[event].push(handleAndRemove);
   }
 
-  function off(event, handler) {
+  function off(event, handler?) {
     if (!event) return Object.keys(events).forEach((ev) => (events[ev] = []));
     if (!handler) return (events[event] = []);
     events[event] = events[event].filter((ev) => ev !== handler);
@@ -44,6 +59,7 @@ function queue(worker, concurrency: number, payload: 1) {
   }
 
   let processingScheduled = false;
+
   function _insert(data, insertAtFront, rejectOnError, callback) {
     if (callback != null && typeof callback !== "function") {
       throw new Error("task callback must be a function");
@@ -72,7 +88,7 @@ function queue(worker, concurrency: number, payload: 1) {
 
     if (!processingScheduled) {
       processingScheduled = true;
-      (0, setImmediate)(() => {
+      queueMicrotask(() => {
         processingScheduled = false;
         q.process();
       });
@@ -121,7 +137,7 @@ function queue(worker, concurrency: number, payload: 1) {
   function _maybeDrain(data) {
     if (data.length === 0 && q.idle()) {
       // call drain immediately if there are no tasks
-      (0, setImmediate)(() => trigger("drain"));
+      queueMicrotask(() => trigger("drain"));
       return true;
     }
     return false;
@@ -142,7 +158,7 @@ function queue(worker, concurrency: number, payload: 1) {
 
   let isProcessing = false;
 
-  const q = {
+  const q: Queue = {
     _tasks: new DoublyLinkedList(),
     _createTaskItem(data, callback) {
       return {
@@ -165,13 +181,6 @@ function queue(worker, concurrency: number, payload: 1) {
       }
       return _insert(data, false, false, callback);
     },
-    pushAsync(data, callback) {
-      if (Array.isArray(data)) {
-        if (_maybeDrain(data)) return;
-        return data.map((datum) => _insert(datum, false, true, callback));
-      }
-      return _insert(data, false, true, callback);
-    },
     kill() {
       off();
       q._tasks.empty();
@@ -182,13 +191,6 @@ function queue(worker, concurrency: number, payload: 1) {
         return data.map((datum) => _insert(datum, true, false, callback));
       }
       return _insert(data, true, false, callback);
-    },
-    unshiftAsync(data, callback) {
-      if (Array.isArray(data)) {
-        if (_maybeDrain(data)) return;
-        return data.map((datum) => _insert(datum, true, true, callback));
-      }
-      return _insert(data, true, true, callback);
     },
     remove(testFn) {
       q._tasks.remove(testFn);
@@ -247,9 +249,10 @@ function queue(worker, concurrency: number, payload: 1) {
         return;
       }
       q.paused = false;
-      (0, setImmediate)(q.process);
+      queueMicrotask(q.process);
     },
   };
+
   // define these as fixed properties, so people get useful errors when updating
   Object.defineProperties(q, {
     saturated: {

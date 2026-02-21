@@ -1,86 +1,97 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import {
-  Transform,
-  type TransformCallback,
-  isReadable,
-  isWritable,
-  type Stream,
-} from "node:stream";
+import { Transform, type TransformCallback, type Stream } from "node:stream";
 
+import { dateify, sanitizePath } from "@archiver/zip-stream/utils";
 import readdirGlob from "readdir-glob";
 
 import { queue } from "./async";
-import { ArchiverError } from "./error.js";
+import { ArchiverError } from "./error";
 import { Readable } from "./lazystream";
-import {
-  dateify,
-  normalizeInputSource,
-  sanitizePath,
-  trailingSlashIt,
-} from "./utils.js";
+import { isStream, normalizeInputSource, trailingSlashIt } from "./utils";
 
 const { ReaddirGlob } = readdirGlob;
 
 const win32 = process.platform === "win32";
 
-/**
- * Normalizes entry data with fallbacks for key properties.
- */
-function normalizeEntryData(data, stats?: fs.Stats) {
-  data = {
+interface EntryData {
+  /** Sets the entry name including internal path. */
+  name: string;
+  /** Sets the entry date. */
+  date?: Date;
+  /** Sets the entry permissions. */
+  mode?: number | null;
+  /**
+   * Sets a path prefix for the entry name.
+   * Useful when working with methods like `directory` or `glob`.
+   **/
+  prefix?: string;
+  /** Sets the fs stat data for this entry allowing for reduction of fs stat calls when stat data is already known. */
+  stats?: fs.Stats;
+}
+
+interface GlobOptions {}
+
+function normalizeEntryData(data: EntryData, stats?: fs.Stats): EntryData {
+  const normalizedData = {
     type: "file",
     name: null,
     date: null,
     mode: null,
     prefix: null,
     sourcePath: null,
-    stats: false,
+    stats: null,
     ...data,
   };
-  if (stats && data.stats === false) {
-    data.stats = stats;
+  if (stats && normalizedData.stats === null) {
+    normalizedData.stats = stats;
   }
-  let isDir = data.type === "directory";
-  if (data.name) {
-    if (typeof data.prefix === "string" && "" !== data.prefix) {
-      data.name = data.prefix + "/" + data.name;
-      data.prefix = null;
+  let isDir = normalizedData.type === "directory";
+  if (normalizedData.name) {
+    if (
+      typeof normalizedData.prefix === "string" &&
+      "" !== normalizedData.prefix
+    ) {
+      normalizedData.name = normalizedData.prefix + "/" + normalizedData.name;
+      normalizedData.prefix = null;
     }
-    data.name = sanitizePath(data.name);
-    if (data.type !== "symlink" && data.name.slice(-1) === "/") {
+    normalizedData.name = sanitizePath(normalizedData.name);
+    if (
+      normalizedData.type !== "symlink" &&
+      normalizedData.name.slice(-1) === "/"
+    ) {
       isDir = true;
-      data.type = "directory";
+      normalizedData.type = "directory";
     } else if (isDir) {
-      data.name += "/";
+      normalizedData.name += "/";
     }
   }
   // 511 === 0777; 493 === 0755; 438 === 0666; 420 === 0644
-  if (typeof data.mode === "number") {
+  if (typeof normalizedData.mode === "number") {
     if (win32) {
-      data.mode &= 511;
+      normalizedData.mode &= 511;
     } else {
-      data.mode &= 4095;
+      normalizedData.mode &= 4095;
     }
-  } else if (data.stats && data.mode === null) {
+  } else if (normalizedData.stats && normalizedData.mode === null) {
     if (win32) {
-      data.mode = data.stats.mode & 511;
+      normalizedData.mode = normalizedData.stats.mode & 511;
     } else {
-      data.mode = data.stats.mode & 4095;
+      normalizedData.mode = normalizedData.stats.mode & 4095;
     }
     // stat isn't reliable on windows; force 0755 for dir
     if (win32 && isDir) {
-      data.mode = 493;
+      normalizedData.mode = 493;
     }
-  } else if (data.mode === null) {
-    data.mode = isDir ? 493 : 420;
+  } else if (normalizedData.mode === null) {
+    normalizedData.mode = isDir ? 493 : 420;
   }
-  if (data.stats && data.date === null) {
-    data.date = data.stats.mtime;
+  if (normalizedData.stats && normalizedData.date === null) {
+    normalizedData.date = normalizedData.stats.mtime;
   } else {
-    data.date = dateify(data.date);
+    normalizedData.date = dateify(normalizedData.date);
   }
-  return data;
+  return normalizedData;
 }
 
 interface CoreOptions {
@@ -108,20 +119,8 @@ interface TransformOptions {
   objectMode?: boolean;
 }
 
-interface EntryData {
-  /** Sets the entry name including internal path. */
-  name: string;
-  /** Sets the entry date. */
-  date?: Date | string;
-  /** Sets the entry permissions. */
-  mode?: number;
-  /**
-   * Sets a path prefix for the entry name.
-   * Useful when working with methods like `directory` or `glob`.
-   **/
-  prefix?: string;
-  /** Sets the fs stat data for this entry allowing for reduction of fs stat calls when stat data is already known. */
-  stats?: fs.Stats;
+interface QueueTask {
+  data: EntryData;
 }
 
 interface ProgressData {
@@ -137,16 +136,28 @@ interface ProgressData {
 
 interface ArchiverOptions extends CoreOptions, TransformOptions {}
 
+interface ArchiverModule {
+  append(
+    source: Stream | Buffer<ArrayBufferLike>,
+    data: EntryData,
+    callback?: (error: Error | null) => void,
+  ): void;
+
+  finalize(): void;
+}
+
 class Archiver extends Transform {
   _supportsDirectory = false;
   _supportsSymlink = false;
 
   options: ArchiverOptions;
 
-  _module: Archiver;
+  _module: ArchiverModule;
 
   private _pointer: number;
   private _pending: number;
+  private _entriesCount: number;
+  private _entriesProcessedCount: number;
 
   private _state: {
     aborted: boolean;
@@ -155,6 +166,8 @@ class Archiver extends Transform {
     finalized: boolean;
     modulePiped: boolean;
   };
+  private _fsEntriesTotalBytes: number;
+  private _fsEntriesProcessedBytes: number;
 
   constructor(options?: Partial<ArchiverOptions>) {
     const normalizedOptions = {
@@ -167,6 +180,7 @@ class Archiver extends Transform {
 
     this.options = normalizedOptions;
 
+    // @ts-expect-error
     this._module = null;
 
     this._pending = 0;
@@ -175,13 +189,16 @@ class Archiver extends Transform {
     this._entriesProcessedCount = 0;
     this._fsEntriesTotalBytes = 0;
     this._fsEntriesProcessedBytes = 0;
+
     this._queue = queue(this._onQueueTask.bind(this), 1);
     this._queue.drain(this._onQueueDrain.bind(this));
+
     this._statQueue = queue(
       this._onStatQueueTask.bind(this),
       normalizedOptions.statConcurrency,
     );
     this._statQueue.drain(this._onQueueDrain.bind(this));
+
     this._state = {
       aborted: false,
       finalize: false,
@@ -323,10 +340,8 @@ class Archiver extends Transform {
   private _moduleFinalize(): void {
     if (typeof this._module.finalize === "function") {
       this._module.finalize();
-    } else if (typeof this._module.end === "function") {
-      this._module.end();
     } else {
-      this.emit("error", new ArchiverError("NOENDMETHOD"));
+      this.emit("error", new ArchiverError("NOFINALIZEMETHOD"));
     }
   }
 
@@ -378,7 +393,7 @@ class Archiver extends Transform {
   /**
    * Appends each queue task to the module.
    */
-  private _onQueueTask(task, callback): void {
+  private _onQueueTask(task: QueueTask, callback: () => void): void {
     const fullCallback = () => {
       if (task.data.callback) {
         task.data.callback();
@@ -400,7 +415,7 @@ class Archiver extends Transform {
   /**
    * Performs a file stat and reinjects the task back into the queue.
    */
-  private _onStatQueueTask(task, callback): void {
+  private _onStatQueueTask(task: QueueTask, callback: () => void): void {
     if (
       this._state.finalizing ||
       this._state.finalized ||
@@ -456,7 +471,7 @@ class Archiver extends Transform {
   /**
    * Updates and normalizes a queue task using stats data.
    */
-  private _updateQueueTaskWithStats(task, stats: fs.Stats) {
+  private _updateQueueTaskWithStats(task: QueueTask, stats: fs.Stats) {
     if (stats.isFile()) {
       task.data.type = "file";
       task.data.sourceType = "stream";
@@ -524,7 +539,7 @@ class Archiver extends Transform {
    * event is fired.
    */
   append(
-    source: Buffer | Stream | string,
+    source: Buffer | Stream | string | null,
     data: EntryData,
     _callback?: unknown,
   ): this {
@@ -547,12 +562,12 @@ class Archiver extends Transform {
     source = normalizeInputSource(source);
     if (Buffer.isBuffer(source)) {
       data.sourceType = "buffer";
-    } else if (isReadable(source) || isWritable(source)) {
+    } else if (isStream(source)) {
       data.sourceType = "stream";
     } else {
       this.emit(
         "error",
-        new ArchiverError("INPUTSTEAMBUFFERREQUIRED", { name: data.name }),
+        new ArchiverError("INPUTSTREAMBUFFERREQUIRED", { name: data.name }),
       );
       return this;
     }
@@ -570,7 +585,7 @@ class Archiver extends Transform {
   directory(
     dirpath: string,
     destpath: string,
-    data: EntryData | ((entryData: EntryData) => EntryData),
+    data?: EntryData | ((entryData: EntryData) => EntryData | false),
   ): this {
     if (this._state.finalize || this._state.aborted) {
       this.emit("error", new ArchiverError("QUEUECLOSED"));
@@ -608,10 +623,12 @@ class Archiver extends Transform {
       globber.pause();
       let ignoreMatch = false;
       let entryData = Object.assign({}, data);
+
       entryData.name = match.relative;
       entryData.prefix = destpath;
       entryData.stats = match.stat;
       entryData.callback = globber.resume.bind(globber);
+
       try {
         if (dataFunction) {
           entryData = dataFunction(entryData);
@@ -633,6 +650,7 @@ class Archiver extends Transform {
       }
       this._append(match.absolute, entryData);
     }
+
     const globber = readdirGlob(dirpath, globOptions);
     globber.on("error", onGlobError.bind(this));
     globber.on("match", onGlobMatch.bind(this));
@@ -661,7 +679,7 @@ class Archiver extends Transform {
   /**
    * Appends multiple files that match a glob pattern.
    */
-  glob(pattern: string, options, data: EntryData): this {
+  glob(pattern: string, options: GlobOptions, data: EntryData): this {
     this._pending++;
     options = { stat: true, pattern, ...options };
     function onGlobEnd() {
@@ -729,7 +747,7 @@ class Archiver extends Transform {
    *
    * This does NOT interact with filesystem and is used for programmatically creating symlinks.
    */
-  symlink(filepath: string, target: string, mode: number): this {
+  symlink(filepath: string, target: string, mode?: number): this {
     if (this._state.finalize || this._state.aborted) {
       this.emit("error", new ArchiverError("QUEUECLOSED"));
       return this;
@@ -752,8 +770,9 @@ class Archiver extends Transform {
       );
       return this;
     }
-    const data = {};
-    data.type = "symlink";
+
+    const data = { type: "symlink" };
+
     data.name = filepath.replace(/\\/g, "/");
     data.linkname = target.replace(/\\/g, "/");
     data.sourceType = "buffer";
@@ -780,5 +799,7 @@ export {
   Archiver,
   type ArchiverOptions,
   type ProgressData,
+  type EntryData,
+  type ArchiverModule,
   normalizeEntryData,
 };

@@ -167,7 +167,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     };
   }
 
-  _smartStream(
+  private _smartStream(
     ae: ZipArchiveEntry,
     callback: (error: Error, ae: ZipArchiveEntry) => void,
   ): CRC32Stream | DeflateCRC32Stream {

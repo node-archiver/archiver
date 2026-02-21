@@ -1,16 +1,15 @@
-import { queue as _queue } from "./queue.js";
-import { wrapAsync } from "./wrapAsync.js";
+import { wrapAsync } from "./asyncify";
+import { queue as _queue } from "./queue";
 
-function queue(worker, concurrency: number) {
+function queue<T>(
+  worker: (task: T, callback: () => void) => void,
+  concurrency: number,
+) {
   const _worker = wrapAsync(worker);
 
-  return _queue(
-    (items, cb) => {
-      _worker(items[0], cb);
-    },
-    concurrency,
-    1,
-  );
+  return _queue((items, cb) => {
+    _worker(items[0], cb);
+  }, concurrency);
 }
 
 export { queue };

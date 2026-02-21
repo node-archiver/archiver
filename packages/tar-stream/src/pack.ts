@@ -1,6 +1,5 @@
 import { constants } from "node:fs";
 
-import * as b4a from "./lib/b4a";
 import * as headers from "./lib/headers";
 import type { HeaderType, TarHeader } from "./lib/headers";
 import {
@@ -196,7 +195,7 @@ class TarPack extends Readable {
   private _pending: TarPackSink[];
   private _stream: TarPackSink | null;
 
-  constructor(opts?: TarPackOptions) {
+  constructor(opts?: Partial<TarPackOptions>) {
     super(opts);
 
     this._drain = () => {};
@@ -249,7 +248,7 @@ class TarPack extends Readable {
 
     const sink = new TarPackSink(this, normalizedHeader, callback);
 
-    if (b4a.isBuffer(bufferOrCallback)) {
+    if (Buffer.isBuffer(bufferOrCallback)) {
       normalizedHeader.size = bufferOrCallback.byteLength;
       sink.write(bufferOrCallback);
       sink.end();
@@ -353,7 +352,7 @@ class TarPack extends Readable {
   }
 }
 
-function pack(opts?: TarPackOptions): TarPack {
+function pack(opts?: Partial<TarPackOptions>): TarPack {
   return new TarPack(opts);
 }
 

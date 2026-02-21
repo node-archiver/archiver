@@ -1,5 +1,3 @@
-import * as b4a from "./b4a";
-
 const ZEROS = "0000000000000000000";
 const SEVENS = "7777777777777777777";
 const ZERO_OFFSET = "0".charCodeAt(0);
@@ -143,10 +141,10 @@ function decodePax(buf: Buffer): Record<string, string> {
   while (buf.length) {
     let i = 0;
     while (i < buf.length && buf[i] !== 32) i++;
-    const len = parseInt(b4a.toString(buf.subarray(0, i)), 10);
+    const len = parseInt(buf.subarray(0, i).toString(), 10);
     if (!len) return result;
 
-    const b = b4a.toString(buf.subarray(i + 1, len - 1));
+    const b = buf.subarray(i + 1, len - 1).toString();
     const keyIndex = b.indexOf("=");
     if (keyIndex === -1) return result;
     result[b.slice(0, keyIndex)] = b.slice(keyIndex + 1);
@@ -173,7 +171,7 @@ interface EncodeOptions {
   devminor?: number;
 }
 
-function encode(opts: EncodeOptions): Buffer {
+function encode(opts: EncodeOptions): Buffer | null {
   const buf = Buffer.alloc(512);
   let name = opts.name;
   let prefix = "";
@@ -197,16 +195,14 @@ function encode(opts: EncodeOptions): Buffer {
   buf.write(encodeOct(opts.uid, 6), 108);
   buf.write(encodeOct(opts.gid, 6), 116);
   encodeSize(opts.size, buf, 124);
-  b4a
-    .toBuffer(buf)
-    .write(encodeOct((opts.mtime.getTime() / 1000) | 0, 11), 136);
+  buf.write(encodeOct((opts.mtime.getTime() / 1000) | 0, 11), 136);
 
   buf[156] = ZERO_OFFSET + toTypeflag(opts.type);
 
   if (opts.linkname) buf.write(opts.linkname, 157);
 
-  b4a.copy(USTAR_MAGIC, buf, MAGIC_OFFSET);
-  b4a.copy(USTAR_VER, buf, VERSION_OFFSET);
+  USTAR_MAGIC.copy(buf, MAGIC_OFFSET);
+  USTAR_VER.copy(buf, VERSION_OFFSET);
   if (opts.uname) buf.write(opts.uname, 265);
   if (opts.gname) buf.write(opts.gname, 297);
   buf.write(encodeOct(opts.devmajor || 0, 6), 329);

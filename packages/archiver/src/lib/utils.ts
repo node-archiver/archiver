@@ -1,8 +1,12 @@
 import { PassThrough, isReadable, isWritable, type Stream } from "node:stream";
 
-export function collectStream(
+const isStream = (source: unknown): source is Stream =>
+  // @ts-expect-error
+  isReadable(source) || isWritable(source);
+
+function collectStream(
   source: Stream,
-  callback: (err: unknown, sourceBuffer: Buffer) => void,
+  callback: (err: Error | null, sourceBuffer: Buffer) => void,
 ): void {
   const collection: unknown[] = [];
   let size = 0;
@@ -27,28 +31,12 @@ export function collectStream(
   });
 }
 
-export function dateify(dateish) {
-  dateish = dateish || new Date();
-
-  if (dateish instanceof Date) {
-    return dateish;
-  }
-
-  if (typeof dateish === "string") {
-    dateish = new Date(dateish);
-  } else {
-    dateish = new Date();
-  }
-
-  return dateish;
-}
-
-export function normalizeInputSource(source) {
+function normalizeInputSource(source: Buffer | Stream | string | null) {
   if (source === null) {
     return Buffer.alloc(0);
   } else if (typeof source === "string") {
     return Buffer.from(source);
-  } else if (isReadable(source) || isWritable(source)) {
+  } else if (isStream(source)) {
     // Always pipe through a PassThrough stream to guarantee pausing the stream if it's already flowing,
     // since it will only be processed in a (distant) future iteration of the event loop, and will lose
     // data if already flowing now.
@@ -58,41 +46,8 @@ export function normalizeInputSource(source) {
   return source;
 }
 
-function normalizePath(path, stripTrailing) {
-  if (typeof path !== "string") {
-    throw new TypeError("expected path to be a string");
-  }
-
-  if (path === "\\" || path === "/") return "/";
-
-  const len = path.length;
-  if (len <= 1) return path;
-
-  // ensure that win32 namespaces has two leading slashes, so that the path is
-  // handled properly by the win32 version of path.parse() after being normalized
-  // https://msdn.microsoft.com/library/windows/desktop/aa365247(v=vs.85).aspx#namespaces
-  let prefix = "";
-  if (len > 4 && path[3] === "\\") {
-    const ch = path[2];
-    if ((ch === "?" || ch === ".") && path.slice(0, 2) === "\\\\") {
-      path = path.slice(2);
-      prefix = "//";
-    }
-  }
-
-  const segs = path.split(/[/\\]+/);
-  if (stripTrailing !== false && segs[segs.length - 1] === "") {
-    segs.pop();
-  }
-  return prefix + segs.join("/");
-}
-
-export function sanitizePath(filepath) {
-  return normalizePath(filepath, false)
-    .replace(/^\w+:/, "")
-    .replace(/^(\.\.\/|\/)+/, "");
-}
-
-export function trailingSlashIt(str: string): string {
+function trailingSlashIt(str: string): string {
   return str.slice(-1) !== "/" ? str + "/" : str;
 }
+
+export { isStream, trailingSlashIt, normalizeInputSource, collectStream };

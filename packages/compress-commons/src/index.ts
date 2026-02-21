@@ -8,8 +8,8 @@ import {
 
 export {
   ArchiveEntry,
-  ZipArchiveEntry,
   ArchiveOutputStream,
+  ZipArchiveEntry,
   ZipArchiveOutputStream,
   type ZipOptions,
 };
