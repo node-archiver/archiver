@@ -76,11 +76,11 @@ class Tar implements ArchiverModule {
     return this.engine.on.apply(this.engine, arguments);
   }
 
-  pipe(destination, options): Gzip {
+  pipe(destination): Gzip {
     if (this.compressor) {
       return this.engine.pipe
         .apply(this.engine, [this.compressor])
-        .pipe(destination, options);
+        .pipe(destination);
     } else {
       return this.engine.pipe.apply(this.engine, arguments);
     }
