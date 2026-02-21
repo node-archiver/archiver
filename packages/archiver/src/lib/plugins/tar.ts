@@ -1,3 +1,4 @@
+import type { WriteStream } from "node:fs";
 import type { Stream } from "node:stream";
 import { type Gzip, type ZlibOptions, createGzip } from "node:zlib";
 
@@ -76,7 +77,7 @@ class Tar implements ArchiverModule {
     return this.engine.on.apply(this.engine, arguments);
   }
 
-  pipe(destination): Gzip {
+  pipe(destination: WriteStream): Gzip {
     if (this.compressor) {
       return this.engine.pipe
         .apply(this.engine, [this.compressor])

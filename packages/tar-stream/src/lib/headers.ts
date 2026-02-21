@@ -171,7 +171,7 @@ interface EncodeOptions {
   devminor?: number;
 }
 
-function encode(opts: EncodeOptions): Buffer {
+function encode(opts: EncodeOptions): Buffer | null {
   const buf = Buffer.alloc(512);
   let name = opts.name;
   let prefix = "";

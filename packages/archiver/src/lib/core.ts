@@ -30,6 +30,8 @@ interface EntryData {
   stats?: fs.Stats;
 }
 
+interface GlobOptions {}
+
 function normalizeEntryData(data: EntryData, stats?: fs.Stats): EntryData {
   const normalizedData = {
     type: "file",
@@ -677,7 +679,7 @@ class Archiver extends Transform {
   /**
    * Appends multiple files that match a glob pattern.
    */
-  glob(pattern: string, options, data: EntryData): this {
+  glob(pattern: string, options: GlobOptions, data: EntryData): this {
     this._pending++;
     options = { stat: true, pattern, ...options };
     function onGlobEnd() {
