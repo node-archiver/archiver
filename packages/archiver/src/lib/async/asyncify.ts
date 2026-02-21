@@ -1,6 +1,12 @@
-import { initialParams } from "./initialParams";
 import { _setImmediate as setImmediate } from "./setImmediate";
 import { isAsync } from "./wrapAsync";
+
+function initialParams(fn) {
+  return function (...args) {
+    const callback = args.pop();
+    return fn.call(this, args, callback);
+  };
+}
 
 function asyncify(func) {
   if (isAsync(func)) {

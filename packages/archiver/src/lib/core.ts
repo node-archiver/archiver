@@ -11,14 +11,14 @@ import {
 import readdirGlob from "readdir-glob";
 
 import { queue } from "./async";
-import { ArchiverError } from "./error.js";
+import { ArchiverError } from "./error";
 import { Readable } from "./lazystream";
 import {
   dateify,
   normalizeInputSource,
   sanitizePath,
   trailingSlashIt,
-} from "./utils.js";
+} from "./utils";
 
 const { ReaddirGlob } = readdirGlob;
 

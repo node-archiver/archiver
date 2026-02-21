@@ -1,7 +1,15 @@
 import { DoublyLinkedList } from "./DoublyLinkedList";
-import { onlyOnce } from "./onlyOnce";
 import { _setImmediate as setImmediate } from "./setImmediate";
 import { wrapAsync } from "./wrapAsync";
+
+function onlyOnce(fn) {
+  return function (...args) {
+    if (fn === null) throw new Error("Callback was already called.");
+    const callFn = fn;
+    fn = null;
+    callFn.apply(this, args);
+  };
+}
 
 function queue(worker, concurrency: number, payload: 1) {
   if (concurrency == null) {

@@ -1,5 +1,5 @@
-import { queue as _queue } from "./queue.js";
-import { wrapAsync } from "./wrapAsync.js";
+import { queue as _queue } from "./queue";
+import { wrapAsync } from "./wrapAsync";
 
 function queue(worker, concurrency: number) {
   const _worker = wrapAsync(worker);

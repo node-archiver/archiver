@@ -5,7 +5,7 @@ import Stream, {
 } from "node:stream";
 import { crc32 } from "node:zlib";
 
-import { collectStream } from "../utils.js";
+import { collectStream } from "../utils";
 
 class Json extends Transform {
   files: unknown[];
