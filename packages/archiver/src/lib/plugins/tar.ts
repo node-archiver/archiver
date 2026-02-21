@@ -5,15 +5,13 @@ import * as tar from "@archiver/tar-stream";
 
 import { collectStream } from "../utils";
 
-type TarPack = ReturnType<typeof tar.pack>;
-
 interface TarOptions {
   gzip: boolean;
   gzipOptions?: ZlibOptions;
 }
 
 class Tar {
-  engine: TarPack;
+  engine: tar.TarPack;
   compressor: Gzip | null;
   options: TarOptions;
 
@@ -34,7 +32,7 @@ class Tar {
 
   append(source: Buffer | Stream, data, callback): void {
     data.mtime = data.date;
-    const append = (err, sourceBuffer) => {
+    const append = (err, sourceBuffer: Buffer) => {
       if (err) {
         callback(err);
         return;
@@ -45,14 +43,19 @@ class Tar {
     };
 
     if (data.sourceType === "buffer") {
-      append(null, source);
-    } else if (data.sourceType === "stream" && data.stats) {
+      append(null, source as Buffer);
+      return;
+    }
+
+    if (data.sourceType !== "stream") return;
+
+    if (data.stats) {
       data.size = data.stats.size;
       const entry = this.engine.entry(data, function (err) {
         callback(err, data);
       });
       source.pipe(entry);
-    } else if (data.sourceType === "stream") {
+    } else {
       collectStream(source as Stream, append);
     }
   }

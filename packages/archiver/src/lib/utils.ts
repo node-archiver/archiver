@@ -2,7 +2,7 @@ import { PassThrough, isReadable, isWritable, type Stream } from "node:stream";
 
 export function collectStream(
   source: Stream,
-  callback: (err: unknown, sourceBuffer: Buffer) => void,
+  callback: (err: Error | null, sourceBuffer: Buffer) => void,
 ): void {
   const collection: unknown[] = [];
   let size = 0;

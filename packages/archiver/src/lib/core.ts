@@ -20,63 +20,82 @@ const { ReaddirGlob } = readdirGlob;
 
 const win32 = process.platform === "win32";
 
-/**
- * Normalizes entry data with fallbacks for key properties.
- */
-function normalizeEntryData(data, stats?: fs.Stats) {
-  data = {
+interface EntryData {
+  /** Sets the entry name including internal path. */
+  name: string;
+  /** Sets the entry date. */
+  date?: Date | string;
+  /** Sets the entry permissions. */
+  mode?: number;
+  /**
+   * Sets a path prefix for the entry name.
+   * Useful when working with methods like `directory` or `glob`.
+   **/
+  prefix?: string;
+  /** Sets the fs stat data for this entry allowing for reduction of fs stat calls when stat data is already known. */
+  stats?: fs.Stats;
+}
+
+function normalizeEntryData(data: EntryData, stats?: fs.Stats) {
+  const normalizedData = {
     type: "file",
     name: null,
     date: null,
     mode: null,
     prefix: null,
     sourcePath: null,
-    stats: false,
+    stats: null,
     ...data,
   };
-  if (stats && data.stats === false) {
-    data.stats = stats;
+  if (stats && normalizedData.stats === null) {
+    normalizedData.stats = stats;
   }
-  let isDir = data.type === "directory";
-  if (data.name) {
-    if (typeof data.prefix === "string" && "" !== data.prefix) {
-      data.name = data.prefix + "/" + data.name;
-      data.prefix = null;
+  let isDir = normalizedData.type === "directory";
+  if (normalizedData.name) {
+    if (
+      typeof normalizedData.prefix === "string" &&
+      "" !== normalizedData.prefix
+    ) {
+      normalizedData.name = normalizedData.prefix + "/" + normalizedData.name;
+      normalizedData.prefix = null;
     }
-    data.name = sanitizePath(data.name);
-    if (data.type !== "symlink" && data.name.slice(-1) === "/") {
+    normalizedData.name = sanitizePath(normalizedData.name);
+    if (
+      normalizedData.type !== "symlink" &&
+      normalizedData.name.slice(-1) === "/"
+    ) {
       isDir = true;
-      data.type = "directory";
+      normalizedData.type = "directory";
     } else if (isDir) {
-      data.name += "/";
+      normalizedData.name += "/";
     }
   }
   // 511 === 0777; 493 === 0755; 438 === 0666; 420 === 0644
-  if (typeof data.mode === "number") {
+  if (typeof normalizedData.mode === "number") {
     if (win32) {
-      data.mode &= 511;
+      normalizedData.mode &= 511;
     } else {
-      data.mode &= 4095;
+      normalizedData.mode &= 4095;
     }
-  } else if (data.stats && data.mode === null) {
+  } else if (normalizedData.stats && normalizedData.mode === null) {
     if (win32) {
-      data.mode = data.stats.mode & 511;
+      normalizedData.mode = normalizedData.stats.mode & 511;
     } else {
-      data.mode = data.stats.mode & 4095;
+      normalizedData.mode = normalizedData.stats.mode & 4095;
     }
     // stat isn't reliable on windows; force 0755 for dir
     if (win32 && isDir) {
-      data.mode = 493;
+      normalizedData.mode = 493;
     }
-  } else if (data.mode === null) {
-    data.mode = isDir ? 493 : 420;
+  } else if (normalizedData.mode === null) {
+    normalizedData.mode = isDir ? 493 : 420;
   }
-  if (data.stats && data.date === null) {
-    data.date = data.stats.mtime;
+  if (normalizedData.stats && normalizedData.date === null) {
+    normalizedData.date = normalizedData.stats.mtime;
   } else {
-    data.date = dateify(data.date);
+    normalizedData.date = dateify(normalizedData.date);
   }
-  return data;
+  return normalizedData;
 }
 
 interface CoreOptions {
@@ -104,21 +123,7 @@ interface TransformOptions {
   objectMode?: boolean;
 }
 
-interface EntryData {
-  /** Sets the entry name including internal path. */
-  name: string;
-  /** Sets the entry date. */
-  date?: Date | string;
-  /** Sets the entry permissions. */
-  mode?: number;
-  /**
-   * Sets a path prefix for the entry name.
-   * Useful when working with methods like `directory` or `glob`.
-   **/
-  prefix?: string;
-  /** Sets the fs stat data for this entry allowing for reduction of fs stat calls when stat data is already known. */
-  stats?: fs.Stats;
-}
+interface QueueTask {}
 
 interface ProgressData {
   entries: {
@@ -396,7 +401,7 @@ class Archiver extends Transform {
   /**
    * Performs a file stat and reinjects the task back into the queue.
    */
-  private _onStatQueueTask(task, callback): void {
+  private _onStatQueueTask(task: QueueTask, callback): void {
     if (
       this._state.finalizing ||
       this._state.finalized ||
@@ -452,7 +457,7 @@ class Archiver extends Transform {
   /**
    * Updates and normalizes a queue task using stats data.
    */
-  private _updateQueueTaskWithStats(task, stats: fs.Stats) {
+  private _updateQueueTaskWithStats(task: QueueTask, stats: fs.Stats) {
     if (stats.isFile()) {
       task.data.type = "file";
       task.data.sourceType = "stream";
