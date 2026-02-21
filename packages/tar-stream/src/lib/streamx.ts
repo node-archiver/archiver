@@ -266,9 +266,9 @@ interface StreamOptions {
 }
 
 class Stream extends EventEmitter {
-  protected _duplexState: number;
-  protected _readableState: ReadableState | null;
-  protected _writableState: WritableState | null;
+  _duplexState: number;
+  _readableState: ReadableState | null;
+  _writableState: WritableState | null;
 
   constructor(opts?: StreamOptions) {
     super();
@@ -862,8 +862,6 @@ interface ReadableStateOptions {
   highWaterMark: number;
   map: ((data: Buffer) => Buffer) | null;
   mapReadable(data: Buffer): Buffer;
-  byteLength: number;
-  byteLengthReadable: number;
 }
 
 class ReadableState {
@@ -873,6 +871,7 @@ class ReadableState {
   buffered: number;
   readAhead: boolean;
   error: Error | null;
+  map: (data: string | Buffer) => Buffer;
 
   constructor(stream: Readable, options?: Partial<ReadableStateOptions>) {
     const {
