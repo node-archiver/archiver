@@ -1,16 +1,7 @@
-import {
-  type Stream,
-  Transform,
-  isReadable,
-  isWritable,
-  PassThrough,
-} from "node:stream";
+import { type Stream, Transform, PassThrough } from "node:stream";
 
+import { isStream } from "../util";
 import { ArchiveEntry } from "./archive-entry";
-
-const isStream = (source: unknown): source is Stream =>
-  // @ts-expect-error
-  isReadable(source) || isWritable(source);
 
 function normalizeInputSource(
   source: null | string | Stream | Buffer,
@@ -23,8 +14,11 @@ function normalizeInputSource(
     return Buffer.from(source);
   }
 
-  // @ts-expect-error
-  if (isStream(source) && !source._readableState) {
+  if (
+    isStream(source) &&
+    // @ts-expect-error
+    !source._readableState
+  ) {
     const normalized = new PassThrough();
     source.pipe(normalized);
     return normalized;

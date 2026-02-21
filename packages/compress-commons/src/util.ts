@@ -1,3 +1,9 @@
+import { isReadable, isWritable, type Stream } from "node:stream";
+
+const isStream = (source: unknown): source is Stream =>
+  // @ts-expect-error
+  isReadable(source) || isWritable(source);
+
 function dateToDos(date: Date, forceLocalTime: boolean = false): number {
   const year = forceLocalTime ? date.getFullYear() : date.getUTCFullYear();
   if (year < 1980) {
@@ -87,6 +93,7 @@ function normalizePath(path: string, stripTrailing: boolean): string {
 }
 
 export {
+  isStream,
   dateToDos,
   dosToDate,
   getEightBytes,

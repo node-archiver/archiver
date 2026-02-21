@@ -3,6 +3,7 @@
   "rules": {
     "unicorn/prefer-node-protocol": "error",
     "no-var": "error",
-    "no-this-alias": "error"
+    "no-unused-vars": "error",
+    "no-this-alias": "warn"
   }
 }

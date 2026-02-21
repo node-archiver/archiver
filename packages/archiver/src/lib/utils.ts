@@ -1,6 +1,10 @@
 import { PassThrough, isReadable, isWritable, type Stream } from "node:stream";
 
-export function collectStream(
+const isStream = (source: unknown): source is Stream =>
+  // @ts-expect-error
+  isReadable(source) || isWritable(source);
+
+function collectStream(
   source: Stream,
   callback: (err: Error | null, sourceBuffer: Buffer) => void,
 ): void {
@@ -27,12 +31,12 @@ export function collectStream(
   });
 }
 
-export function normalizeInputSource(source) {
+function normalizeInputSource(source: Buffer | Stream | string | null) {
   if (source === null) {
     return Buffer.alloc(0);
   } else if (typeof source === "string") {
     return Buffer.from(source);
-  } else if (isReadable(source) || isWritable(source)) {
+  } else if (isStream(source)) {
     // Always pipe through a PassThrough stream to guarantee pausing the stream if it's already flowing,
     // since it will only be processed in a (distant) future iteration of the event loop, and will lose
     // data if already flowing now.
@@ -42,6 +46,8 @@ export function normalizeInputSource(source) {
   return source;
 }
 
-export function trailingSlashIt(str: string): string {
+function trailingSlashIt(str: string): string {
   return str.slice(-1) !== "/" ? str + "/" : str;
 }
+
+export { isStream, trailingSlashIt, normalizeInputSource, collectStream };

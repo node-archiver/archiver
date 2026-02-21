@@ -9,7 +9,7 @@
     }
   },
   "scripts": {
-    "u": "bun format ; bun run build ; bun run test",
+    "u": "bun format ; bun lint ; bun run build ; bun run test",
     "format": "oxfmt",
     "lint": "oxlint",
     "build": "bun run --filter='./packages/**' build",

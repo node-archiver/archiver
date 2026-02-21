@@ -11,7 +11,7 @@ function onlyOnce(fn) {
   };
 }
 
-function queue(worker, concurrency: number, payload: 1) {
+function queue(worker, concurrency: number, payload: 1 = 1) {
   if (concurrency == null) {
     concurrency = 1;
   } else if (concurrency === 0) {

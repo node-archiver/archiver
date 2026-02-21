@@ -1,12 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import {
-  Transform,
-  type TransformCallback,
-  isReadable,
-  isWritable,
-  type Stream,
-} from "node:stream";
+import { Transform, type TransformCallback, type Stream } from "node:stream";
 
 import { dateify, sanitizePath } from "@archiver/zip-stream/utils";
 import readdirGlob from "readdir-glob";
@@ -14,7 +8,7 @@ import readdirGlob from "readdir-glob";
 import { queue } from "./async";
 import { ArchiverError } from "./error";
 import { Readable } from "./lazystream";
-import { normalizeInputSource, trailingSlashIt } from "./utils";
+import { isStream, normalizeInputSource, trailingSlashIt } from "./utils";
 
 const { ReaddirGlob } = readdirGlob;
 
@@ -379,7 +373,7 @@ class Archiver extends Transform {
   /**
    * Appends each queue task to the module.
    */
-  private _onQueueTask(task, callback): void {
+  private _onQueueTask(task: QueueTask, callback: () => void): void {
     const fullCallback = () => {
       if (task.data.callback) {
         task.data.callback();
@@ -401,7 +395,7 @@ class Archiver extends Transform {
   /**
    * Performs a file stat and reinjects the task back into the queue.
    */
-  private _onStatQueueTask(task: QueueTask, callback): void {
+  private _onStatQueueTask(task: QueueTask, callback: () => void): void {
     if (
       this._state.finalizing ||
       this._state.finalized ||
@@ -548,7 +542,7 @@ class Archiver extends Transform {
     source = normalizeInputSource(source);
     if (Buffer.isBuffer(source)) {
       data.sourceType = "buffer";
-    } else if (isReadable(source) || isWritable(source)) {
+    } else if (isStream(source)) {
       data.sourceType = "stream";
     } else {
       this.emit(
