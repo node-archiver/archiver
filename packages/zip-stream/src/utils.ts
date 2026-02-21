@@ -1,23 +1,23 @@
 import { normalizePath } from "@archiver/compress-commons/util";
 
-export function dateify(dateish?: Date | string | number): Date {
+function dateify(dateish?: Date | string): Date {
   dateish ??= new Date();
 
   if (dateish instanceof Date) {
     return dateish;
   }
 
-  if (typeof dateish === "string") {
-    dateish = new Date(dateish);
-  } else {
-    dateish = new Date();
+  if (typeof dateish === "string" || typeof dateish === "number") {
+    return new Date(dateish);
   }
 
   return dateish;
 }
 
-export function sanitizePath(filepath: string): string {
+function sanitizePath(filepath: string): string {
   return normalizePath(filepath, false)
     .replace(/^\w+:/, "")
     .replace(/^(\.\.\/|\/)+/, "");
 }
+
+export { dateify, sanitizePath };
