@@ -77,7 +77,7 @@ describe("archiver", () => {
 
   describe("api", () => {
     describe("#abort", () => {
-      let archive;
+      let archive: JsonArchive;
 
       beforeAll((done) => {
         archive = new JsonArchive();
@@ -104,7 +104,7 @@ describe("archiver", () => {
 
     describe("#append", () => {
       let actual;
-      let archive;
+      let archive: JsonArchive;
       const entries = {};
 
       beforeAll((done) => {
@@ -442,7 +442,7 @@ describe("archiver", () => {
 
   describe("#symlink", () => {
     let actual;
-    let archive;
+    let archive: JsonArchive;
     const entries = {};
 
     beforeAll((done) => {

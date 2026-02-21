@@ -3,7 +3,7 @@ import { type Gzip, type ZlibOptions, createGzip } from "node:zlib";
 
 import * as tar from "@archiver/tar-stream";
 
-import type { EntryData } from "../core";
+import type { ArchiverModule, EntryData } from "../core";
 import { collectStream } from "../utils";
 
 interface TarEntryData extends EntryData {}
@@ -13,7 +13,7 @@ interface TarOptions {
   gzipOptions?: ZlibOptions;
 }
 
-class Tar {
+class Tar implements ArchiverModule {
   engine: tar.TarPack;
   compressor: Gzip | null;
   options: TarOptions;
@@ -62,7 +62,7 @@ class Tar {
       const entry = this.engine.entry(normalizedData, function (err) {
         callback(err, normalizedData);
       });
-      source.pipe(entry);
+      (source as Stream).pipe(entry);
     } else {
       collectStream(source as Stream, append);
     }
@@ -76,7 +76,7 @@ class Tar {
     return this.engine.on.apply(this.engine, arguments);
   }
 
-  pipe(destination: string, options): Gzip {
+  pipe(destination, options): Gzip {
     if (this.compressor) {
       return this.engine.pipe
         .apply(this.engine, [this.compressor])

@@ -5,9 +5,10 @@ import Stream, {
 } from "node:stream";
 import { crc32 } from "node:zlib";
 
+import type { ArchiverModule } from "../core";
 import { collectStream } from "../utils";
 
-class Json extends Transform {
+class Json extends Transform implements ArchiverModule {
   files: unknown[];
 
   constructor(options?: TransformOptions) {

@@ -3,6 +3,8 @@ import type { ZlibOptions } from "node:zlib";
 
 import { ZipStream, type FileEntryData } from "@archiver/zip-stream";
 
+import type { ArchiverModule } from "../core";
+
 interface ZipEntryData extends FileEntryData {}
 
 interface ZipOptions {
@@ -30,7 +32,7 @@ interface ZipOptions {
   zlib?: ZlibOptions;
 }
 
-class Zip {
+class Zip implements ArchiverModule {
   engine: ZipStream;
   options: ZipOptions;
 

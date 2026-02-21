@@ -798,5 +798,6 @@ export {
   type ArchiverOptions,
   type ProgressData,
   type EntryData,
+  type ArchiverModule,
   normalizeEntryData,
 };
