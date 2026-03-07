@@ -35,12 +35,13 @@ abstract class ArchiveOutputStream extends Transform {
     finished: boolean;
     processing: boolean;
   };
-  protected _entry: ArchiveEntry;
+  protected _entry: ArchiveEntry | null;
 
   constructor(options?: Stream.TransformOptions) {
     super(options);
 
     this.offset = 0;
+    this._entry = null;
     this._archive = {
       finish: false,
       finished: false,
@@ -51,16 +52,16 @@ abstract class ArchiveOutputStream extends Transform {
   abstract _appendBuffer(
     ae: ArchiveEntry,
     source: Buffer,
-    callback: (error: Error) => void,
+    callback: (error: Error | null, ae?: ArchiveEntry) => void,
   ): void;
 
   abstract _appendStream(
     ae: ArchiveEntry,
     source: Stream,
-    callback: (error: Error) => void,
+    callback: (error: Error | null, ae?: ArchiveEntry) => void,
   ): void;
 
-  _emitErrorCallback(err: Error): void {
+  _emitErrorCallback(err: Error | null): void {
     if (err) {
       this.emit("error", err);
     }
@@ -80,38 +81,39 @@ abstract class ArchiveOutputStream extends Transform {
 
   entry(
     ae: ArchiveEntry,
-    source: string | Stream | Buffer,
-    callback?: (error: Error) => void,
-  ): this {
+    source: string | Stream | Buffer | null,
+    callback?: (error: Error | null, ae?: ArchiveEntry) => void,
+  ): this | undefined {
     source = source || null;
 
-    if (typeof callback !== "function") {
-      callback = this._emitErrorCallback.bind(this);
-    }
+    const cb: (error: Error | null, ae?: ArchiveEntry) => void =
+      typeof callback === "function"
+        ? callback
+        : this._emitErrorCallback.bind(this);
     if (!(ae instanceof ArchiveEntry)) {
-      callback(new Error("not a valid instance of ArchiveEntry"));
+      cb(new Error("not a valid instance of ArchiveEntry"));
       return;
     }
     if (this._archive.finish || this._archive.finished) {
-      callback(new Error("unacceptable entry after finish"));
+      cb(new Error("unacceptable entry after finish"));
       return;
     }
     if (this._archive.processing) {
-      callback(new Error("already processing an entry"));
+      cb(new Error("already processing an entry"));
       return;
     }
 
     this._archive.processing = true;
     this._normalizeEntry(ae);
     this._entry = ae;
-    source = normalizeInputSource(source);
-    if (Buffer.isBuffer(source)) {
-      this._appendBuffer(ae, source, callback);
-    } else if (isStream(source)) {
-      this._appendStream(ae, source, callback);
+    const normalized = normalizeInputSource(source);
+    if (Buffer.isBuffer(normalized)) {
+      this._appendBuffer(ae, normalized, cb);
+    } else if (isStream(normalized)) {
+      this._appendStream(ae, normalized, cb);
     } else {
       this._archive.processing = false;
-      callback(
+      cb(
         new Error("input source must be valid Stream or Buffer instance"),
       );
       return;

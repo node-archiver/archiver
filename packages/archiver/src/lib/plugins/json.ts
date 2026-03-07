@@ -29,7 +29,7 @@ class Json extends Transform implements ArchiverModule {
     this.write(fileString);
   }
 
-  append(source: Buffer | Stream, data, callback): void {
+  append(source: Buffer | Stream, data: any, callback: (err: Error | null, data?: any) => void): void {
     data.crc32 = 0;
 
     const onend = (err, sourceBuffer: Buffer) => {

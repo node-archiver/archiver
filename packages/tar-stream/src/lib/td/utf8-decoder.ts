@@ -4,17 +4,21 @@ import * as b4a from "../b4a";
  * https://encoding.spec.whatwg.org/#utf-8-decoder
  */
 class UTF8Decoder {
-  bytesSeen: 0 | 1;
+  codePoint: number;
+  bytesNeeded: number;
+  bytesSeen: number;
+  lowerBoundary: number;
+  upperBoundary: number;
 
   constructor() {
     this._reset();
   }
 
-  get remaining(): 0 | 1 {
+  get remaining(): number {
     return this.bytesSeen;
   }
 
-  decode(data): string {
+  decode(data: Buffer): string {
     if (data.byteLength === 0) return "";
 
     if (this.bytesNeeded === 0 && trailingIncomplete(data, 0) === 0) {

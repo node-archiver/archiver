@@ -1,5 +1,4 @@
-import type { WriteStream } from "node:fs";
-import type { Stream } from "node:stream";
+import type { Stream, Writable } from "node:stream";
 import { type Gzip, type ZlibOptions, createGzip } from "node:zlib";
 
 import * as tar from "@archiver/tar-stream";
@@ -7,7 +6,10 @@ import * as tar from "@archiver/tar-stream";
 import type { ArchiverModule, EntryData } from "../core";
 import { collectStream } from "../utils";
 
-interface TarEntryData extends EntryData {}
+interface TarEntryData extends EntryData {
+  mtime?: Date;
+  size?: number;
+}
 
 interface TarOptions extends Partial<tar.TarPackOptions> {
   gzip: boolean;
@@ -36,18 +38,18 @@ class Tar implements ArchiverModule {
 
   append(
     source: Buffer | Stream,
-    data: TarEntryData,
+    data: EntryData,
     callback: (error: Error | null, data?: TarEntryData) => void,
   ): void {
-    const normalizedData = { ...data, mtime: data.date };
+    const normalizedData: TarEntryData = { ...data, mtime: data.date };
 
     const append = (err: Error | null, sourceBuffer: Buffer) => {
       if (err) {
         callback(err);
         return;
       }
-      this.engine.entry(normalizedData, sourceBuffer, function (err) {
-        callback(err, normalizedData);
+      this.engine.entry(normalizedData as never, sourceBuffer, function (err) {
+        callback(err ?? null, normalizedData);
       });
     };
 
@@ -60,10 +62,10 @@ class Tar implements ArchiverModule {
 
     if (normalizedData.stats) {
       normalizedData.size = normalizedData.stats.size;
-      const entry = this.engine.entry(normalizedData, function (err) {
-        callback(err, normalizedData);
+      const entry = this.engine.entry(normalizedData as never, function (err) {
+        callback(err ?? null, normalizedData);
       });
-      (source as Stream).pipe(entry);
+      (source as Stream).pipe(entry as unknown as Writable);
     } else {
       collectStream(source as Stream, append);
     }
@@ -73,25 +75,23 @@ class Tar implements ArchiverModule {
     this.engine.finalize();
   }
 
-  on(): tar.TarPack {
-    return this.engine.on.apply(this.engine, arguments);
+  on(event: string, listener: (...args: unknown[]) => void): unknown {
+    return this.engine.on(event, listener as (...args: unknown[]) => void);
   }
 
-  pipe(destination: WriteStream): Gzip {
+  pipe(destination: unknown): unknown {
     if (this.compressor) {
-      return this.engine.pipe
-        .apply(this.engine, [this.compressor])
-        .pipe(destination);
+      return (this.engine.pipe(this.compressor as never) as unknown as { pipe(dest: unknown): unknown }).pipe(destination);
     } else {
-      return this.engine.pipe.apply(this.engine, arguments);
+      return this.engine.pipe(destination as never);
     }
   }
 
-  unpipe(): tar.TarPack {
+  unpipe(destination?: unknown): unknown {
     if (this.compressor) {
-      return this.compressor.unpipe.apply(this.compressor, arguments);
+      return this.compressor.unpipe(destination as NodeJS.WritableStream);
     } else {
-      return this.engine.unpipe.apply(this.engine, arguments);
+      return (this.engine as unknown as NodeJS.ReadableStream).unpipe(destination as NodeJS.WritableStream);
     }
   }
 }

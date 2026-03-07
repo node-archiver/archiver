@@ -37,14 +37,14 @@ interface FileEntryData {
    */
   type: "file" | "directory" | "symlink";
   /** Entry name, including internal path */
-  name: string;
+  name: string | null;
   /** Prepends a forward slash to archive file paths. */
   namePrependSlash: boolean;
-  linkname: string;
+  linkname: string | null;
   /** Sets the entry date. Defaults to current date */
-  date: Date;
+  date: Date | null;
   /** Sets the entry permissions. Defaults to D:0755/F:0644 */
-  mode: number;
+  mode: number | null;
   /** Sets the compression method to STORE */
   store: boolean;
   /**
@@ -111,7 +111,7 @@ class ZipStream extends ZipArchiveOutputStream {
     if (isDir || isSymlink) {
       normalizedData.store = true;
     }
-    normalizedData.date = dateify(data.date);
+    normalizedData.date = dateify(data.date ?? undefined);
     return normalizedData;
   }
 
@@ -124,54 +124,54 @@ class ZipStream extends ZipArchiveOutputStream {
     data: Partial<FileEntryData>,
     callback?: (error: Error) => void,
   ): this {
-    if (typeof callback !== "function") {
-      callback = this._emitErrorCallback.bind(this);
-    }
-    data = this._normalizeFileData(data);
+    const cb = typeof callback === "function" ? callback : this._emitErrorCallback.bind(this);
+    const normalizedData = this._normalizeFileData(data);
     if (
-      data.type !== "file" &&
-      data.type !== "directory" &&
-      data.type !== "symlink"
+      normalizedData.type !== "file" &&
+      normalizedData.type !== "directory" &&
+      normalizedData.type !== "symlink"
     ) {
-      callback(new Error(data.type + " entries not currently supported"));
-      return;
+      cb(new Error(normalizedData.type + " entries not currently supported"));
+      return this;
     }
-    if (typeof data.name !== "string" || data.name.length === 0) {
-      callback(new Error("entry name must be a non-empty string value"));
-      return;
+    if (typeof normalizedData.name !== "string" || normalizedData.name.length === 0) {
+      cb(new Error("entry name must be a non-empty string value"));
+      return this;
     }
-    if (data.type === "symlink" && typeof data.linkname !== "string") {
-      callback(
+    if (normalizedData.type === "symlink" && typeof normalizedData.linkname !== "string") {
+      cb(
         new Error(
           "entry linkname must be a non-empty string value when type equals symlink",
         ),
       );
-      return;
+      return this;
     }
-    const entry = new ZipArchiveEntry(data.name);
-    entry.setTime(data.date, this.options.forceLocalTime);
-    if (data.namePrependSlash) {
-      entry.setName(data.name, true);
+    const entry = new ZipArchiveEntry(normalizedData.name);
+    if (normalizedData.date) {
+      entry.setTime(normalizedData.date, this.options.forceLocalTime);
     }
-    if (data.store) {
+    if (normalizedData.namePrependSlash) {
+      entry.setName(normalizedData.name, true);
+    }
+    if (normalizedData.store) {
       entry.setMethod(0);
     }
-    if (data.comment.length > 0) {
-      entry.setComment(data.comment);
+    if (normalizedData.comment.length > 0) {
+      entry.setComment(normalizedData.comment);
     }
-    if (data.type === "symlink" && typeof data.mode !== "number") {
-      data.mode = 40960; // 0120000
+    if (normalizedData.type === "symlink" && typeof normalizedData.mode !== "number") {
+      normalizedData.mode = 40960; // 0120000
     }
-    if (typeof data.mode === "number") {
-      if (data.type === "symlink") {
-        data.mode |= 40960;
+    if (typeof normalizedData.mode === "number") {
+      if (normalizedData.type === "symlink") {
+        normalizedData.mode |= 40960;
       }
-      entry.setUnixMode(data.mode);
+      entry.setUnixMode(normalizedData.mode);
     }
-    if (data.type === "symlink" && typeof data.linkname === "string") {
-      source = Buffer.from(data.linkname);
+    if (normalizedData.type === "symlink" && typeof normalizedData.linkname === "string") {
+      source = Buffer.from(normalizedData.linkname);
     }
-    return super.entry(entry, source, callback);
+    return super.entry(entry, source, cb);
   }
 
   /**

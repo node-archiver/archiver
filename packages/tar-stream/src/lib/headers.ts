@@ -54,7 +54,7 @@ function parse256(buf) {
   else return null;
 
   // build up a base-256 tuple from the least sig to the highest
-  const tuple = [];
+  const tuple: number[] = [];
   let i;
   for (i = buf.length - 1; i > 0; i--) {
     const byte = buf[i];
@@ -77,7 +77,7 @@ function decodeOct(val: Buffer, offset: number, length: number): number {
 
   // If prefixed with 0x80 then parse as a base-256 integer
   if (val[offset] & 0x80) {
-    return parse256(val);
+    return parse256(val) as number;
   } else {
     // Older versions of tar can prefix with spaces
     while (offset < val.length && val[offset] === 32) offset++;
@@ -222,8 +222,8 @@ interface DecodedHeader {
   gid: number;
   size: number;
   mtime: Date;
-  type: HeaderType;
-  linkname: string;
+  type: HeaderType | null;
+  linkname: string | null;
   uname: string;
   gname: string;
   devmajor: number;
@@ -235,7 +235,7 @@ function decode(
   buf: Buffer,
   filenameEncoding: BufferEncoding,
   allowUnknownFormat?: boolean,
-): DecodedHeader {
+): DecodedHeader | null {
   let typeflag = buf[156] === 0 ? 0 : buf[156] - ZERO_OFFSET;
 
   let name = decodeStr(buf, 0, 100, filenameEncoding);

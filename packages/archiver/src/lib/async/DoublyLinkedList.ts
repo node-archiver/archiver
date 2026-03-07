@@ -1,4 +1,11 @@
-function setInitial(dll, node) {
+interface DLLNode {
+  data: unknown;
+  prev: DLLNode | null;
+  next: DLLNode | null;
+  [key: string]: unknown;
+}
+
+function setInitial(dll: DoublyLinkedList, node: DLLNode) {
   dll.length = 1;
   dll.head = dll.tail = node;
 }
@@ -7,12 +14,16 @@ function setInitial(dll, node) {
  * @private
  */
 class DoublyLinkedList {
+  head: DLLNode | null;
+  tail: DLLNode | null;
+  length: number;
+
   constructor() {
     this.head = this.tail = null;
     this.length = 0;
   }
 
-  removeLink(node) {
+  removeLink(node: DLLNode): DLLNode {
     if (node.prev) node.prev.next = node.next;
     else this.head = node.next;
     if (node.next) node.next.prev = node.prev;
@@ -28,7 +39,7 @@ class DoublyLinkedList {
     return this;
   }
 
-  insertAfter(node, newNode): void {
+  insertAfter(node: DLLNode, newNode: DLLNode): void {
     newNode.prev = node;
     newNode.next = node.next;
     if (node.next) node.next.prev = newNode;
@@ -37,7 +48,7 @@ class DoublyLinkedList {
     this.length += 1;
   }
 
-  insertBefore(node, newNode) {
+  insertBefore(node: DLLNode, newNode: DLLNode): void {
     newNode.prev = node.prev;
     newNode.next = node;
     if (node.prev) node.prev.next = newNode;
@@ -46,29 +57,29 @@ class DoublyLinkedList {
     this.length += 1;
   }
 
-  unshift(node) {
+  unshift(node: DLLNode): void {
     if (this.head) this.insertBefore(this.head, node);
     else setInitial(this, node);
   }
 
-  push(node) {
+  push(node: DLLNode): void {
     if (this.tail) this.insertAfter(this.tail, node);
     else setInitial(this, node);
   }
 
-  shift() {
+  shift(): DLLNode | null | false {
     return this.head && this.removeLink(this.head);
   }
 
-  pop() {
+  pop(): DLLNode | null | false {
     return this.tail && this.removeLink(this.tail);
   }
 
-  toArray() {
+  toArray(): unknown[] {
     return [...this];
   }
 
-  *[Symbol.iterator]() {
+  *[Symbol.iterator](): Generator<unknown> {
     let cur = this.head;
     while (cur) {
       yield cur.data;
@@ -76,7 +87,7 @@ class DoublyLinkedList {
     }
   }
 
-  remove(testFn) {
+  remove(testFn: (node: DLLNode) => boolean): this {
     let curr = this.head;
     while (curr) {
       const { next } = curr;
@@ -89,4 +100,4 @@ class DoublyLinkedList {
   }
 }
 
-export { DoublyLinkedList };
+export { DoublyLinkedList, type DLLNode };

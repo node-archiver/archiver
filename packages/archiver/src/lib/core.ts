@@ -25,17 +25,44 @@ interface EntryData {
    * Sets a path prefix for the entry name.
    * Useful when working with methods like `directory` or `glob`.
    **/
-  prefix?: string;
+  prefix?: string | null;
   /** Sets the fs stat data for this entry allowing for reduction of fs stat calls when stat data is already known. */
-  stats?: fs.Stats;
+  stats?: fs.Stats | null;
+  /** Entry type */
+  type?: string;
+  /** Source path */
+  sourcePath?: string | null;
+  /** Source type */
+  sourceType?: string;
+  /** Link name for symlinks */
+  linkname?: string;
+  /** Callback */
+  callback?: () => void;
 }
 
-interface GlobOptions {}
+interface GlobOptions {
+  cwd?: string;
+  stat?: boolean;
+  pattern?: string | string[];
+  dot?: boolean;
+  ignore?: string | string[];
+  [key: string]: unknown;
+}
 
 function normalizeEntryData(data: EntryData, stats?: fs.Stats): EntryData {
-  const normalizedData = {
+  const normalizedData: {
+    type: string;
+    name: string;
+    date: Date | null;
+    mode: number | null;
+    prefix: string | null;
+    sourcePath: string | null;
+    stats: fs.Stats | null;
+    sourceType?: string;
+    linkname?: string;
+    callback?: () => void;
+  } = {
     type: "file",
-    name: null,
     date: null,
     mode: null,
     prefix: null,
@@ -89,9 +116,9 @@ function normalizeEntryData(data: EntryData, stats?: fs.Stats): EntryData {
   if (normalizedData.stats && normalizedData.date === null) {
     normalizedData.date = normalizedData.stats.mtime;
   } else {
-    normalizedData.date = dateify(normalizedData.date);
+    normalizedData.date = dateify(normalizedData.date ?? undefined);
   }
-  return normalizedData;
+  return normalizedData as EntryData;
 }
 
 interface CoreOptions {
@@ -121,6 +148,8 @@ interface TransformOptions {
 
 interface QueueTask {
   data: EntryData;
+  source: Buffer | Stream | null;
+  filepath: string;
 }
 
 interface ProgressData {
@@ -144,6 +173,10 @@ interface ArchiverModule {
   ): void;
 
   finalize(): void;
+
+  on(event: string, listener: (...args: unknown[]) => void): unknown;
+  pipe(destination: unknown): unknown;
+  unpipe(destination?: unknown): unknown;
 }
 
 class Archiver extends Transform {
@@ -158,6 +191,11 @@ class Archiver extends Transform {
   private _pending: number;
   private _entriesCount: number;
   private _entriesProcessedCount: number;
+
+  _queue: ReturnType<typeof queue>;
+  _statQueue: ReturnType<typeof queue>;
+  _streams: Stream[];
+  _task: QueueTask | null;
 
   private _state: {
     aborted: boolean;
@@ -225,24 +263,25 @@ class Archiver extends Transform {
    * Internal helper for appending files.
    */
   private _append(filepath: string, data?: EntryData): void {
-    data = data || {};
-    let task = {
+    const entryData: EntryData = data || { name: "" };
+    let task: QueueTask = {
       source: null,
       filepath: filepath,
+      data: entryData,
     };
-    if (!data.name) {
-      data.name = filepath;
+    if (!entryData.name) {
+      entryData.name = filepath;
     }
-    data.sourcePath = filepath;
-    task.data = data;
+    entryData.sourcePath = filepath;
+    task.data = entryData;
     this._entriesCount++;
-    if (data.stats && data.stats instanceof fs.Stats) {
-      task = this._updateQueueTaskWithStats(task, data.stats);
-      if (task) {
-        if (data.stats.size) {
-          this._fsEntriesTotalBytes += data.stats.size;
+    if (entryData.stats && entryData.stats instanceof fs.Stats) {
+      const updatedTask = this._updateQueueTaskWithStats(task, entryData.stats);
+      if (updatedTask) {
+        if (entryData.stats.size) {
+          this._fsEntriesTotalBytes += entryData.stats.size;
         }
-        this._queue.push(task);
+        this._queue.push(updatedTask);
       }
     } else {
       this._statQueue.push(task);
@@ -409,7 +448,7 @@ class Archiver extends Transform {
       return;
     }
     this._task = task;
-    this._moduleAppend(task.source, task.data, fullCallback);
+    this._moduleAppend(task.source as Buffer | Stream, task.data, fullCallback);
   }
 
   /**
@@ -435,8 +474,9 @@ class Archiver extends Transform {
         setImmediate(callback);
         return;
       }
-      task = this._updateQueueTaskWithStats(task, stats);
-      if (task) {
+      const updatedTask = this._updateQueueTaskWithStats(task, stats);
+      if (updatedTask) {
+        task = updatedTask;
         if (stats.size) {
           this._fsEntriesTotalBytes += stats.size;
         }
@@ -471,7 +511,7 @@ class Archiver extends Transform {
   /**
    * Updates and normalizes a queue task using stats data.
    */
-  private _updateQueueTaskWithStats(task: QueueTask, stats: fs.Stats) {
+  private _updateQueueTaskWithStats(task: QueueTask, stats: fs.Stats): QueueTask | null {
     if (stats.isFile()) {
       task.data.type = "file";
       task.data.sourceType = "stream";
@@ -584,7 +624,7 @@ class Archiver extends Transform {
    */
   directory(
     dirpath: string,
-    destpath: string,
+    destpath: string | false,
     data?: EntryData | ((entryData: EntryData) => EntryData | false),
   ): this {
     if (this._state.finalize || this._state.aborted) {
@@ -596,36 +636,42 @@ class Archiver extends Transform {
       return this;
     }
     this._pending++;
+    let resolvedDestpath: string;
     if (destpath === false) {
-      destpath = "";
+      resolvedDestpath = "";
     } else if (typeof destpath !== "string") {
-      destpath = dirpath;
+      resolvedDestpath = dirpath;
+    } else {
+      resolvedDestpath = destpath;
     }
-    let dataFunction = null;
+    let dataFunction: ((entryData: EntryData) => EntryData | false) | null = null;
+    let baseData: EntryData;
     if (typeof data === "function") {
       dataFunction = data;
-      data = {};
-    } else if (typeof data !== "object") {
-      data = {};
+      baseData = { name: "" };
+    } else if (typeof data === "object") {
+      baseData = data;
+    } else {
+      baseData = { name: "" };
     }
     const globOptions = {
       stat: true,
       dot: true,
     };
-    function onGlobEnd() {
+    function onGlobEnd(this: Archiver) {
       this._pending--;
       this._maybeFinalize();
     }
-    function onGlobError(err) {
+    function onGlobError(this: Archiver, err: Error) {
       this.emit("error", err);
     }
-    function onGlobMatch(match) {
+    function onGlobMatch(this: Archiver, match: { relative: string; absolute: string; stat?: fs.Stats }) {
       globber.pause();
       let ignoreMatch = false;
-      let entryData = Object.assign({}, data);
+      let entryData: EntryData | false = Object.assign({}, baseData);
 
       entryData.name = match.relative;
-      entryData.prefix = destpath;
+      entryData.prefix = resolvedDestpath;
       entryData.stats = match.stat;
       entryData.callback = globber.resume.bind(globber);
 
@@ -648,7 +694,7 @@ class Archiver extends Transform {
         globber.resume();
         return;
       }
-      this._append(match.absolute, entryData);
+      this._append(match.absolute, entryData as EntryData);
     }
 
     const globber = readdirGlob(dirpath, globOptions);
@@ -681,15 +727,15 @@ class Archiver extends Transform {
    */
   glob(pattern: string, options: GlobOptions, data: EntryData): this {
     this._pending++;
-    options = { stat: true, pattern, ...options };
-    function onGlobEnd() {
+    const mergedOptions = { stat: true, pattern, ...options };
+    function onGlobEnd(this: Archiver) {
       this._pending--;
       this._maybeFinalize();
     }
-    function onGlobError(err) {
+    function onGlobError(this: Archiver, err: Error) {
       this.emit("error", err);
     }
-    function onGlobMatch(match) {
+    function onGlobMatch(this: Archiver, match: { relative: string; absolute: string; stat?: fs.Stats }) {
       globber.pause();
       const entryData = Object.assign({}, data);
       entryData.callback = globber.resume.bind(globber);
@@ -697,7 +743,7 @@ class Archiver extends Transform {
       entryData.name = match.relative;
       this._append(match.absolute, entryData);
     }
-    const globber = new ReaddirGlob(options.cwd || ".", options);
+    const globber = new ReaddirGlob(mergedOptions.cwd || ".", mergedOptions, () => {});
     globber.on("error", onGlobError.bind(this));
     globber.on("match", onGlobMatch.bind(this));
     globber.on("end", onGlobEnd.bind(this));
@@ -771,11 +817,12 @@ class Archiver extends Transform {
       return this;
     }
 
-    const data = { type: "symlink" };
-
-    data.name = filepath.replace(/\\/g, "/");
-    data.linkname = target.replace(/\\/g, "/");
-    data.sourceType = "buffer";
+    const data: EntryData = {
+      type: "symlink",
+      name: filepath.replace(/\\/g, "/"),
+      linkname: target.replace(/\\/g, "/"),
+      sourceType: "buffer",
+    };
     if (typeof mode === "number") {
       data.mode = mode;
     }

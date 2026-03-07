@@ -69,8 +69,8 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
       finish: false,
       finished: false,
       processing: false,
-      forceZip64: normalizedOptions.forceZip64,
-      forceLocalTime: normalizedOptions.forceLocalTime,
+      forceZip64: normalizedOptions.forceZip64 ?? false,
+      forceLocalTime: normalizedOptions.forceLocalTime ?? false,
     };
   }
 
@@ -107,7 +107,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
       callback(null, ae);
       return;
     } else if (method === METHOD_DEFLATED) {
-      this._smartStream(ae, callback).end(source);
+      (this._smartStream(ae, callback) as CRC32Stream).end(source);
       return;
     } else {
       callback(new Error(`compression method ${method} not implemented`));
@@ -118,12 +118,12 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
   _appendStream(
     ae: ZipArchiveEntry,
     source: Stream,
-    callback: (error: Error, ae: ZipArchiveEntry) => void,
+    callback: (error: Error | null, ae?: ZipArchiveEntry) => void,
   ): void {
     ae.getGeneralPurposeBit().useDataDescriptor(true);
     ae.setVersionNeededToExtract(MIN_VERSION_DATA_DESCRIPTOR);
     this._writeLocalFileHeader(ae);
-    const smart = this._smartStream(ae, callback);
+    const smart = this._smartStream(ae, callback) as CRC32Stream;
     source.once("error", function (err) {
       smart.emit("error", err);
       smart.end();
@@ -169,27 +169,27 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
 
   private _smartStream(
     ae: ZipArchiveEntry,
-    callback: (error: Error, ae: ZipArchiveEntry) => void,
+    callback: (error: Error | null, ae: ZipArchiveEntry) => void,
   ): CRC32Stream | DeflateCRC32Stream {
     const deflate = ae.getMethod() === METHOD_DEFLATED;
-    const process = deflate
+    const process: CRC32Stream | DeflateCRC32Stream = deflate
       ? new DeflateCRC32Stream(this.options.zlib)
       : new CRC32Stream();
 
     let error: Error | null = null;
-    function handleStuff() {
+    const handleStuff = () => {
       const digest = process.digest<Buffer>().readUInt32BE(0);
       ae.setCrc(digest);
       ae.setSize(process.size());
       ae.setCompressedSize(process.size(true));
       this._afterAppend(ae);
       callback(error, ae);
-    }
-    process.once("end", handleStuff.bind(this));
-    process.once("error", (err) => {
+    };
+    (process as CRC32Stream).once("end", handleStuff);
+    (process as CRC32Stream).once("error", (err: Error) => {
       error = err;
     });
-    process.pipe(this, { end: false });
+    (process as CRC32Stream).pipe(this as unknown as NodeJS.WritableStream, { end: false });
     return process;
   }
 
@@ -291,19 +291,17 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     // sizes
     this.write(getLongBytes(compressedSize));
     this.write(getLongBytes(size));
-    let name = ae.getName();
-    let comment = ae.getComment();
+    const nameStr = ae.getName();
+    const commentStr = ae.getComment();
     const extra = ae.getCentralDirectoryExtra();
-    if (gpb.usesUTF8ForNames()) {
-      name = Buffer.from(name);
-      comment = Buffer.from(comment);
-    }
+    const nameData: string | Buffer = gpb.usesUTF8ForNames() ? Buffer.from(nameStr) : nameStr;
+    const commentData: string | Buffer = gpb.usesUTF8ForNames() ? Buffer.from(commentStr) : commentStr;
     // name length
-    this.write(getShortBytes(name.length));
+    this.write(getShortBytes(nameData.length));
     // extra length
     this.write(getShortBytes(extra.length));
     // comments length
-    this.write(getShortBytes(comment.length));
+    this.write(getShortBytes(commentData.length));
     // disk number start
     this.write(SHORT_ZERO);
     // internal attributes
@@ -313,11 +311,11 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     // relative offset of LFH
     this.write(getLongBytes(fileOffset));
     // name
-    this.write(name);
+    this.write(nameData);
     // extra
     this.write(extra);
     // comment
-    this.write(comment);
+    this.write(commentData);
   }
 
   _writeDataDescriptor(ae: ZipArchiveEntry): void {
@@ -338,15 +336,13 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
   _writeLocalFileHeader(ae: ZipArchiveEntry): void {
     const gpb = ae.getGeneralPurposeBit();
     const method = ae.getMethod();
-    let name = ae.getName();
+    const nameStr = ae.getName();
     const extra = ae.getLocalFileDataExtra();
     if (ae.isZip64()) {
       gpb.useDataDescriptor(true);
       ae.setVersionNeededToExtract(MIN_VERSION_ZIP64);
     }
-    if (gpb.usesUTF8ForNames()) {
-      name = Buffer.from(name);
-    }
+    const nameData: string | Buffer = gpb.usesUTF8ForNames() ? Buffer.from(nameStr) : nameStr;
     ae._offsets.file = this.offset;
     // signature
     this.write(getLongBytes(SIG_LFH));
@@ -369,11 +365,11 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
       this.write(getLongBytes(ae.getSize()));
     }
     // name length
-    this.write(getShortBytes(name.length));
+    this.write(getShortBytes(nameData.length));
     // extra length
     this.write(getShortBytes(extra.length));
     // name
-    this.write(name);
+    this.write(nameData);
     // extra
     this.write(extra);
     ae._offsets.contents = this.offset;

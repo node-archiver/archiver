@@ -58,7 +58,7 @@ function invokeCallback(callback, error, value?) {
   }
 }
 
-function wrapAsync<T>(asyncFn: (task: T, callback: () => void) => void) {
+function wrapAsync<T>(asyncFn: (task: T, callback: () => void) => void): (task: T, callback: () => void) => void {
   return isAsync(asyncFn) ? asyncify(asyncFn) : asyncFn;
 }
 

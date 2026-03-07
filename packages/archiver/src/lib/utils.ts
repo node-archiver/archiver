@@ -8,7 +8,7 @@ function collectStream(
   source: Stream,
   callback: (err: Error | null, sourceBuffer: Buffer) => void,
 ): void {
-  const collection: unknown[] = [];
+  const collection: Buffer[] = [];
   let size = 0;
 
   source.on("error", callback);
@@ -31,7 +31,7 @@ function collectStream(
   });
 }
 
-function normalizeInputSource(source: Buffer | Stream | string | null) {
+function normalizeInputSource(source: Buffer | Stream | string | null): Buffer | Stream {
   if (source === null) {
     return Buffer.alloc(0);
   } else if (typeof source === "string") {

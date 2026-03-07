@@ -262,7 +262,9 @@ function newListener(name) {
 
 interface StreamOptions {
   open?(callback: (err?: Error) => void): void;
+  destroy?(callback: (err?: Error | null) => void): void;
   predestroy?(): void;
+  signal?: AbortSignal;
 }
 
 class Stream extends EventEmitter {
@@ -303,11 +305,11 @@ class Stream extends EventEmitter {
     // does nothing
   }
 
-  get readable(): boolean {
+  get readable(): boolean | undefined {
     return this._readableState !== null ? true : undefined;
   }
 
-  get writable(): boolean {
+  get writable(): boolean | undefined {
     return this._writableState !== null ? true : undefined;
   }
 
@@ -345,6 +347,7 @@ class Stream extends EventEmitter {
 
 interface ReadableOptions extends StreamOptions, ReadableStateOptions {
   encoding?: BufferEncoding;
+  eagerOpen?: boolean;
   read(callback: (err: Error | null) => void): void;
 }
 
@@ -366,8 +369,8 @@ class Readable extends Stream {
 
   setEncoding(encoding?: BufferEncoding): this {
     const dec = new TextDecoder(encoding);
-    const map = this._readableState.map ?? ((s) => s);
-    this._readableState.map = mapOrSkip;
+    const map = this._readableState!.map ?? ((s: any) => s);
+    this._readableState!.map = mapOrSkip;
     return this;
 
     function mapOrSkip(data) {
@@ -383,35 +386,35 @@ class Readable extends Stream {
   }
 
   pipe(dest: Writable, callback?: (err: Error | null) => void): Writable {
-    this._readableState.updateNextTick();
-    this._readableState.pipe(dest, callback);
+    this._readableState!.updateNextTick();
+    this._readableState!.pipe(dest, callback);
     return dest;
   }
 
-  read(): Buffer {
-    this._readableState.updateNextTick();
-    return this._readableState.read();
+  read(): Buffer | null {
+    this._readableState!.updateNextTick();
+    return this._readableState!.read();
   }
 
-  push(data: Buffer): boolean {
-    this._readableState.updateNextTickIfOpen();
-    return this._readableState.push(data);
+  push(data: Buffer | null): boolean {
+    this._readableState!.updateNextTickIfOpen();
+    return this._readableState!.push(data as Buffer);
   }
 
   unshift(data: Buffer): void {
-    this._readableState.updateNextTickIfOpen();
-    return this._readableState.unshift(data);
+    this._readableState!.updateNextTickIfOpen();
+    return this._readableState!.unshift(data);
   }
 
   resume(): this {
     this._duplexState |= READ_RESUMED_READ_AHEAD;
-    this._readableState.updateNextTick();
+    this._readableState!.updateNextTick();
     return this;
   }
 
   pause(): this {
     this._duplexState &=
-      this._readableState.readAhead === false
+      this._readableState!.readAhead === false
         ? READ_PAUSED_NO_READ_AHEAD
         : READ_PAUSED;
     return this;
@@ -433,18 +436,18 @@ class Readable extends Stream {
           .catch(callback);
       },
       predestroy() {
-        destroy = iterator.return();
+        destroy = iterator.return!();
       },
-      destroy(callback) {
+      destroy(callback: (err?: Error | null) => void) {
         if (!destroy) return callback(null);
         destroy.then(callback.bind(null, null)).catch(callback);
       },
-    });
+    } as Partial<ReadableOptions>);
 
     return rs;
 
     function push(data: IteratorResult<Buffer, undefined>) {
-      if (data.done) rs.push(null);
+      if (data.done) rs.push(null as unknown as Buffer);
       else rs.push(data.value);
     }
   }
@@ -452,8 +455,8 @@ class Readable extends Stream {
   static from(data: unknown, opts?: Partial<ReadableOptions>): unknown {
     if (isReadStreamx(data)) return data;
 
-    if (data[Symbol.asyncIterator])
-      return this._fromAsyncIterator(data[Symbol.asyncIterator](), opts);
+    if ((data as any)[Symbol.asyncIterator])
+      return this._fromAsyncIterator((data as any)[Symbol.asyncIterator](), opts);
 
     if (!Array.isArray(data)) data = data === undefined ? [] : [data];
 
@@ -461,29 +464,29 @@ class Readable extends Stream {
     return new Readable({
       ...opts,
       read(callback) {
-        this.push(i === data.length ? null : data[i++]);
+        this.push(i === (data as any[]).length ? null : (data as any[])[i++]);
         callback(null);
       },
     });
   }
 
-  static isBackpressured(rs: unknown): boolean {
+  static isBackpressured(rs: Readable): boolean {
     return (
       (rs._duplexState & READ_BACKPRESSURE_STATUS) !== 0 ||
-      rs._readableState.buffered >= rs._readableState.highWaterMark
+      rs._readableState!.buffered >= rs._readableState!.highWaterMark
     );
   }
 
-  static isPaused(rs: unknown): boolean {
+  static isPaused(rs: Readable): boolean {
     return (rs._duplexState & READ_RESUMED) === 0;
   }
 
   [Symbol.asyncIterator]() {
     const stream = this;
 
-    let error = null;
-    let promiseResolve: (value: unknown) => void | null = null;
-    let promiseReject = null;
+    let error: Error | null = null;
+    let promiseResolve: ((value: unknown) => void) | null = null;
+    let promiseReject: ((reason?: any) => void) | null = null;
 
     this.on("error", (err) => {
       error = err;
@@ -509,7 +512,7 @@ class Readable extends Stream {
       },
 
       return(): Promise<{ value: undefined; done: true }> {
-        return destroy(null);
+        return destroy(undefined);
       },
 
       throw(err?: Error): Promise<{ value: undefined; done: true }> {
@@ -525,12 +528,12 @@ class Readable extends Stream {
       if (promiseResolve !== null) ondata(null);
     }
 
-    function ondata(data) {
+    function ondata(data: Buffer | null) {
       if (promiseReject === null) return;
       if (error) promiseReject(error);
       else if (data === null && (stream._duplexState & READ_DONE) === 0)
         promiseReject(STREAM_DESTROYED);
-      else promiseResolve({ value: data, done: data === null });
+      else promiseResolve!({ value: data, done: data === null });
       promiseReject = promiseResolve = null;
     }
 
@@ -553,7 +556,8 @@ class Readable extends Stream {
 
 interface WritableOptions extends StreamOptions, WritableStateOptions {
   write?(data: Buffer<ArrayBufferLike>, callback: (err?: Error) => void): void;
-
+  writev?(batch: unknown, callback: (err?: Error | null) => void): void;
+  final?(callback: (err?: Error | null) => void): void;
   eagerOpen?: boolean;
 }
 
@@ -578,7 +582,7 @@ class Writable extends Stream {
 
   uncork(): void {
     this._duplexState &= WRITE_NOT_CORKED;
-    this._writableState.updateNextTick();
+    this._writableState!.updateNextTick();
   }
 
   _writev(batch: unknown, callback: (err?: Error | null) => void): void {
@@ -586,7 +590,7 @@ class Writable extends Stream {
   }
 
   _write(data: Buffer, callback: (err?: Error) => void): void {
-    this._writableState.autoBatch(data, callback);
+    this._writableState!.autoBatch(data, callback);
   }
 
   _final(callback: (err?: Error | null) => void): void {
@@ -599,7 +603,7 @@ class Writable extends Stream {
 
   static drained(ws: Writable): Promise<boolean> {
     if (ws.destroyed) return Promise.resolve(false);
-    const state = ws._writableState;
+    const state = ws._writableState!;
     const pending = isWritev(ws)
       ? Math.min(1, state.queue.length)
       : state.queue.length;
@@ -607,18 +611,18 @@ class Writable extends Stream {
     if (writes === 0) return Promise.resolve(true);
     if (state.drains === null) state.drains = [];
     return new Promise((resolve) => {
-      state.drains.push({ writes, resolve });
+      state.drains!.push({ writes, resolve });
     });
   }
 
   write(data: Buffer): boolean {
-    this._writableState.updateNextTick();
-    return this._writableState.push(data);
+    this._writableState!.updateNextTick();
+    return this._writableState!.push(data);
   }
 
   end(data?: string | Buffer): this {
-    this._writableState.updateNextTick();
-    this._writableState.end(data);
+    this._writableState!.updateNextTick();
+    this._writableState!.end(data);
     return this;
   }
 }
@@ -631,7 +635,7 @@ function isStreamx(stream) {
   return typeof stream._duplexState === "number" && isStream(stream);
 }
 
-function getStreamError(stream: Stream, opts = {}): Error {
+function getStreamError(stream: Stream, opts: { all?: boolean } = {}): Error | null {
   const err =
     (stream._readableState && stream._readableState.error) ||
     (stream._writableState && stream._writableState.error);
@@ -664,6 +668,8 @@ interface WritableStateOptions {
   highWaterMark?: number;
   map?: ((data: Buffer) => Buffer) | null;
   mapWritable?(data: Buffer): Buffer;
+  byteLength?(data: Buffer): number;
+  byteLengthWritable?(data: Buffer): number;
 }
 
 class WritableState {
@@ -671,6 +677,13 @@ class WritableState {
   queue: FIFO;
   highWaterMark: number;
   buffered: number;
+  error: Error | null;
+  pipeline: Pipeline | null;
+  drains: { writes: number; resolve: (value: boolean) => void }[] | null;
+  byteLength: (data: Buffer) => number;
+  map: ((data: Buffer) => Buffer) | null;
+  afterWrite: () => void;
+  afterUpdateNextTick: () => void;
 
   constructor(stream: Stream, options?: WritableStateOptions) {
     const {
@@ -714,18 +727,18 @@ class WritableState {
     return false;
   }
 
-  shift(): Buffer {
+  shift(): Buffer | undefined {
     const data = this.queue.shift();
 
-    this.buffered -= this.byteLength(data);
+    this.buffered -= this.byteLength(data as Buffer);
     if (this.buffered === 0) this.stream._duplexState &= WRITE_NOT_QUEUED;
 
     return data;
   }
 
-  end(data?: string | Buffer): void {
+  end(data?: string | Buffer | (() => void)): void {
     if (typeof data === "function") this.stream.once("finish", data);
-    else if (data !== undefined && data !== null) this.push(data);
+    else if (data !== undefined && data !== null) this.push(data as Buffer);
     this.stream._duplexState =
       (this.stream._duplexState | WRITE_FINISHING) & WRITE_NON_PRIMARY;
   }
@@ -736,11 +749,11 @@ class WritableState {
 
     buffer.push(data);
     while ((stream._duplexState & WRITE_STATUS) === WRITE_QUEUED_AND_ACTIVE) {
-      buffer.push(stream._writableState.shift());
+      buffer.push(stream._writableState!.shift() as Buffer);
     }
 
     if ((stream._duplexState & OPEN_STATUS) !== 0) return callback(null);
-    stream._writev(buffer, callback);
+    (stream as any)._writev(buffer, callback);
   }
 
   update(): void {
@@ -752,7 +765,7 @@ class WritableState {
       while ((stream._duplexState & WRITE_STATUS) === WRITE_QUEUED) {
         const data = this.shift();
         stream._duplexState |= WRITE_ACTIVE_AND_WRITING;
-        stream._write(data, this.afterWrite);
+        (stream as any)._write(data, this.afterWrite);
       }
 
       if ((stream._duplexState & WRITE_PRIMARY_AND_ACTIVE) === 0)
@@ -767,7 +780,7 @@ class WritableState {
 
     if ((stream._duplexState & WRITE_FINISHING_STATUS) === WRITE_FINISHING) {
       stream._duplexState = stream._duplexState | WRITE_ACTIVE;
-      stream._final(afterFinal.bind(this));
+      (stream as any)._final(afterFinal.bind(this));
       return;
     }
 
@@ -806,10 +819,13 @@ class WritableState {
 }
 
 class Pipeline {
-  from: Stream;
-  to: Writable;
+  from: Stream | null;
+  to: Writable | null;
+  afterPipe: ((err: Error | null) => void) | null;
+  error: Error | null;
+  pipeToFinished: boolean;
 
-  constructor(from: Readable, to: Writable, callback) {
+  constructor(from: Readable, to: Writable, callback: ((err: Error | null) => void) | null) {
     this.from = from;
     this.to = to;
     this.afterPipe = callback;
@@ -817,11 +833,11 @@ class Pipeline {
     this.pipeToFinished = false;
   }
 
-  finished() {
+  finished(): void {
     this.pipeToFinished = true;
   }
 
-  done(stream, err) {
+  done(stream: Stream, err?: Error | null): void {
     if (err) this.error = err;
 
     if (stream === this.to) {
@@ -862,6 +878,8 @@ interface ReadableStateOptions {
   highWaterMark: number;
   map: ((data: Buffer) => Buffer) | null;
   mapReadable(data: Buffer): Buffer;
+  byteLength?(data: Buffer): number;
+  byteLengthReadable?(data: Buffer): number;
 }
 
 class ReadableState {
@@ -871,7 +889,12 @@ class ReadableState {
   buffered: number;
   readAhead: boolean;
   error: Error | null;
-  map: (data: string | Buffer) => Buffer;
+  pipeline: Pipeline | null;
+  byteLength: (data: Buffer) => number;
+  map: ((data: any) => any) | null;
+  pipeTo: Writable | null;
+  afterRead: () => void;
+  afterUpdateNextTick: () => void;
 
   constructor(stream: Readable, options?: Partial<ReadableStateOptions>) {
     const {
@@ -905,17 +928,17 @@ class ReadableState {
       throw new Error("Can only pipe to one destination");
     }
 
-    if (typeof callback !== "function") callback = null;
+    const cb = typeof callback === "function" ? callback : null;
 
     this.stream._duplexState |= READ_PIPE_DRAINED;
     this.pipeTo = pipeTo;
-    this.pipeline = new Pipeline(this.stream, pipeTo, callback);
+    this.pipeline = new Pipeline(this.stream, pipeTo, cb);
 
-    if (callback) this.stream.on("error", () => {}); // We already error handle this so supress crashes
+    if (cb) this.stream.on("error", () => {}); // We already error handle this so supress crashes
 
     if (isStreamx(pipeTo)) {
-      pipeTo._writableState.pipeline = this.pipeline;
-      if (callback) pipeTo.on("error", () => {}); // We already error handle this so supress crashes
+      pipeTo._writableState!.pipeline = this.pipeline;
+      if (cb) pipeTo.on("error", () => {}); // We already error handle this so supress crashes
       pipeTo.on("finish", this.pipeline.finished.bind(this.pipeline)); // TODO: just call finished from pipeTo itself
     } else {
       const onerror = this.pipeline.done.bind(this.pipeline, pipeTo);
@@ -956,17 +979,17 @@ class ReadableState {
     return this.buffered < this.highWaterMark;
   }
 
-  shift(): Buffer {
+  shift(): Buffer | undefined {
     const data = this.queue.shift();
 
-    this.buffered -= this.byteLength(data);
+    this.buffered -= this.byteLength(data as Buffer);
     if (this.buffered === 0) this.stream._duplexState &= READ_NOT_QUEUED;
     return data;
   }
 
   unshift(data: Buffer): void {
     const pending: Buffer[] = [this.map !== null ? this.map(data) : data];
-    while (this.buffered > 0) pending.push(this.shift());
+    while (this.buffered > 0) pending.push(this.shift() as Buffer);
 
     for (let i = 0; i < pending.length - 1; i++) {
       const data = pending[i];
@@ -977,18 +1000,18 @@ class ReadableState {
     this.push(pending[pending.length - 1]);
   }
 
-  read(): Buffer {
+  read(): Buffer | null {
     const stream = this.stream;
 
     if ((stream._duplexState & READ_STATUS) === READ_QUEUED) {
       const data = this.shift();
-      if (this.pipeTo !== null && this.pipeTo.write(data) === false) {
+      if (this.pipeTo !== null && this.pipeTo.write(data as Buffer) === false) {
         stream._duplexState &= READ_PIPE_NOT_DRAINED;
       }
       if ((stream._duplexState & READ_EMIT_DATA) !== 0) {
         stream.emit("data", data);
       }
-      return data;
+      return data as Buffer;
     }
 
     if (this.readAhead === false) {
@@ -1007,7 +1030,7 @@ class ReadableState {
       (stream._duplexState & READ_FLOWING) !== 0
     ) {
       const data = this.shift();
-      if (this.pipeTo !== null && this.pipeTo.write(data) === false)
+      if (this.pipeTo !== null && this.pipeTo.write(data as Buffer) === false)
         stream._duplexState &= READ_PIPE_NOT_DRAINED;
       if ((stream._duplexState & READ_EMIT_DATA) !== 0)
         stream.emit("data", data);

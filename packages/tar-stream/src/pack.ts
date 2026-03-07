@@ -50,11 +50,13 @@ class TarPackSink extends Writable {
   written: number;
   header: TarPackSinkHeader;
 
-  private _isLinkname: boolean;
-  private _isVoid: boolean;
-  private _finished: boolean;
-  private _pack: TarPack;
-  private _linkname: Buffer | null;
+  _isLinkname: boolean;
+  _isVoid: boolean;
+  _finished: boolean;
+  _pack: TarPack;
+  _linkname: Buffer | null;
+  _callback: ((err: Error | null) => void) | null;
+  _openCallback: ((err: Error | null) => void) | null;
 
   constructor(
     pack: TarPack,
@@ -66,7 +68,7 @@ class TarPackSink extends Writable {
     this.written = 0;
     this.header = header;
 
-    this._callback = callback;
+    this._callback = callback || null;
     this._linkname = null;
     this._isLinkname = header.type === "symlink" && !header.linkname;
     this._isVoid = header.type !== "file" && header.type !== "contiguous-file";
@@ -79,7 +81,7 @@ class TarPackSink extends Writable {
   }
 
   _open(callback?: (err: Error | null) => void): void {
-    this._openCallback = callback;
+    this._openCallback = callback || null;
     if (this._pack._stream === this) this._continueOpen();
   }
 
@@ -111,7 +113,7 @@ class TarPackSink extends Writable {
     this._pack._stream = this;
 
     if (!this._isLinkname) {
-      this._pack._encode(this.header);
+      this._pack._encode(this.header as any);
     }
 
     if (this._isVoid) {
@@ -122,13 +124,13 @@ class TarPackSink extends Writable {
     callback(null);
   }
 
-  _write(data: Buffer, callback: (arg?: Error | null) => void): void {
+  _write(data: Buffer, callback: (err?: Error) => void): void {
     if (this._isLinkname) {
       this._linkname = this._linkname
         ? Buffer.concat([this._linkname, data])
         : data;
 
-      return callback(null);
+      return callback();
     }
 
     if (this._isVoid) {
@@ -151,7 +153,7 @@ class TarPackSink extends Writable {
       this.header.linkname = this._linkname
         ? this._linkname.toString("utf-8")
         : "";
-      this._pack._encode(this.header);
+      this._pack._encode(this.header as any);
     }
 
     overflow(this._pack, this.header.size);
@@ -169,7 +171,7 @@ class TarPackSink extends Writable {
     callback(null);
   }
 
-  private _getError(): Error {
+  _getError(): Error {
     return getStreamError(this) || new Error("tar entry destroyed");
   }
 
@@ -189,11 +191,11 @@ class TarPackSink extends Writable {
 interface TarPackOptions extends ReadableOptions {}
 
 class TarPack extends Readable {
-  private _drain: () => void;
-  private _finalized: boolean;
-  private _finalizing: boolean;
-  private _pending: TarPackSink[];
-  private _stream: TarPackSink | null;
+  _drain: (() => void) | ((err?: Error) => void);
+  _finalized: boolean;
+  _finalizing: boolean;
+  _pending: TarPackSink[];
+  _stream: TarPackSink | null;
 
   constructor(opts?: Partial<TarPackOptions>) {
     super(opts);
@@ -226,7 +228,7 @@ class TarPack extends Readable {
 
     if (typeof bufferOrCallback === "function") {
       callback = bufferOrCallback;
-      bufferOrCallback = null;
+      bufferOrCallback = undefined;
     }
 
     if (!callback) callback = () => {};
@@ -235,7 +237,7 @@ class TarPack extends Readable {
 
     if (normalizedHeader.type === "symlink") normalizedHeader.size = 0;
     if (!normalizedHeader.type)
-      normalizedHeader.type = modeToType(normalizedHeader.mode);
+      normalizedHeader.type = modeToType(normalizedHeader.mode || 0);
     if (!normalizedHeader.mode)
       normalizedHeader.mode =
         normalizedHeader.type === "directory" ? DMODE : FMODE;
@@ -272,7 +274,7 @@ class TarPack extends Readable {
     this._finalized = true;
 
     this.push(END_OF_TAR);
-    this.push(null);
+    this.push(null as unknown as Buffer);
   }
 
   _done(stream: TarPackSink): void {
@@ -281,7 +283,7 @@ class TarPack extends Readable {
     this._stream = null;
 
     if (this._finalizing) this.finalize();
-    if (this._pending.length) this._pending.shift()._continueOpen();
+    if (this._pending.length) this._pending.shift()!._continueOpen();
   }
 
   _encode(header: TarHeader): void {
@@ -299,7 +301,7 @@ class TarPack extends Readable {
     const paxHeader = headers.encodePax({
       name: header.name,
       linkname: header.linkname,
-      pax: header.pax,
+      pax: header.pax as Record<string, string> | undefined,
     });
 
     const newHeader: Omit<TarHeader, "pax" | "typeflag"> = {
@@ -317,13 +319,13 @@ class TarPack extends Readable {
       devminor: header.devminor,
     };
 
-    this.push(headers.encode(newHeader));
+    this.push(headers.encode(newHeader as any)!);
     this.push(paxHeader);
     overflow(this, paxHeader.byteLength);
 
     newHeader.size = header.size;
     newHeader.type = header.type;
-    this.push(headers.encode(newHeader));
+    this.push(headers.encode(newHeader as any)!);
   }
 
   _doDrain(): void {
@@ -333,12 +335,12 @@ class TarPack extends Readable {
   }
 
   _predestroy(): void {
-    const err = getStreamError(this);
+    const err = getStreamError(this) ?? undefined;
 
     if (this._stream) this._stream.destroy(err);
 
     while (this._pending.length) {
-      const stream = this._pending.shift();
+      const stream = this._pending.shift()!;
       stream.destroy(err);
       stream._continueOpen();
     }

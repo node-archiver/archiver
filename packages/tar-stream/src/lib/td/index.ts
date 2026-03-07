@@ -24,17 +24,17 @@ class TextDecoder {
     return this.decoder.remaining;
   }
 
-  push(data): string {
+  push(data: string | Buffer): string {
     if (typeof data === "string") return data;
     return this.decoder.decode(data);
   }
 
   // For Node.js compatibility
-  write(data): string {
+  write(data: string | Buffer): string {
     return this.push(data);
   }
 
-  end(data): string {
+  end(data?: string | Buffer): string {
     let result = "";
     if (data) result = this.push(data);
     result += this.decoder.flush();

@@ -11,7 +11,7 @@ class PassThroughDecoder {
     return 0;
   }
 
-  decode(data): string {
+  decode(data: Buffer): string {
     return b4a.toString(data, this.encoding);
   }
 

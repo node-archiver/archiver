@@ -10,15 +10,43 @@ function onlyOnce(fn) {
   };
 }
 
-interface Queue {
-  _tasks: DoublyLinkedList;
-
-  paused: boolean;
-
-  process(): void;
+interface QueueTaskItem {
+  data: unknown;
+  callback: (...args: unknown[]) => void;
+  [key: string]: unknown;
 }
 
-function queue(worker, concurrency: number, payload: 1 = 1): Queue {
+interface Queue {
+  _tasks: DoublyLinkedList;
+  _createTaskItem(data: unknown, callback: (...args: unknown[]) => void): QueueTaskItem;
+
+  started: boolean;
+  paused: boolean;
+  concurrency: number;
+  payload: number;
+  buffer: number;
+
+  process(): void;
+  push(data: unknown, callback?: (...args: unknown[]) => void): unknown;
+  unshift(data: unknown, callback?: (...args: unknown[]) => void): unknown;
+  kill(): void;
+  remove(testFn: (node: unknown) => boolean): void;
+  length(): number;
+  running(): number;
+  workersList(): QueueTaskItem[];
+  idle(): boolean;
+  pause(): void;
+  resume(): void;
+  [Symbol.iterator](): Generator<unknown>;
+
+  saturated: (handler?: (...args: unknown[]) => void) => void | Promise<unknown>;
+  unsaturated: (handler?: (...args: unknown[]) => void) => void | Promise<unknown>;
+  empty: (handler?: (...args: unknown[]) => void) => void | Promise<unknown>;
+  drain: (handler?: (...args: unknown[]) => void) => void | Promise<unknown>;
+  error: (handler?: (...args: unknown[]) => void) => void | Promise<unknown>;
+}
+
+function queue(worker: (...args: unknown[]) => void, concurrency: number, payload: 1 = 1): Queue {
   if (concurrency == null) {
     concurrency = 1;
   } else if (concurrency === 0) {
@@ -27,7 +55,7 @@ function queue(worker, concurrency: number, payload: 1 = 1): Queue {
 
   const _worker = wrapAsync(worker);
   let numRunning = 0;
-  const workersList = [];
+  const workersList: QueueTaskItem[] = [];
   const events = {
     error: [],
     drain: [],
@@ -48,7 +76,7 @@ function queue(worker, concurrency: number, payload: 1 = 1): Queue {
     events[event].push(handleAndRemove);
   }
 
-  function off(event, handler?) {
+  function off(event?: string, handler?) {
     if (!event) return Object.keys(events).forEach((ev) => (events[ev] = []));
     if (!handler) return (events[event] = []);
     events[event] = events[event].filter((ev) => ev !== handler);
@@ -81,9 +109,9 @@ function queue(worker, concurrency: number, payload: 1 = 1): Queue {
     );
 
     if (insertAtFront) {
-      q._tasks.unshift(item);
+      q._tasks.unshift(item as never);
     } else {
-      q._tasks.push(item);
+      q._tasks.push(item as never);
     }
 
     if (!processingScheduled) {
@@ -158,7 +186,7 @@ function queue(worker, concurrency: number, payload: 1 = 1): Queue {
 
   let isProcessing = false;
 
-  const q: Queue = {
+  const q = {
     _tasks: new DoublyLinkedList(),
     _createTaskItem(data, callback) {
       return {
@@ -203,12 +231,12 @@ function queue(worker, concurrency: number, payload: 1 = 1): Queue {
       }
       isProcessing = true;
       while (!q.paused && numRunning < q.concurrency && q._tasks.length) {
-        const tasks = [],
-          data = [];
+        const tasks: QueueTaskItem[] = [],
+          data: unknown[] = [];
         let l = q._tasks.length;
         if (q.payload) l = Math.min(l, q.payload);
         for (let i = 0; i < l; i++) {
-          const node = q._tasks.shift();
+          const node = q._tasks.shift() as unknown as QueueTaskItem;
           tasks.push(node);
           workersList.push(node);
           data.push(node.data);
@@ -277,7 +305,7 @@ function queue(worker, concurrency: number, payload: 1 = 1): Queue {
     },
   });
 
-  return q;
+  return q as unknown as Queue;
 }
 
-export { queue };
+export { queue, type Queue };

@@ -4,7 +4,7 @@ function toBuffer(buffer): Buffer {
 }
 
 function toString(
-  buffer,
+  buffer: Buffer | { buffer: ArrayBufferLike; byteOffset: number; byteLength: number },
   encoding?: BufferEncoding,
   start?: number,
   end?: number,

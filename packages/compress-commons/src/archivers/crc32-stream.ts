@@ -1,6 +1,11 @@
 import { Transform, type TransformCallback } from "node:stream";
-import { DeflateRaw, type ZlibOptions } from "node:zlib";
-import { crc32 } from "node:zlib";
+import { createDeflateRaw, crc32, type ZlibOptions } from "node:zlib";
+
+// DeflateRaw is typed as an interface in @types/node but is a class at runtime.
+// We extract the constructor to use as a base class.
+const DeflateRaw: typeof Transform = Object.getPrototypeOf(
+  createDeflateRaw(),
+).constructor;
 
 /**
  * @private
@@ -51,7 +56,8 @@ class DeflateCRC32Stream extends DeflateRaw {
   compressedSize: number;
 
   constructor(options?: ZlibOptions) {
-    super(options);
+    // DeflateRaw accepts ZlibOptions at runtime
+    super(options as import("node:stream").TransformOptions);
     this.checksum = 0;
     this.rawSize = 0;
     this.compressedSize = 0;

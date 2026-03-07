@@ -32,6 +32,11 @@ class ZipArchiveEntry extends ArchiveEntry {
   declare exattr: number;
   declare inattr: number;
   declare comment: string | null;
+  declare _offsets: {
+    file: number;
+    data: number;
+    contents: number;
+  };
 
   constructor(name: string) {
     super();
@@ -138,7 +143,7 @@ class ZipArchiveEntry extends ArchiveEntry {
    * Returns the filename of the entry.
    */
   getName(): string {
-    return this.name;
+    return this.name !== null ? this.name : "";
   }
 
   /**
