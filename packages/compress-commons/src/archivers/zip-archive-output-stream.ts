@@ -52,8 +52,8 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     finish: boolean;
     finished: boolean;
     processing: boolean;
-    forceZip64: boolean;
-    forceLocalTime: boolean;
+    forceZip64?: boolean;
+    forceLocalTime?: boolean;
   };
 
   constructor(options?: Partial<ZipOptions>) {
@@ -169,7 +169,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
 
   private _smartStream(
     ae: ZipArchiveEntry,
-    callback: (error: Error, ae: ZipArchiveEntry) => void,
+    callback: (error: Error | null, ae: ZipArchiveEntry) => void,
   ): CRC32Stream | DeflateCRC32Stream {
     const deflate = ae.getMethod() === METHOD_DEFLATED;
     const process = deflate
@@ -291,8 +291,8 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     // sizes
     this.write(getLongBytes(compressedSize));
     this.write(getLongBytes(size));
-    let name = ae.getName();
-    let comment = ae.getComment();
+    let name: Buffer | string = ae.getName();
+    let comment: Buffer | string = ae.getComment();
     const extra = ae.getCentralDirectoryExtra();
     if (gpb.usesUTF8ForNames()) {
       name = Buffer.from(name);
@@ -338,7 +338,7 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
   _writeLocalFileHeader(ae: ZipArchiveEntry): void {
     const gpb = ae.getGeneralPurposeBit();
     const method = ae.getMethod();
-    let name = ae.getName();
+    let name: Buffer | string = ae.getName();
     const extra = ae.getLocalFileDataExtra();
     if (ae.isZip64()) {
       gpb.useDataDescriptor(true);
