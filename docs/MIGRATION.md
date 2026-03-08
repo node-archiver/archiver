@@ -1,8 +1,5 @@
 # Migration Guide: `archiver` to `@archiver/archiver`
 
-`@archiver/archiver` is a modern rewrite of the original [`archiver`](https://github.com/archiverjs/node-archiver) package. The API surface is nearly identical — same methods, same events, same options. The main difference is how you import and instantiate an archive. Everything else should feel familiar.
-
-The rewrite drops the vast majority of the dependency tree (66 transitive down to 8 total), ships native TypeScript types, and weighs in at 38.7 kB installed instead of ~10 MB.
 
 ---
 
@@ -54,21 +51,17 @@ function createArchive(format: 'zip' | 'tar', options?: any) {
 
 ### Installation
 
-**Before:**
-
-```bash
-npm install archiver
-npm install @types/archiver --save-dev  # if using TypeScript
-```
-
-**After:**
+Install `@archiver/archiver`
 
 ```bash
 npm install @archiver/archiver
-# types are included — no separate @types package needed
 ```
 
-You can also remove `@types/archiver` from your devDependencies if you had it.
+Remove `archiver` and `@types/archiver`
+
+```bash
+npm remove archiver @types/archiver
+```
 
 ---
 
@@ -108,9 +101,6 @@ archive.append('hello world', { name: 'hello.txt' })
 await archive.finalize()
 ```
 
-Same options. Same methods. Just a different import and constructor.
-
----
 
 ### Creating a TAR Archive
 
@@ -186,8 +176,6 @@ If you were using `registerFormat` to add custom archive formats, you can extend
 | Native types | No | Yes |
 | ESM | No | Yes |
 
-The old package pulled in `lodash`, `async`, `readable-stream`, `graceful-fs`, `is-stream`, `lazystream`, `normalize-path`, and many others transitively. The new package has zero unnecessary dependencies.
-
 ---
 
 ## Package Mapping
@@ -200,7 +188,6 @@ If you depend on any of the underlying packages directly, here is how they map:
 | `zip-stream` | `@archiver/zip-stream` |
 | `compress-commons` | `@archiver/compress-commons` |
 | `tar-stream` (by @mafintosh) | `@archiver/tar-stream` |
-| `archiver-utils` | Removed (unused) |
 | `is-stream` | Use `isStream` from `@archiver/compress-commons/util` |
 | `normalize-path` | Use `normalizePath` from `@archiver/compress-commons/util` |
 
