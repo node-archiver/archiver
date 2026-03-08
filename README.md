@@ -94,7 +94,7 @@ await archive.finalize()
 ```typescript
 import { ZipArchive } from '@archiver/archiver'
 
-const archive = new ZipArchive(options?)
+const archive = new ZipArchive(options)
 ```
 
 #### Options
