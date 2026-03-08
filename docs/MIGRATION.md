@@ -178,12 +178,7 @@ The new package requires Node.js 24 or later. It uses modern Node.js APIs direct
 
 ### 2. ESM Only
 
-There is no CommonJS build. If your project uses `require()`, you have a few options:
-
-- Use Node.js >= 22, which can `require()` ESM modules natively
-- Convert your project to ESM (`"type": "module"` in package.json)
-- Use dynamic `import()` in CommonJS files
-- Use a bundler that handles ESM
+Since `@archiver/archiver` is Node.js >= 24, you can `require()` ESM modules natively
 
 ### 3. Class Constructors Instead of Factory Function
 
