@@ -1,8 +1,5 @@
 # Migration Guide: `archiver` to `@archiver/archiver`
 
-`@archiver/archiver` is a modern rewrite of the original [`archiver`](https://github.com/archiverjs/node-archiver) package. The API surface is nearly identical — same methods, same events, same options. The main difference is how you import and instantiate an archive. Everything else should feel familiar.
-
-The rewrite drops the vast majority of the dependency tree (66 transitive down to 8 total), ships native TypeScript types, and weighs in at 38.7 kB installed instead of ~10 MB.
 
 ---
 
