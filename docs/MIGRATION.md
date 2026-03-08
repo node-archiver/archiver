@@ -205,10 +205,8 @@ archive.glob('**/*.js', { cwd: 'src' }, { prefix: 'source' })
 **After:**
 
 ```ts
-archive.glob('**/*.js', { cwd: 'src' }, { name: '', prefix: 'source' })
+archive.glob('**/*.js', { cwd: 'src' }, { prefix: 'source' })
 ```
-
-Note: `glob` now requires all three parameters. The `name` field in `data` is overridden by each matched file's relative path, but must be present to satisfy the type.
 
 ---
 
@@ -368,8 +366,9 @@ The new package requires Node.js 24 or later. It uses modern Node.js APIs direct
 
 ### 2. ESM Only
 
-There is no CommonJS build. If your project uses `require()`, you will need to either:
+There is no CommonJS build. If your project uses `require()`, you have a few options:
 
+- Use Node.js >= 22, which can `require()` ESM modules natively
 - Convert your project to ESM (`"type": "module"` in package.json)
 - Use dynamic `import()` in CommonJS files
 - Use a bundler that handles ESM

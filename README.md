@@ -272,7 +272,7 @@ Shared abstractions for archive formats. Used internally by `@archiver/zip-strea
 
 ## Migration
 
-Coming from `archiver`? See the [Migration Guide](./MIGRATION.md).
+Coming from `archiver`? See the [Migration Guide](./docs/MIGRATION.md).
 
 ## Contributing
 
@@ -284,4 +284,4 @@ See [CONTRIBUTING.md](./.github/CONTRIBUTING.md) for setup instructions and guid
 
 ## Credits
 
-Built as part of the [e18e](https://e18e.dev) ecosystem performance initiative. See the original [ecosystem issue](https://github.com/e18e/ecosystem-issues/issues/209) for context.
+This project is a modern rewrite of the original [`archiver`](https://github.com/archiverjs/node-archiver) package by [Chris Talkington](https://github.com/ctalkington). Built as part of the [e18e](https://e18e.dev) ecosystem performance initiative. See the original [ecosystem issue](https://github.com/e18e/ecosystem-issues/issues/209) for context.
