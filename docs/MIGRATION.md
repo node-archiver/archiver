@@ -145,28 +145,6 @@ These APIs existed on the old `archiver` factory function and are no longer need
 
 If you were using `registerFormat` to add custom archive formats, you can extend the `Archiver` base class directly instead.
 
----
-
-## What's New
-
-**Native TypeScript types.** Types ship with the package. No more `@types/archiver` or guessing at option shapes — your editor knows exactly what `ZipArchive` accepts.
-
-**ESM by default.** The package ships as ES modules. Works with `import` out of the box.
-
-**Class-based API with full type inference.** `ZipArchive` and `TarArchive` are real classes with distinct option types. The old string-based `archiver('zip')` pattern lost type information — the new approach gives you autocomplete on format-specific options.
-
-**Dramatically smaller install.**
-
-| | `archiver` (old) | `@archiver/archiver` (new) |
-|---|---|---|
-| Package Size | 43.1 kB | 38.7 kB |
-| Install Size | 9.9 MB  | 227 kB  |
-| Dependencies | 66 transitive | 8 total |
-| Native types | No | Yes |
-| ESM | No | Yes |
-
----
-
 ## Package Mapping
 
 If you depend on any of the underlying packages directly, here is how they map:
