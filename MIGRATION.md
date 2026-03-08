@@ -348,7 +348,8 @@ If you were using `registerFormat` to add custom archive formats, you can extend
 
 | | `archiver` (old) | `@archiver/archiver` (new) |
 |---|---|---|
-| Install size | ~10 MB | 38.7 kB |
+| Package Size | 43.1 kB | 38.7 kB |
+| Install Size | 9.9 MB  | 227 kB  |
 | Dependencies | 66 transitive | 8 total |
 | Native types | No | Yes |
 | ESM | No | Yes |
