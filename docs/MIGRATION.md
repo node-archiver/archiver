@@ -151,9 +151,6 @@ If you were using `registerFormat` to add custom archive formats, you can extend
 | Native types | No | Yes |
 | ESM | No | Yes |
 
-The old package pulled in `lodash`, `async`, `readable-stream`, `graceful-fs`, `is-stream`, `lazystream`, `normalize-path`, and many others transitively. The new package has zero unnecessary dependencies.
-
----
 
 ## Breaking Changes
 
