@@ -1,6 +1,6 @@
 import { type Stream, Transform, PassThrough } from "node:stream";
 
-import { isStream } from "../util";
+import { isStream } from "../utils";
 import { ArchiveEntry } from "./archive-entry";
 
 function normalizeInputSource(
