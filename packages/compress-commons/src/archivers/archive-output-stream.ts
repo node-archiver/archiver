@@ -1,11 +1,13 @@
 import { type Stream, Transform, PassThrough } from "node:stream";
 
-import { isStream } from "../util";
+import { isStream } from "../utils";
 import { ArchiveEntry } from "./archive-entry";
 
 function normalizeInputSource(
   source: null | string | Stream | Buffer,
 ): Stream | Buffer {
+  source ||= null;
+
   if (source === null) {
     return Buffer.alloc(0);
   }
@@ -51,7 +53,7 @@ abstract class ArchiveOutputStream extends Transform {
   abstract _appendBuffer(
     ae: ArchiveEntry,
     source: Buffer,
-    callback: (error: Error) => void,
+    callback: (error: Error | null) => void,
   ): void;
 
   abstract _appendStream(
@@ -80,13 +82,11 @@ abstract class ArchiveOutputStream extends Transform {
 
   entry(
     ae: ArchiveEntry,
-    source: string | Stream | Buffer,
+    source: string | Stream | Buffer | null,
     callback?: (error: Error) => void,
   ): this {
-    source = source || null;
-
     if (typeof callback !== "function") {
-      callback = this._emitErrorCallback.bind(this);
+      callback = this._emitErrorCallback;
     }
     if (!(ae instanceof ArchiveEntry)) {
       callback(new Error("not a valid instance of ArchiveEntry"));

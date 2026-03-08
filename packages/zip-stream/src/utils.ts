@@ -1,6 +1,10 @@
-import { normalizePath } from "@archiver/compress-commons/util";
+import {
+  normalizePath,
+  sanitizePath,
+  isStream,
+} from "@archiver/compress-commons/utils";
 
-function dateify(dateish?: Date | string): Date {
+function dateify(dateish?: Date | string | null): Date {
   dateish ??= new Date();
 
   if (dateish instanceof Date) {
@@ -14,10 +18,4 @@ function dateify(dateish?: Date | string): Date {
   return dateish;
 }
 
-function sanitizePath(filepath: string): string {
-  return normalizePath(filepath, false)
-    .replace(/^\w+:/, "")
-    .replace(/^(\.\.\/|\/)+/, "");
-}
-
-export { dateify, sanitizePath };
+export { dateify, sanitizePath, normalizePath, isStream };

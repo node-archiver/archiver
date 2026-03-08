@@ -120,27 +120,35 @@ class ZipStream extends ZipArchiveOutputStream {
    */
   // @ts-expect-error
   entry(
-    source: Buffer | Stream | string,
+    source: Buffer | Stream | string | null,
     data: Partial<FileEntryData>,
     callback?: (error: Error) => void,
   ): this {
     if (typeof callback !== "function") {
-      callback = this._emitErrorCallback.bind(this);
+      callback = this._emitErrorCallback;
     }
-    data = this._normalizeFileData(data);
+    const normalizedData = this._normalizeFileData(data);
     if (
-      data.type !== "file" &&
-      data.type !== "directory" &&
-      data.type !== "symlink"
+      normalizedData.type !== "file" &&
+      normalizedData.type !== "directory" &&
+      normalizedData.type !== "symlink"
     ) {
-      callback(new Error(data.type + " entries not currently supported"));
+      callback(
+        new Error(normalizedData.type + " entries not currently supported"),
+      );
       return;
     }
-    if (typeof data.name !== "string" || data.name.length === 0) {
+    if (
+      typeof normalizedData.name !== "string" ||
+      normalizedData.name.length === 0
+    ) {
       callback(new Error("entry name must be a non-empty string value"));
       return;
     }
-    if (data.type === "symlink" && typeof data.linkname !== "string") {
+    if (
+      normalizedData.type === "symlink" &&
+      typeof normalizedData.linkname !== "string"
+    ) {
       callback(
         new Error(
           "entry linkname must be a non-empty string value when type equals symlink",
@@ -148,28 +156,34 @@ class ZipStream extends ZipArchiveOutputStream {
       );
       return;
     }
-    const entry = new ZipArchiveEntry(data.name);
-    entry.setTime(data.date, this.options.forceLocalTime);
-    if (data.namePrependSlash) {
-      entry.setName(data.name, true);
+    const entry = new ZipArchiveEntry(normalizedData.name);
+    entry.setTime(normalizedData.date, this.options.forceLocalTime);
+    if (normalizedData.namePrependSlash) {
+      entry.setName(normalizedData.name, true);
     }
-    if (data.store) {
+    if (normalizedData.store) {
       entry.setMethod(0);
     }
-    if (data.comment.length > 0) {
-      entry.setComment(data.comment);
+    if (normalizedData.comment.length > 0) {
+      entry.setComment(normalizedData.comment);
     }
-    if (data.type === "symlink" && typeof data.mode !== "number") {
-      data.mode = 40960; // 0120000
+    if (
+      normalizedData.type === "symlink" &&
+      typeof normalizedData.mode !== "number"
+    ) {
+      normalizedData.mode = 40960; // 0120000
     }
-    if (typeof data.mode === "number") {
-      if (data.type === "symlink") {
-        data.mode |= 40960;
+    if (typeof normalizedData.mode === "number") {
+      if (normalizedData.type === "symlink") {
+        normalizedData.mode |= 40960;
       }
-      entry.setUnixMode(data.mode);
+      entry.setUnixMode(normalizedData.mode);
     }
-    if (data.type === "symlink" && typeof data.linkname === "string") {
-      source = Buffer.from(data.linkname);
+    if (
+      normalizedData.type === "symlink" &&
+      typeof normalizedData.linkname === "string"
+    ) {
+      source = Buffer.from(normalizedData.linkname);
     }
     return super.entry(entry, source, callback);
   }
