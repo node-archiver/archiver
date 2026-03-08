@@ -15,7 +15,8 @@ This project is a modern rewrite as part of the [e18e](https://e18e.dev) (Ecosys
 
 | | `archiver` (old) | `@archiver/archiver` |
 |---|---|---|
-| **Install size** | ~43.1 kB | **38.7 kB** |
+| **Package Size** | 43.1 kB | **38.7 kB** |
+| **Install Size** | 9.9 MB  | **227 kB**  |
 | **Dependencies** | 66 transitive | **3 direct, 8 total** |
 | **TypeScript** | `@types/archiver` needed | **Built-in** |
 | **ESM** | CommonJS only | **ESM only** |
