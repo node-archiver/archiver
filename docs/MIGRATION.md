@@ -262,7 +262,7 @@ If you depend on any of the underlying packages directly, here is how they map:
 | `compress-commons` | `@archiver/compress-commons` |
 | `tar-stream` (by @mafintosh) | `@archiver/tar-stream` |
 | `archiver-utils` | Removed (unused) |
-| `is-stream` | Removed (inlined) |
-| `normalize-path` | Removed (inlined) |
+| `is-stream` | Use `isStream` from `@archiver/compress-commons/util` |
+| `normalize-path` | Use `normalizePath` from `@archiver/compress-commons/util` |
 
 All new packages live under the `@archiver` npm scope and are published from a single monorepo at [github.com/node-archiver/archiver](https://github.com/node-archiver/archiver).
