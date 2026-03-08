@@ -180,7 +180,7 @@ archive.directory('project/', 'project', (entry) => {
 Add files matching a glob pattern.
 
 ```typescript
-archive.glob('**/*.js', { cwd: 'src/' }, { name: '', prefix: 'scripts' })
+archive.glob('**/*.js', { cwd: 'src/' }, { prefix: 'scripts' })
 ```
 
 #### `symlink(filepath, target, mode?)`
