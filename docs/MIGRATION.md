@@ -8,6 +8,14 @@ The rewrite drops the vast majority of the dependency tree (66 transitive down t
 
 ## Quick Migration
 
+There are three breaking changes:
+
+1. **Node.js >= 24 required.** The new package uses modern Node.js APIs directly instead of polyfilling them with `readable-stream` and other shims.
+
+2. **ESM only.** No CommonJS build. Node.js >= 22 can `require()` ESM natively, or use `import()` / a bundler.
+
+3. **Class constructors instead of factory function.** The format string is gone — import and instantiate the class you need.
+
 For most codebases, migration is a two-line change:
 
 **Before:**
@@ -24,7 +32,21 @@ import { ZipArchive } from '@archiver/archiver'
 const archive = new ZipArchive({ zlib: { level: 9 } })
 ```
 
-That's it. Every method call after the constructor stays the same.
+Every method call after the constructor stays the same. Options are passed directly — no wrapping needed.
+
+If you were using `archiver.create('zip', options)`, replace it the same way.
+
+If you dynamically choose the format at runtime, use a simple conditional:
+
+```ts
+import { ZipArchive, TarArchive } from '@archiver/archiver'
+
+function createArchive(format: 'zip' | 'tar', options?: any) {
+  if (format === 'zip') return new ZipArchive(options)
+  if (format === 'tar') return new TarArchive(options)
+  throw new Error(`Unknown format: ${format}`)
+}
+```
 
 ---
 
@@ -165,53 +187,6 @@ If you were using `registerFormat` to add custom archive formats, you can extend
 | ESM | No | Yes |
 
 The old package pulled in `lodash`, `async`, `readable-stream`, `graceful-fs`, `is-stream`, `lazystream`, `normalize-path`, and many others transitively. The new package has zero unnecessary dependencies.
-
----
-
-## Breaking Changes
-
-There are three breaking changes. All of them are straightforward to address.
-
-### 1. Node.js >= 24 Required
-
-The new package requires Node.js 24 or later. It uses modern Node.js APIs directly instead of polyfilling them with `readable-stream` and other shims.
-
-### 2. ESM Only
-
-There is no CommonJS build. If your project uses `require()`, you have a few options:
-
-- Use Node.js >= 22, which can `require()` ESM modules natively
-- Convert your project to ESM (`"type": "module"` in package.json)
-- Use dynamic `import()` in CommonJS files
-- Use a bundler that handles ESM
-
-### 3. Class Constructors Instead of Factory Function
-
-The format string is gone. Instead of passing `'zip'` or `'tar'` as a string argument to a factory function, you import and instantiate the class you need.
-
-```js
-// before
-const archive = archiver('zip', options)
-
-// after
-const archive = new ZipArchive(options)
-```
-
-Options are passed directly to the constructor — no wrapping needed. The same option keys work in both versions.
-
-If you were using `archiver.create('zip', options)`, replace it the same way.
-
-If you dynamically choose the format at runtime, use a simple conditional:
-
-```ts
-import { ZipArchive, TarArchive } from '@archiver/archiver'
-
-function createArchive(format: 'zip' | 'tar', options?: any) {
-  if (format === 'zip') return new ZipArchive(options)
-  if (format === 'tar') return new TarArchive(options)
-  throw new Error(`Unknown format: ${format}`)
-}
-```
 
 ---
 
