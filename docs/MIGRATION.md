@@ -21,9 +21,6 @@ import { ZipArchive } from '@archiver/archiver'
 const archive = new ZipArchive({ zlib: { level: 9 } })
 ```
 
-That's it. Every method call after the constructor stays the same.
-
----
 
 ## Step-by-Step
 
