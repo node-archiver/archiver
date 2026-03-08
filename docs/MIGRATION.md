@@ -76,9 +76,6 @@ archive.append('hello world', { name: 'hello.txt' })
 await archive.finalize()
 ```
 
-Same options. Same methods. Just a different import and constructor.
-
----
 
 ### Creating a TAR Archive
 
