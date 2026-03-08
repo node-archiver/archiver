@@ -207,7 +207,6 @@ If you depend on any of the underlying packages directly, here is how they map:
 | `zip-stream` | `@archiver/zip-stream` |
 | `compress-commons` | `@archiver/compress-commons` |
 | `tar-stream` (by @mafintosh) | `@archiver/tar-stream` |
-| `archiver-utils` | Removed (unused) |
 | `is-stream` | Use `isStream` from `@archiver/compress-commons/util` |
 | `normalize-path` | Use `normalizePath` from `@archiver/compress-commons/util` |
 
