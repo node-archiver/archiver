@@ -116,7 +116,7 @@ const archive = new ZipArchive(options)
 ```typescript
 import { TarArchive } from '@archiver/archiver'
 
-const archive = new TarArchive(options?)
+const archive = new TarArchive(options)
 ```
 
 #### Options
