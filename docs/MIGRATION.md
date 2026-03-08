@@ -205,7 +205,7 @@ Options are passed directly to the constructor — no wrapping needed. The same 
 
 ### Can I use `require()` to import `@archiver/archiver`?
 
-No. The package is ESM only. Use `import { ZipArchive } from '@archiver/archiver'` instead. If you are in a CommonJS file, you can use `const { ZipArchive } = await import('@archiver/archiver')` inside an async function.
+As `@archiver/archiver` is Node.js >= 24, `require` ESM is supported natively
 
 ### Is the API compatible?
 
