@@ -199,45 +199,9 @@ const archive = new ZipArchive(options)
 
 Options are passed directly to the constructor — no wrapping needed. The same option keys work in both versions.
 
----
+If you were using `archiver.create('zip', options)`, replace it the same way.
 
-## FAQ
-
-### Can I use `require()` to import `@archiver/archiver`?
-
-As `@archiver/archiver` is Node.js >= 24, `require` ESM is supported natively
-
-### Is the API compatible?
-
-Nearly all methods have the same signature. `append`, `file`, `finalize`, `abort`, `pointer`, and `symlink` are unchanged. Every event (`entry`, `progress`, `warning`, `error`) fires with the same data. Every option (`zlib`, `comment`, `gzip`, `gzipOptions`, `forceZip64`, etc.) works the same way.
-
-Minor differences: `directory` now takes `string | false` for `destpath` (use `''` instead of `false` for cleaner types). `glob` now requires all three parameters (`pattern`, `options`, `data`).
-
-The main changes are the import path and the constructor.
-
-### Do I still need `@types/archiver`?
-
-No. Remove it from your devDependencies. Types are included in `@archiver/archiver`.
-
-### What about `pipe()`?
-
-It works exactly the same way. `ZipArchive` and `TarArchive` extend Node.js `Transform`, so they are fully compatible with `pipe()`, `pipeline()`, and any stream-based workflow.
-
-### What if I was using `archiver.create()`?
-
-The old package had `archiver.create(format, options)` as an alternative to the factory function. Replace it the same way:
-
-```js
-// before
-const archive = archiver.create('zip', options)
-
-// after
-const archive = new ZipArchive(options)
-```
-
-### I dynamically choose the format at runtime. How do I handle that?
-
-Use a simple conditional:
+If you dynamically choose the format at runtime, use a simple conditional:
 
 ```ts
 import { ZipArchive, TarArchive } from '@archiver/archiver'
