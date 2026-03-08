@@ -262,13 +262,6 @@ If you depend on any of the underlying packages directly, here is how they map:
 | `compress-commons` | `@archiver/compress-commons` |
 | `tar-stream` (by @mafintosh) | `@archiver/tar-stream` |
 | `archiver-utils` | Removed (unused) |
-| `crc32-stream` | Removed (inlined into `@archiver/compress-commons`) |
-| `buffer-crc32` / `crc-32` | Removed (uses Node.js built-in CRC) |
-| `readable-stream` | Removed (uses `node:stream` directly) |
-| `async` | Removed (lightweight internal queue) |
-| `lodash` | Removed |
-| `graceful-fs` | Removed (uses `node:fs` directly) |
-| `lazystream` | Removed (lightweight internal implementation) |
 | `is-stream` | Removed (inlined) |
 | `normalize-path` | Removed (inlined) |
 
