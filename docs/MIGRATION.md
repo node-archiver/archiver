@@ -1,17 +1,11 @@
 # Migration Guide: `archiver` to `@archiver/archiver`
-
-
----
-
 ## Quick Migration
 
-There are three breaking changes:
+There are two breaking changes:
 
-1. **Node.js >= 24 required.** The new package uses modern Node.js APIs directly instead of polyfilling them with `readable-stream` and other shims.
+1. Node.js >= 24 is required.
 
-2. **ESM only.** No CommonJS build. Node.js >= 22 can `require()` ESM natively, or use `import()` / a bundler.
-
-3. **Class constructors instead of factory function.** The format string is gone — import and instantiate the class you need.
+2. Class constructors instead of factory function.
 
 For most codebases, migration is a two-line change:
 
@@ -29,8 +23,6 @@ import { ZipArchive } from '@archiver/archiver'
 const archive = new ZipArchive({ zlib: { level: 9 } })
 ```
 
-Every method call after the constructor stays the same. Options are passed directly — no wrapping needed.
-
 If you were using `archiver.create('zip', options)`, replace it the same way.
 
 If you dynamically choose the format at runtime, use a simple conditional:
@@ -44,9 +36,6 @@ function createArchive(format: 'zip' | 'tar', options?: any) {
   throw new Error(`Unknown format: ${format}`)
 }
 ```
-
----
-
 ## Step-by-Step
 
 ### Installation
