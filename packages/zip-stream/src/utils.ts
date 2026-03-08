@@ -1,4 +1,8 @@
-import { normalizePath, sanitizePath } from "@archiver/compress-commons/utils";
+import {
+  normalizePath,
+  sanitizePath,
+  isStream,
+} from "@archiver/compress-commons/utils";
 
 function dateify(dateish?: Date | string | null): Date {
   dateish ??= new Date();
@@ -14,4 +18,4 @@ function dateify(dateish?: Date | string | null): Date {
   return dateish;
 }
 
-export { dateify, sanitizePath, normalizePath };
+export { dateify, sanitizePath, normalizePath, isStream };

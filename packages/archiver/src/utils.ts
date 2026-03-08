@@ -1,1 +1,5 @@
-export { normalizePath, sanitizePath } from "@archiver/zip-stream/utils";
+export {
+  normalizePath,
+  sanitizePath,
+  isStream,
+} from "@archiver/zip-stream/utils";
