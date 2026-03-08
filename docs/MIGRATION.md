@@ -261,7 +261,7 @@ If you depend on any of the underlying packages directly, here is how they map:
 | `zip-stream` | `@archiver/zip-stream` |
 | `compress-commons` | `@archiver/compress-commons` |
 | `tar-stream` (by @mafintosh) | `@archiver/tar-stream` |
-| `archiver-utils` | Removed (inlined) |
+| `archiver-utils` | Removed (unused) |
 | `crc32-stream` | Removed (inlined into `@archiver/compress-commons`) |
 | `buffer-crc32` / `crc-32` | Removed (uses Node.js built-in CRC) |
 | `readable-stream` | Removed (uses `node:stream` directly) |
