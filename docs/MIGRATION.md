@@ -29,21 +29,17 @@ That's it. Every method call after the constructor stays the same.
 
 ### Installation
 
-**Before:**
-
-```bash
-npm install archiver
-npm install @types/archiver --save-dev  # if using TypeScript
-```
-
-**After:**
+Install `@archiver/archiver`
 
 ```bash
 npm install @archiver/archiver
-# types are included — no separate @types package needed
 ```
 
-You can also remove `@types/archiver` from your devDependencies if you had it.
+Remove `archiver` and `@types/archiver`
+
+```bash
+npm remove archiver @types/archiver
+```
 
 ---
 
