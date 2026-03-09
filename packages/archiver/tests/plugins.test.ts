@@ -45,8 +45,8 @@ describe("plugins", () => {
   });
 
   describe("tar", () => {
-    let actual = [];
-    let archive;
+    const actual = [];
+    let archive: TarArchive;
     const entries = {};
 
     beforeAll((done) => {
@@ -158,7 +158,7 @@ describe("plugins", () => {
   });
 
   describe("zip", () => {
-    let actual = [];
+    const actual = [];
     let archive: ZipArchive;
     const entries = {};
     let zipComment = "";

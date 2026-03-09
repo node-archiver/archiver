@@ -20,7 +20,7 @@ import {
   ZIP64_MAGIC_SHORT,
   ZLIB_BEST_SPEED,
 } from "../constants";
-import { getEightBytes, getLongBytes, getShortBytes } from "../util";
+import { getEightBytes, getLongBytes, getShortBytes } from "../utils";
 import { ArchiveOutputStream } from "./archive-output-stream";
 import { CRC32Stream, DeflateCRC32Stream } from "./crc32-stream";
 import type { ZipArchiveEntry } from "./zip-archive-entry";
@@ -52,8 +52,8 @@ class ZipArchiveOutputStream extends ArchiveOutputStream {
     finish: boolean;
     finished: boolean;
     processing: boolean;
-    forceZip64: boolean;
-    forceLocalTime: boolean;
+    forceZip64?: boolean;
+    forceLocalTime?: boolean;
   };
 
   constructor(options?: Partial<ZipOptions>) {

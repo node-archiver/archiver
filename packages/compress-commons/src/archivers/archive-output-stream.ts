@@ -1,11 +1,13 @@
 import { type Stream, Transform, PassThrough } from "node:stream";
 
-import { isStream } from "../util";
+import { isStream } from "../utils";
 import { ArchiveEntry } from "./archive-entry";
 
 function normalizeInputSource(
   source: null | string | Stream | Buffer,
 ): Stream | Buffer {
+  source ||= null;
+
   if (source === null) {
     return Buffer.alloc(0);
   }

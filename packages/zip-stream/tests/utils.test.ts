@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import { dateify, sanitizePath } from "../src/utils.js";
+import { dateify, sanitizePath } from "../src/utils";
 
 const testDateString = "Jan 03 2013 14:26:38 GMT";
 const testDate = new Date(testDateString);

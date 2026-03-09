@@ -92,6 +92,12 @@ function normalizePath(path: string, stripTrailing: boolean): string {
   return prefix + segs.join("/");
 }
 
+function sanitizePath(filepath: string): string {
+  return normalizePath(filepath, false)
+    .replace(/^\w+:/, "")
+    .replace(/^(\.\.\/|\/)+/, "");
+}
+
 export {
   isStream,
   dateToDos,
@@ -101,4 +107,5 @@ export {
   getShortBytesValue,
   getLongBytes,
   normalizePath,
+  sanitizePath,
 };

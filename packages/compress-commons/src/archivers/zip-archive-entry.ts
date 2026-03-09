@@ -12,7 +12,7 @@ import {
   SHORT_SHIFT,
   ZIP64_MAGIC,
 } from "../constants";
-import { dateToDos, dosToDate, normalizePath } from "../util";
+import { dateToDos, dosToDate, sanitizePath } from "../utils";
 import { ArchiveEntry } from "./archive-entry";
 import { GeneralPurposeBit } from "./general-purpose-bit";
 import * as UnixStat from "./unix-stat";
@@ -265,9 +265,7 @@ class ZipArchiveEntry extends ArchiveEntry {
    * Sets the name of the entry.
    */
   setName(name: string, prependSlash: boolean = false): void {
-    name = normalizePath(name, false)
-      .replace(/^\w+:/, "")
-      .replace(/^(\.\.\/|\/)+/, "");
+    name = sanitizePath(name);
 
     if (prependSlash) {
       name = `/${name}`;

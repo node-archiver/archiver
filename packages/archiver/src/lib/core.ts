@@ -1,14 +1,37 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { Transform, type TransformCallback, type Stream } from "node:stream";
+import {
+  Transform,
+  type TransformCallback,
+  type Stream,
+  PassThrough,
+} from "node:stream";
 
-import { dateify, sanitizePath } from "@archiver/zip-stream/utils";
+import { dateify, sanitizePath, isStream } from "@archiver/zip-stream/utils";
 import readdirGlob from "readdir-glob";
 
 import { queue } from "./async";
 import { ArchiverError } from "./error";
 import { Readable } from "./lazystream";
-import { isStream, normalizeInputSource, trailingSlashIt } from "./utils";
+
+function trailingSlashIt(str: string): string {
+  return str.slice(-1) !== "/" ? str + "/" : str;
+}
+
+function normalizeInputSource(source: Buffer | Stream | string | null) {
+  if (source === null) {
+    return Buffer.alloc(0);
+  } else if (typeof source === "string") {
+    return Buffer.from(source);
+  } else if (isStream(source)) {
+    // Always pipe through a PassThrough stream to guarantee pausing the stream if it's already flowing,
+    // since it will only be processed in a (distant) future iteration of the event loop, and will lose
+    // data if already flowing now.
+    return source.pipe(new PassThrough());
+  }
+
+  return source;
+}
 
 const { ReaddirGlob } = readdirGlob;
 

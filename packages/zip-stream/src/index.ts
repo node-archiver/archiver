@@ -120,7 +120,7 @@ class ZipStream extends ZipArchiveOutputStream {
    */
   // @ts-expect-error
   entry(
-    source: Buffer | Stream | string,
+    source: Buffer | Stream | string | null,
     data: Partial<FileEntryData>,
     callback?: (error: Error) => void,
   ): this {
