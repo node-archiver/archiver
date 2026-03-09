@@ -234,40 +234,6 @@ archive.on("warning", (err) => {
 });
 ```
 
-## Packages
-
-This project is a monorepo with four focused packages:
-
-```text
-@archiver/archiver          — Main entry point, streaming archive generation
-├── @archiver/zip-stream    — ZIP format handler
-│   └── @archiver/compress-commons — Shared archive abstractions
-├── @archiver/tar-stream    — TAR format handler (zero runtime deps)
-└── readdir-glob            — Only external dependency
-```
-
-The sub-packages can be used on their own if you need lower-level control. The `Archiver` base class is also exported if you need to build a custom format.
-
-### `@archiver/tar-stream`
-
-Standalone TAR packing and extraction.
-
-```typescript
-import { pack, extract } from "@archiver/tar-stream";
-```
-
-### `@archiver/zip-stream`
-
-Standalone ZIP stream generation.
-
-```typescript
-import { ZipStream } from "@archiver/zip-stream";
-```
-
-### `@archiver/compress-commons`
-
-Shared abstractions for archive formats. Used internally by `@archiver/zip-stream`.
-
 ## Migration
 
 Coming from `archiver`? See the [Migration Guide](./docs/MIGRATION.md).

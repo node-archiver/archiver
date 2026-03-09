@@ -1,0 +1,32 @@
+{
+  "name": "@archiver/readdir-glob",
+  "version": "0.0.0",
+  "description": "Recursive fs.readdir with streaming API and glob filtering.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/node-archiver/archiver.git",
+    "directory": "packages/readdir-glob"
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "test": "bun test --reporter dot --preload ./tests/hooks.ts",
+    "prepublishOnly": "bun run build"
+  },
+  "dependencies": {
+    "minimatch": "^5.1.9"
+  },
+  "devDependencies": {
+    "tsdown": "catalog:"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

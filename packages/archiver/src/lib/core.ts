@@ -7,8 +7,8 @@ import {
   PassThrough,
 } from "node:stream";
 
+import readdirGlob from "@archiver/readdir-glob";
 import { dateify, sanitizePath, isStream } from "@archiver/zip-stream/utils";
-import readdirGlob from "readdir-glob";
 
 import { queue } from "./async";
 import { ArchiverError } from "./error";
@@ -53,7 +53,9 @@ interface EntryData {
   stats?: fs.Stats;
 }
 
-interface GlobOptions {}
+interface GlobOptions {
+  cwd: string;
+}
 
 function normalizeEntryData(data: EntryData, stats?: fs.Stats): EntryData {
   const normalizedData = {

@@ -1,0 +1,173 @@
+import { afterAll, afterEach, beforeAll } from "bun:test";
+// just a little pre-run script to set up the fixtures.
+// zz-finish cleans it up
+const mkdirp = require("mkdirp");
+const path = require("node:path");
+const fs = require("node:fs");
+
+function promisify(func) {
+  return function (...args) {
+    return new Promise(function (resolve, reject) {
+      func(...args, function (...callbackArgs) {
+        if (callbackArgs[0]) {
+          reject(callbackArgs[0]);
+        } else {
+          resolve(...callbackArgs.slice(1));
+        }
+      });
+    });
+  };
+}
+const fsPromises = {
+  writeFile: promisify(fs.writeFile),
+  symlink: promisify(fs.symlink),
+};
+
+function cleanResults(m) {
+  // normalize discrepancies in ordering, duplication,
+  // and ending slashes.
+  return m.sort(alphasort);
+}
+
+function flatten(chunks) {
+  let s = 0;
+  chunks.forEach(function (c) {
+    s += c.length;
+  });
+  const out = Buffer.alloc(s);
+  s = 0;
+  chunks.forEach(function (c) {
+    c.copy(out, s);
+    s += c.length;
+  });
+  return out.toString().trim();
+}
+
+function alphasort(a, b) {
+  a = a.toLowerCase();
+  b = b.toLowerCase();
+  return a > b ? 1 : a < b ? -1 : 0;
+}
+
+beforeAll(async () => {
+  const fixtureDir = path.resolve(__dirname, "fixtures");
+
+  let files = [
+    "a/.abcdef/x/y/z/a",
+    "a/abcdef/g/h",
+    "a/abcfed/g/h",
+    "a/b/c/d",
+    "a/bc/e/f",
+    "a/c/d/c/b",
+    "a/cb/e/f",
+    "a/x/.y/b",
+    "a/z/.y/b",
+  ];
+
+  const symlinkTo = path.resolve(fixtureDir, "a/symlink/a/b/c");
+  const symlinkFrom = "../../../b";
+
+  files = files.map((f) => path.resolve(fixtureDir, f));
+
+  await new Promise((resolve, reject) =>
+    fs.rm(fixtureDir, { recursive: true, force: true }, resolve),
+  );
+
+  for (let f of files) {
+    f = path.resolve(fixtureDir, f);
+    const d = path.dirname(f);
+    await mkdirp(d, "0755");
+    await fsPromises.writeFile(f, "i like tests");
+  }
+
+  if (process.platform !== "win32") {
+    const d = path.dirname(symlinkTo);
+    await mkdirp(d, "0755");
+    await fsPromises.symlink(symlinkFrom, symlinkTo, "dir");
+  }
+
+  // generate the bash pattern test-fixtures if possible
+  if (process.platform === "win32" || !process.env.TEST_REGEN) {
+    //console.info('Windows, or TEST_REGEN unset.  Using cached fixtures.');
+    return;
+  }
+
+  const spawn = require("node:child_process").spawn;
+  const globs = [
+    // put more patterns here.
+    // anything that would be directly in / should be in /tmp/glob-test
+    "a/{b,c,d,e,f}/**/g",
+    "a/b/**",
+    "**/g",
+    "a/abc{fed,def}/g/h",
+    "a/abc{fed/g,def}/**/",
+    "a/abc{fed/g,def}/**///**/",
+    "**/a/**/",
+    "+(a|b|c)/a{/,bc*}/**",
+    "*/*/*/f",
+    "**/f",
+    "a/!(symlink)/**",
+    "a/symlink/a/**/*",
+  ];
+  const bashOutput = {};
+
+  try {
+    for (const pattern of globs) {
+      const opts = [
+        "-O",
+        "globstar",
+        "-O",
+        "extglob",
+        "-O",
+        "nullglob",
+        "-c",
+        "for i in " + pattern + "; do echo $i; done",
+      ];
+      const cp = spawn("bash", opts, { cwd: fixtureDir });
+      let out = [];
+      cp.stdout.on("data", function (c) {
+        out.push(c);
+      });
+      cp.stderr.pipe(process.stderr);
+      await new Promise((resolve, reject) => {
+        cp.on("close", (code) => {
+          if (code !== 0) {
+            reject();
+          }
+          out = flatten(out);
+          if (!out) {
+            out = [];
+          } else {
+            out = cleanResults(out.split(/\r*\n/));
+          }
+
+          bashOutput[pattern] = out;
+          resolve();
+        });
+      });
+    }
+  } catch (e) {
+    // Something went wrong when using bash, bash-results.json should not be overriden.
+    console.error("Unable to regenerate bash-results.json");
+    return;
+  }
+
+  const fname = path.resolve(__dirname, "bash-results.json");
+  const data = JSON.stringify(bashOutput, null, 2) + "\n";
+  await fsPromises.writeFile(fname, data);
+});
+
+afterAll(async () => {
+  await new Promise((resolve, reject) =>
+    fs.rm(
+      path.resolve(__dirname, "fixtures"),
+      { recursive: true, force: true },
+      resolve,
+    ),
+  );
+});
+
+const origCwd = process.cwd();
+afterEach(async () => {
+  process.chdir(origCwd);
+});
