@@ -8,8 +8,13 @@ on:
 
 jobs:
   test:
-    name: Build and Test
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    name: Build and Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout repository
@@ -26,8 +31,8 @@ jobs:
       - name: Lint
         run: bun run lint
 
-      - name: Build
+      - name: Build (${{ matrix.os }})
         run: bun run build
 
-      - name: Run tests
+      - name: Run tests (${{ matrix.os }})
         run: bun run test
