@@ -2,19 +2,14 @@ import { it, beforeEach, describe, expect } from "bun:test";
 
 import glob from "@archiver/readdir-glob";
 
-function skipIfWindows() {
-  if (process.platform === "win32") {
-    pending("Symlinks not supported on Windows");
-  }
-}
+const win32 = process.platform === "win32";
 
 describe("follow", () => {
   beforeEach(() => {
     process.chdir(__dirname + "/fixtures");
   });
 
-  it("follow symlinks", (done) => {
-    skipIfWindows();
+  it.skipIf(win32)("follow symlinks", (done) => {
     const pattern = "a/symlink/**";
     const long = "a/symlink/a/b/c/c/d";
 

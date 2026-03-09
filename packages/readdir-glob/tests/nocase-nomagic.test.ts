@@ -1,4 +1,4 @@
-import { it, beforeEach, describe, expect } from "bun:test";
+import { it, beforeEach, describe, expect, spyOn } from "bun:test";
 import * as fs from "node:fs";
 
 import glob from "@archiver/readdir-glob";

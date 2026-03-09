@@ -22,7 +22,7 @@ describe("bash-comparison", () => {
   });
 
   ["a/{b,c,d,e,f}/**/g"].forEach((pattern) => {
-    let expectedFiles = [];
+    let expectedFiles: string[] = [];
 
     // anything regarding the symlink thing will fail on windows, so just skip it
     if (process.platform === "win32") {

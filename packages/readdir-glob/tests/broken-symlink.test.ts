@@ -3,11 +3,7 @@ import * as fs from "node:fs";
 
 import glob from "@archiver/readdir-glob";
 
-function skipIfWindows() {
-  if (process.platform === "win32") {
-    pending("Symlinks not supported on Windows");
-  }
-}
+const win32 = process.platform === "win32";
 
 function cleanup() {
   fs.rmSync("broken-symlink", { recursive: true, force: true });
@@ -48,10 +44,9 @@ describe("broken-symlink", () => {
 
   patterns.forEach((pattern) => {
     opts.forEach((opt) => {
-      it(
+      it.skipIf(win32)(
         "async test pattern=" + pattern + ", opts=" + JSON.stringify(opt),
         (done) => {
-          skipIfWindows();
           glob(".", { ...opt, pattern }, (er, res) => {
             if (er) {
               fail(er);

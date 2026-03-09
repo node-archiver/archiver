@@ -3,11 +3,7 @@ import * as path from "node:path";
 
 import glob from "@archiver/readdir-glob";
 
-function skipIfWindows() {
-  if (process.platform === "win32") {
-    pending("Symlinks not supported on Windows");
-  }
-}
+const win32 = process.platform === "win32";
 
 const fixtureDir = path.resolve(__dirname, "fixtures");
 const pattern = "a/symlink/{*,**/*/*/*,*/*/**,*/*/*/*/*/*}";
@@ -38,8 +34,7 @@ describe("realpath", () => {
   cases.forEach((c) => {
     const opt = c[0];
 
-    it(JSON.stringify(c), (done) => {
-      skipIfWindows();
+    it.skipIf(win32)(JSON.stringify(c), (done) => {
       let expected = c[1];
       if (!(opt.nonull && expected[0].match(/^no one here/))) {
         expected = expected.map((d) => {
