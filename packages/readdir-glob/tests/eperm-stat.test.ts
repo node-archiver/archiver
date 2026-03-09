@@ -1,5 +1,6 @@
 import { it, beforeEach, describe, expect } from "bun:test";
-const fs = require("node:fs");
+import * as fs from "node:fs";
+
 import glob from "@archiver/readdir-glob";
 
 describe("eperm-stat", () => {

@@ -1,5 +1,6 @@
 import { it, beforeEach, describe, expect } from "bun:test";
-const path = require("node:path");
+import * as path from "node:path";
+
 import glob from "@archiver/readdir-glob";
 
 describe("cwd-test", () => {

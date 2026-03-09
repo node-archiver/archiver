@@ -1,7 +1,8 @@
 import { it, beforeEach, describe, expect } from "bun:test";
-const fs = require("node:fs");
+import * as fs from "node:fs";
+import * as path from "node:path";
+
 import glob from "@archiver/readdir-glob";
-const path = require("node:path");
 
 describe("enotsup", () => {
   beforeEach(() => {

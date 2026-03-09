@@ -119,7 +119,7 @@ export type Options = {
    * Glob pattern or Array of Glob patterns to match the found files with.
    * A file has to match at least one of the provided patterns to be returned.
    */
-  pattern?: string | string[];
+  pattern?: string | readonly string[];
   /**
    * Allow pattern to match filenames starting with a period, even if the pattern
    * does not explicitly have a period in that spot.
@@ -147,14 +147,14 @@ export type Options = {
    * It doesn't prevent files from folder content to be returned. Note: ignore
    * patterns are always in dot:true mode.
    */
-  ignore?: string | string[];
+  ignore?: string | readonly string[];
   /**
    * Glob pattern or Array of Glob patterns to exclude folders.
    * If a folder matches one of the provided patterns, it's not returned, and
    * it's not explored: this prevents any of its children to be returned.
    * Note: skip patterns are always in dot:true mode.
    */
-  skip?: string | string[];
+  skip?: string | readonly string[];
   /**
    * Follow symlinked directories. Note that requires to stat _all_ results,
    * and so reduces performance.

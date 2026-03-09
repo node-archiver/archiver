@@ -1,5 +1,7 @@
+import { it, beforeEach, describe, expect } from "bun:test";
+import * as path from "node:path";
+
 import glob from "@archiver/readdir-glob";
-const path = require("node:path");
 
 function skipIfWindows() {
   if (process.platform === "win32") {

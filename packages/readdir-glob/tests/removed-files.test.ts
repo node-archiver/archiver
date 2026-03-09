@@ -1,14 +1,15 @@
+import { it, beforeEach, describe, expect, afterEach } from "bun:test";
+import * as fs from "node:fs";
+
 import glob from "@archiver/readdir-glob";
-const mkdirp = require("mkdirp");
-const fs = require("node:fs");
 
 const dir = __dirname + "/removed-files";
 
 describe("removed-files", () => {
   beforeEach(() => {
-    mkdirp.sync(dir);
-    mkdirp.sync(dir + "/b");
-    mkdirp.sync(dir + "/a");
+    fs.mkdirSync(dir, { recursive: true });
+    fs.mkdirSync(dir + "/b", { recursive: true });
+    fs.mkdirSync(dir + "/a", { recursive: true });
     fs.writeFileSync(dir + "/a/a.txt", "a", "ascii");
     fs.writeFileSync(dir + "/a/b.txt", "b", "ascii");
   });
@@ -19,7 +20,7 @@ describe("removed-files", () => {
 
   it("removed file during exploration", (done) => {
     const g = glob(dir, { stat: true });
-    const files = [];
+    const files: string[] = [];
 
     g.on("match", (match) => {
       if (/a\/.+/.test(match.relative)) {
@@ -36,7 +37,7 @@ describe("removed-files", () => {
 
   it("folder turned into a file during exploration", (done) => {
     const g = glob(dir, { stat: true });
-    const files = [];
+    const files: string[] = [];
 
     g.on("match", (match) => {
       if (match.relative === "a") {

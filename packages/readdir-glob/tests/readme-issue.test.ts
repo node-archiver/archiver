@@ -1,12 +1,13 @@
-const glob = require("../");
-const mkdirp = require("mkdirp");
-const fs = require("node:fs");
+import { it, beforeEach, describe, expect, afterEach } from "bun:test";
+import * as fs from "node:fs";
+
+import glob from "@archiver/readdir-glob";
 
 const dir = __dirname + "/package";
 
 describe("readme-issue", () => {
   beforeEach(() => {
-    mkdirp.sync(dir);
+    fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(dir + "/package.json", "{}", "ascii");
     fs.writeFileSync(dir + "/README", "x", "ascii");
   });

@@ -1,8 +1,9 @@
 import { it, beforeEach, describe, expect } from "bun:test";
+import { isAbsolute } from "node:path";
 
 import glob from "@archiver/readdir-glob";
-const bashResults = require("./bash-results.json");
-const isAbsolute = require("node:path").isAbsolute;
+
+import bashResults from "./bash-results.json";
 
 describe("absolute", () => {
   beforeEach(() => {

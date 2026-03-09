@@ -1,5 +1,8 @@
-const { ReaddirGlob } = require("../");
-const bashResults = require("./bash-results.json");
+import { it, beforeEach, describe, expect } from "bun:test";
+
+import { ReaddirGlob } from "@archiver/readdir-glob";
+
+import bashResults from "./bash-results.json";
 
 const pattern = "a/!(symlink)/**";
 
@@ -21,10 +24,10 @@ describe("pause-resume", () => {
   }
 
   it("use a ReaddirGlob object, and pause/resume it", (done) => {
-    let globResults = [];
+    let globResults: string[] = [];
 
     let cb;
-    const cbSet = new Promise((resolve, _) => (cb = resolve));
+    const cbSet = new Promise((resolve) => (cb = resolve));
 
     const g = new ReaddirGlob(".", { pattern }, (_, matches) => cb(matches));
     const expected = bashResults[pattern];

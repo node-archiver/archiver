@@ -2,7 +2,6 @@ import { it, beforeEach, describe, expect, afterEach } from "bun:test";
 import * as fs from "node:fs";
 
 import glob from "@archiver/readdir-glob";
-const mkdirp = require("mkdirp");
 
 function skipIfWindows() {
   if (process.platform === "win32") {
@@ -17,7 +16,9 @@ function cleanup() {
 describe("broken-symlink", () => {
   beforeEach(() => {
     process.chdir(__dirname);
-    mkdirp.sync(process.cwd() + "/broken-symlink/a/broken-link");
+    fs.mkdirSync(process.cwd() + "/broken-symlink/a/broken-link", {
+      recursive: true,
+    });
     fs.symlinkSync("this-does-not-exist", "broken-symlink/a/broken-link/link");
   });
 

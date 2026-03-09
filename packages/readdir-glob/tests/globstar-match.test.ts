@@ -1,15 +1,16 @@
 import { it, describe, expect } from "bun:test";
-const ReaddirGlob = require("..").ReaddirGlob;
+
+import { ReaddirGlob } from "@archiver/readdir-glob";
 
 describe("globstar-match", () => {
   it("globstar should not have dupe matches", (done) => {
     const pattern = "a/**/[gh]";
     let cb;
-    const cbSet = new Promise((resolve, _) => (cb = resolve));
+    const cbSet = new Promise<string[]>((resolve) => (cb = resolve));
     const g = new ReaddirGlob(".", { cwd: __dirname, pattern }, (_, matches) =>
       cb(matches),
     );
-    const matches = [];
+    const matches: string[] = [];
     g.on("match", (m) => matches.push(m.relative));
     g.on("end", () => {
       cbSet.then((set) => {
