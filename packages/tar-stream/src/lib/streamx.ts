@@ -369,7 +369,7 @@ class Readable extends Stream {
 
   setEncoding(encoding?: BufferEncoding): this {
     const dec = new TextDecoder(encoding);
-    const map = this._readableState!.map ?? ((s: any) => s);
+    const map = this._readableState!.map ?? ((s: unknown) => s);
     this._readableState!.map = mapOrSkip;
     return this;
 
@@ -455,8 +455,8 @@ class Readable extends Stream {
   static from(data: unknown, opts?: Partial<ReadableOptions>): unknown {
     if (isReadStreamx(data)) return data;
 
-    if ((data as any)[Symbol.asyncIterator])
-      return this._fromAsyncIterator((data as any)[Symbol.asyncIterator](), opts);
+    if (data !== null && typeof data === "object" && Symbol.asyncIterator in data)
+      return this._fromAsyncIterator((data as AsyncIterable<Buffer>)[Symbol.asyncIterator](), opts);
 
     if (!Array.isArray(data)) data = data === undefined ? [] : [data];
 
@@ -464,7 +464,7 @@ class Readable extends Stream {
     return new Readable({
       ...opts,
       read(callback) {
-        this.push(i === (data as any[]).length ? null : (data as any[])[i++]);
+        this.push(i === (data as unknown[]).length ? null : (data as unknown[])[i++] as Buffer);
         callback(null);
       },
     });
@@ -482,11 +482,12 @@ class Readable extends Stream {
   }
 
   [Symbol.asyncIterator]() {
+    // eslint-disable-next-line no-this-alias -- used in closures below
     const stream = this;
 
     let error: Error | null = null;
     let promiseResolve: ((value: unknown) => void) | null = null;
-    let promiseReject: ((reason?: any) => void) | null = null;
+    let promiseReject: ((reason?: unknown) => void) | null = null;
 
     this.on("error", (err) => {
       error = err;
@@ -753,7 +754,7 @@ class WritableState {
     }
 
     if ((stream._duplexState & OPEN_STATUS) !== 0) return callback(null);
-    (stream as any)._writev(buffer, callback);
+    (stream as unknown as Writable)._writev(buffer, callback);
   }
 
   update(): void {
@@ -765,7 +766,7 @@ class WritableState {
       while ((stream._duplexState & WRITE_STATUS) === WRITE_QUEUED) {
         const data = this.shift();
         stream._duplexState |= WRITE_ACTIVE_AND_WRITING;
-        (stream as any)._write(data, this.afterWrite);
+        (stream as unknown as Writable)._write(data as Buffer, this.afterWrite);
       }
 
       if ((stream._duplexState & WRITE_PRIMARY_AND_ACTIVE) === 0)
@@ -780,7 +781,7 @@ class WritableState {
 
     if ((stream._duplexState & WRITE_FINISHING_STATUS) === WRITE_FINISHING) {
       stream._duplexState = stream._duplexState | WRITE_ACTIVE;
-      (stream as any)._final(afterFinal.bind(this));
+      (stream as unknown as Writable)._final(afterFinal.bind(this));
       return;
     }
 
@@ -891,7 +892,7 @@ class ReadableState {
   error: Error | null;
   pipeline: Pipeline | null;
   byteLength: (data: Buffer) => number;
-  map: ((data: any) => any) | null;
+  map: ((data: unknown) => unknown) | null;
   pipeTo: Writable | null;
   afterRead: () => void;
   afterUpdateNextTick: () => void;
@@ -964,7 +965,7 @@ class ReadableState {
     }
 
     if (this.map !== null) {
-      data = this.map(data);
+      data = this.map(data) as Buffer;
       if (data === null) {
         stream._duplexState &= READ_PUSHED;
         return this.buffered < this.highWaterMark;
@@ -988,7 +989,7 @@ class ReadableState {
   }
 
   unshift(data: Buffer): void {
-    const pending: Buffer[] = [this.map !== null ? this.map(data) : data];
+    const pending: Buffer[] = [this.map !== null ? this.map(data) as Buffer : data];
     while (this.buffered > 0) pending.push(this.shift() as Buffer);
 
     for (let i = 0; i < pending.length - 1; i++) {

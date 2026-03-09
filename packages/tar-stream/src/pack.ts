@@ -113,7 +113,7 @@ class TarPackSink extends Writable {
     this._pack._stream = this;
 
     if (!this._isLinkname) {
-      this._pack._encode(this.header as any);
+      this._pack._encode(this.header as unknown as TarHeader);
     }
 
     if (this._isVoid) {
@@ -153,7 +153,7 @@ class TarPackSink extends Writable {
       this.header.linkname = this._linkname
         ? this._linkname.toString("utf-8")
         : "";
-      this._pack._encode(this.header as any);
+      this._pack._encode(this.header as unknown as TarHeader);
     }
 
     overflow(this._pack, this.header.size);
@@ -319,13 +319,13 @@ class TarPack extends Readable {
       devminor: header.devminor,
     };
 
-    this.push(headers.encode(newHeader as any)!);
+    this.push(headers.encode(newHeader as unknown as TarHeader)!);
     this.push(paxHeader);
     overflow(this, paxHeader.byteLength);
 
     newHeader.size = header.size;
     newHeader.type = header.type;
-    this.push(headers.encode(newHeader as any)!);
+    this.push(headers.encode(newHeader as unknown as TarHeader)!);
   }
 
   _doDrain(): void {

@@ -29,6 +29,7 @@ class Json extends Transform implements ArchiverModule {
     this.write(fileString);
   }
 
+  // eslint-disable-next-line no-explicit-any -- data is dynamically extended with crc32/size
   append(source: Buffer | Stream, data: any, callback: (err: Error | null, data?: any) => void): void {
     data.crc32 = 0;
 

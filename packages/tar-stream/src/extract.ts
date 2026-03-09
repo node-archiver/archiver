@@ -138,6 +138,7 @@ class TarExtract extends Writable {
   _callback?: (err?: Error | null) => void;
   _locked: boolean;
   _finished: boolean;
+  // eslint-disable-next-line no-explicit-any -- dynamically mutated by decode/applyLongHeaders
   _header: any;
   _pax: Record<string, string> | null;
   _paxGlobal: Record<string, string> | null;
@@ -148,7 +149,7 @@ class TarExtract extends Writable {
   _unlockBound: (err?: Error) => void;
 
   constructor(opts?: TarExtractOptions) {
-    super(opts as any);
+    super();
 
     if (!opts) opts = {};
 
@@ -360,12 +361,13 @@ class TarExtract extends Writable {
   [Symbol.asyncIterator]() {
     let error: Error | null = null;
 
-    let promiseResolve: ((value: any) => void) | null = null;
-    let promiseReject: ((reason?: any) => void) | null = null;
+    let promiseResolve: ((value: { value: TarExtractSource | undefined; done: boolean }) => void) | null = null;
+    let promiseReject: ((reason?: unknown) => void) | null = null;
 
     let entryStream: TarExtractSource | null = null;
     let entryCallback: ((err?: Error | null) => void) | null = null;
 
+    // eslint-disable-next-line no-this-alias -- used in closures below
     const extract = this;
 
     this.on("entry", onentry);
@@ -378,8 +380,8 @@ class TarExtract extends Writable {
       [Symbol.asyncIterator](): typeof this {
         return this;
       },
-      next(): Promise<{ value: TarExtractSource; done: boolean }> {
-        return new Promise<{ value: TarExtractSource; done: boolean }>(onnext);
+      next(): Promise<{ value: TarExtractSource | undefined; done: boolean }> {
+        return new Promise<{ value: TarExtractSource | undefined; done: boolean }>(onnext);
       },
       return(): Promise<{ value: undefined; done: true }> {
         return destroy(undefined);
@@ -396,7 +398,7 @@ class TarExtract extends Writable {
       callback(err);
     }
 
-    function onnext(resolve: (value: any) => void, reject: (reason?: any) => void) {
+    function onnext(resolve: (value: { value: TarExtractSource | undefined; done: boolean }) => void, reject: (reason?: unknown) => void) {
       if (error) {
         return reject(error);
       }
@@ -418,6 +420,7 @@ class TarExtract extends Writable {
       }
     }
 
+    // eslint-disable-next-line no-explicit-any -- header type matches dynamically decoded _header
     function onentry(header: any, stream: TarExtractSource, callback: (err?: Error | null) => void): void {
       entryCallback = callback;
       stream.on("error", () => {}); // no way around this due to tick sillyness

@@ -287,7 +287,7 @@ class Archiver extends Transform {
    */
   private _append(filepath: string, data?: EntryData): void {
     const entryData: EntryData = data || { name: "" };
-    let task: QueueTask = {
+    const task: QueueTask = {
       source: null,
       filepath: filepath,
       data: entryData,
