@@ -10,7 +10,7 @@ function alphasort(a, b) {
   return a > b ? 1 : a < b ? -1 : 0;
 }
 
-function cleanResults(m) {
+function cleanResults(m: string[]) {
   // normalize discrepancies in ordering, duplication,
   // and ending slashes.
   return m.sort(alphasort);
@@ -31,7 +31,7 @@ describe("bash-comparison", () => {
 
     it(pattern, (done) => {
       const g = glob(".", { pattern });
-      let matches = [];
+      let matches: string[] = [];
       g.on("match", (match) => {
         matches.push(match.relative);
       });

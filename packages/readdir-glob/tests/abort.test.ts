@@ -8,7 +8,7 @@ describe("abort", () => {
     process.chdir(__dirname);
   });
 
-  it("abort prevents any action", (done) => {
+  it("abort prevents any action", () => {
     const globs = [
       glob(".", { pattern: "a/**" }),
       glob(".", { pattern: "a/" }),
@@ -24,16 +24,12 @@ describe("abort", () => {
       // throw new Error("Invalid call");
     });
     spyOn(fs, "stat").mockImplementation(() => {
-      // throw new Error("Invalid call");
+      throw new Error("Invalid call");
     });
     spyOn(fs, "lstat").mockImplementation(() => {
-      // throw new Error("Invalid call");
+      throw new Error("Invalid call");
     });
 
     globs.forEach((glob) => glob.abort());
-
-    setTimeout(function () {
-      done();
-    }, 100);
   });
 });

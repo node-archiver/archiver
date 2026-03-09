@@ -1,27 +1,10 @@
 import { afterAll, afterEach, beforeAll } from "bun:test";
+import { spawn } from "node:child_process";
+import * as fs from "node:fs";
+import * as fsPromises from "node:fs/promises";
 // just a little pre-run script to set up the fixtures.
 // zz-finish cleans it up
-const mkdirp = require("mkdirp");
-const path = require("node:path");
-const fs = require("node:fs");
-
-function promisify(func) {
-  return function (...args) {
-    return new Promise(function (resolve, reject) {
-      func(...args, function (...callbackArgs) {
-        if (callbackArgs[0]) {
-          reject(callbackArgs[0]);
-        } else {
-          resolve(...callbackArgs.slice(1));
-        }
-      });
-    });
-  };
-}
-const fsPromises = {
-  writeFile: promisify(fs.writeFile),
-  symlink: promisify(fs.symlink),
-};
+import * as path from "node:path";
 
 function cleanResults(m) {
   // normalize discrepancies in ordering, duplication,
@@ -69,20 +52,20 @@ beforeAll(async () => {
 
   files = files.map((f) => path.resolve(fixtureDir, f));
 
-  await new Promise((resolve, reject) =>
+  await new Promise((resolve) =>
     fs.rm(fixtureDir, { recursive: true, force: true }, resolve),
   );
 
   for (let f of files) {
     f = path.resolve(fixtureDir, f);
     const d = path.dirname(f);
-    await mkdirp(d, "0755");
+    await fsPromises.mkdir(d, { recursive: true, mode: "0755" });
     await fsPromises.writeFile(f, "i like tests");
   }
 
   if (process.platform !== "win32") {
     const d = path.dirname(symlinkTo);
-    await mkdirp(d, "0755");
+    await fsPromises.mkdir(d, "0755");
     await fsPromises.symlink(symlinkFrom, symlinkTo, "dir");
   }
 
@@ -92,7 +75,6 @@ beforeAll(async () => {
     return;
   }
 
-  const spawn = require("node:child_process").spawn;
   const globs = [
     // put more patterns here.
     // anything that would be directly in / should be in /tmp/glob-test
@@ -129,16 +111,16 @@ beforeAll(async () => {
         out.push(c);
       });
       cp.stderr.pipe(process.stderr);
-      await new Promise((resolve, reject) => {
+      await new Promise<void>((resolve, reject) => {
         cp.on("close", (code) => {
           if (code !== 0) {
             reject();
           }
-          out = flatten(out);
-          if (!out) {
+          const flattenOut = flatten(out);
+          if (!flattenOut) {
             out = [];
           } else {
-            out = cleanResults(out.split(/\r*\n/));
+            out = cleanResults(flattenOut.split(/\r*\n/));
           }
 
           bashOutput[pattern] = out;
@@ -146,7 +128,7 @@ beforeAll(async () => {
         });
       });
     }
-  } catch (e) {
+  } catch {
     // Something went wrong when using bash, bash-results.json should not be overriden.
     console.error("Unable to regenerate bash-results.json");
     return;
@@ -158,7 +140,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await new Promise((resolve, reject) =>
+  await new Promise((resolve) =>
     fs.rm(
       path.resolve(__dirname, "fixtures"),
       { recursive: true, force: true },
