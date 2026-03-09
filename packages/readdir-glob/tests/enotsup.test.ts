@@ -8,7 +8,7 @@ describe("enotsup", () => {
   beforeEach(() => {
     process.chdir(__dirname + "/fixtures");
     const readdir = fs.readdir;
-    spyOn(fs, "readdir").and.callFake(function (p, opts, cb) {
+    spyOn(fs, "readdir").mockImplementation(function (p, opts, cb) {
       if (
         allowedDirs.indexOf(path.resolve(p)) === -1 &&
         !p.match(/[\\/]node_modules[\\/]/)

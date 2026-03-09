@@ -7,10 +7,10 @@ describe("error-callack", () => {
   let logCalled = undefined;
   beforeEach(() => {
     logCalled = [];
-    spyOn(fs, "readdir").and.callFake((path, opts, cb) => {
+    spyOn(fs, "readdir").mockImplementation((path, opts, cb) => {
       process.nextTick(() => cb(new Error("mock fs.readdir error")));
     });
-    spyOn(console, "error").and.callFake(function (...args) {
+    spyOn(console, "error").mockImplementation(function (...args) {
       args.forEach((arg) => logCalled.push(arg));
     });
   });

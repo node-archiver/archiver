@@ -60,9 +60,9 @@ describe("nocase-nomagic", () => {
       }
     };
 
-    spyOn(fs, "stat").and.callFake(statMock);
-    spyOn(fs, "lstat").and.callFake(statMock);
-    spyOn(fs, "readdir").and.callFake(readdirMock);
+    spyOn(fs, "stat").mockImplementation(statMock);
+    spyOn(fs, "lstat").mockImplementation(statMock);
+    spyOn(fs, "readdir").mockImplementation(readdirMock);
   });
 
   it("nocase, nomagic", (done) => {

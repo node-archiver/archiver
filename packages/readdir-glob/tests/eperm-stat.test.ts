@@ -8,7 +8,7 @@ describe("eperm-stat", () => {
     process.chdir(__dirname);
     const badPaths = /\ba[\\/]?$|\babcdef\b/;
     const lstat = fs.lstat;
-    spyOn(fs, "lstat").and.callFake(function (path, cb) {
+    spyOn(fs, "lstat").mockImplementation(function (path, cb) {
       // synthetically generate a non-ENOENT error
       if (badPaths.test(path)) {
         const er = new Error("synthetic");
