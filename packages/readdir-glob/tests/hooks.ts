@@ -65,7 +65,7 @@ beforeAll(async () => {
 
   if (process.platform !== "win32") {
     const d = path.dirname(symlinkTo);
-    await fsPromises.mkdir(d, "0755");
+    await fsPromises.mkdir(d, { recursive: true, mode: "0755" });
     await fsPromises.symlink(symlinkFrom, symlinkTo, "dir");
   }
 
