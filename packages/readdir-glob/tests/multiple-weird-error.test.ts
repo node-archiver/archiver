@@ -1,4 +1,6 @@
-const fs = require("node:fs");
+import { it, describe, expect } from "bun:test";
+import * as fs from "node:fs";
+
 import glob from "@archiver/readdir-glob";
 
 describe("multiple-weird-error", () => {
@@ -12,7 +14,7 @@ describe("multiple-weird-error", () => {
     let count = 0;
     const max = 2;
     for (let i = 0; i < max; ++i) {
-      glob(".", { silent: true, pattern: "*" }, function (err, files) {
+      glob(".", { silent: true, pattern: "*" }, function (err) {
         expect(err).toBeTruthy();
         count++;
         if (count === max) {

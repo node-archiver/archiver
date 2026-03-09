@@ -1,5 +1,6 @@
-const { ReaddirGlob } = require("..");
-const path = require("node:path");
+import { it, beforeEach, describe, expect } from "bun:test";
+
+import { ReaddirGlob } from "@archiver/readdir-glob";
 
 describe("new-glob-optional-options", () => {
   beforeEach(() => {

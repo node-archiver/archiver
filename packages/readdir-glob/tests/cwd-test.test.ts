@@ -51,7 +51,7 @@ describe("cwd-test", () => {
     const notdir = "a/b/c/d";
     const abs = path.resolve(notdir);
 
-    glob(notdir, { pattern: "*" }, (er, results) => {
+    glob(notdir, { pattern: "*" }, (er) => {
       expect(er).toBeTruthy();
       expect(er.code).toEqual("ENOTDIR");
       expect(er.path).toEqual(abs);

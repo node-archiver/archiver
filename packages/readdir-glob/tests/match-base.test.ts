@@ -1,5 +1,7 @@
+import { it, describe, expect } from "bun:test";
+import * as path from "node:path";
+
 import glob from "@archiver/readdir-glob";
-const path = require("node:path");
 
 const fixtureDir = path.resolve(__dirname, "fixtures");
 const pattern = "a*";

@@ -1,5 +1,6 @@
 import { it, beforeEach, describe, expect } from "bun:test";
-const fs = require("node:fs");
+import * as fs from "node:fs";
+
 import glob from "@archiver/readdir-glob";
 
 describe("error-callack", () => {
@@ -15,7 +16,7 @@ describe("error-callack", () => {
   });
 
   it("error callback", (done) => {
-    glob(".", { pattern: "*" }, (err, res) => {
+    glob(".", { pattern: "*" }, (err) => {
       expect(err).toBeTruthy();
 
       setTimeout(() => {
