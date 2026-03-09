@@ -1,6 +1,6 @@
 import { it, beforeEach, describe, expect } from "bun:test";
 
-import { ReaddirGlob } from "@archiver/readdir-glob";
+import { readdirGlob } from "@archiver/readdir-glob";
 
 describe("new-glob-optional-options", () => {
   beforeEach(() => {
@@ -8,7 +8,7 @@ describe("new-glob-optional-options", () => {
   });
 
   it("new glob, with cb, and no options", (done) => {
-    new ReaddirGlob("./a/bc/e/", function (er, results) {
+    readdirGlob("./a/bc/e/", function (er, results) {
       expect(er).toBeFalsy();
       expect(results).toEqual(["f"]);
       done();

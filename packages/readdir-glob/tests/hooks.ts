@@ -6,7 +6,7 @@ import * as fsPromises from "node:fs/promises";
 // zz-finish cleans it up
 import * as path from "node:path";
 
-function cleanResults(m) {
+function cleanResults(m: string[]) {
   // normalize discrepancies in ordering, duplication,
   // and ending slashes.
   return m.sort(alphasort);
@@ -26,7 +26,7 @@ function flatten(chunks) {
   return out.toString().trim();
 }
 
-function alphasort(a, b) {
+function alphasort(a: string, b: string) {
   a = a.toLowerCase();
   b = b.toLowerCase();
   return a > b ? 1 : a < b ? -1 : 0;
@@ -106,7 +106,7 @@ beforeAll(async () => {
         "for i in " + pattern + "; do echo $i; done",
       ];
       const cp = spawn("bash", opts, { cwd: fixtureDir });
-      let out = [];
+      let out: string[] = [];
       cp.stdout.on("data", function (c) {
         out.push(c);
       });

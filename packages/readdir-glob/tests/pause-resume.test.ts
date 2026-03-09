@@ -1,6 +1,6 @@
 import { it, beforeEach, describe, expect } from "bun:test";
 
-import { ReaddirGlob } from "@archiver/readdir-glob";
+import { readdirGlob } from "@archiver/readdir-glob";
 
 import bashResults from "./bash-results.json";
 
@@ -29,7 +29,7 @@ describe("pause-resume", () => {
     let cb;
     const cbSet = new Promise((resolve) => (cb = resolve));
 
-    const g = new ReaddirGlob(".", { pattern }, (_, matches) => cb(matches));
+    const g = readdirGlob(".", { pattern }, (_, matches) => cb(matches));
     const expected = bashResults[pattern];
 
     g.on("match", (m) => {

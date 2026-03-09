@@ -4,7 +4,7 @@ import { it, beforeEach, describe, expect } from "bun:test";
 
 import glob from "@archiver/readdir-glob";
 
-function alphasort(a, b) {
+function alphasort(a: string, b: string) {
   a = a.toLowerCase();
   b = b.toLowerCase();
   return a > b ? 1 : a < b ? -1 : 0;

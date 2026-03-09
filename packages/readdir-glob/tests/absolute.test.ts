@@ -13,7 +13,7 @@ describe("absolute", () => {
   [true, false].forEach(function (mark) {
     it("Emits absolute matches if option set, mark=" + mark, function (done) {
       const pattern = "a/b/**";
-      const g = new glob.ReaddirGlob(".", { pattern });
+      const g = glob(".", { pattern });
 
       let matchCount = 0;
       g.on("match", (m) => {

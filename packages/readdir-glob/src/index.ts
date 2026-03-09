@@ -364,17 +364,10 @@ export class ReaddirGlob extends EventEmitter<{
   }
 }
 
-interface readdirGlobInterface {
-  (pattern?: string, options?: Options | Callback, cb?: Callback): ReaddirGlob;
-  ReaddirGlob: typeof ReaddirGlob;
-}
-
-export const readdirGlob: readdirGlobInterface = (
+export const readdirGlob = (
   pattern?: string,
   options?: Options | Callback,
   cb?: Callback,
-) => new ReaddirGlob(pattern, options, cb);
-
-readdirGlob.ReaddirGlob = ReaddirGlob;
+): ReaddirGlob => new ReaddirGlob(pattern, options, cb);
 
 export default readdirGlob;

@@ -6,7 +6,7 @@ const dir = __dirname + "/fixtures";
 
 describe("stat", () => {
   it("stat all the things", (done) => {
-    const g = new glob.ReaddirGlob(dir, { stat: true, pattern: "a/*abc*/**" });
+    const g = glob(dir, { stat: true, pattern: "a/*abc*/**" });
     const matches: string[] = [];
     g.on("match", (m) => {
       matches.push(m.relative);

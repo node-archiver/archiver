@@ -15,7 +15,7 @@ describe("enotsup", () => {
       ) {
         setTimeout(() => {
           sawAsyncENOTSUP = true;
-          er = new Error("ENOTSUP: Operation not supported");
+          const er = new Error("ENOTSUP: Operation not supported");
           er.path = path;
           er.code = "ENOTSUP";
           return cb(er);

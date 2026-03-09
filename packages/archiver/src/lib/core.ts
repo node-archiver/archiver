@@ -7,7 +7,7 @@ import {
   PassThrough,
 } from "node:stream";
 
-import readdirGlob from "@archiver/readdir-glob";
+import { readdirGlob } from "@archiver/readdir-glob";
 import { dateify, sanitizePath, isStream } from "@archiver/zip-stream/utils";
 
 import { queue } from "./async";
@@ -32,8 +32,6 @@ function normalizeInputSource(source: Buffer | Stream | string | null) {
 
   return source;
 }
-
-const { ReaddirGlob } = readdirGlob;
 
 const win32 = process.platform === "win32";
 
@@ -722,7 +720,7 @@ class Archiver extends Transform {
       entryData.name = match.relative;
       this._append(match.absolute, entryData);
     }
-    const globber = new ReaddirGlob(options.cwd || ".", options);
+    const globber = readdirGlob(options.cwd || ".", options);
     globber.on("error", onGlobError.bind(this));
     globber.on("match", onGlobMatch.bind(this));
     globber.on("end", onGlobEnd.bind(this));
