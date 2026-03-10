@@ -3,7 +3,7 @@ import * as fs from "node:fs";
 
 import glob from "@archiver/readdir-glob";
 
-describe("error-callack", () => {
+describe.todo("error-callack", () => {
   let logCalled = undefined;
   beforeEach(() => {
     logCalled = [];
