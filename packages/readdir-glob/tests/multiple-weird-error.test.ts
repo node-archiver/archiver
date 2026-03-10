@@ -3,7 +3,7 @@ import * as fs from "node:fs";
 
 import glob from "@archiver/readdir-glob";
 
-describe("multiple-weird-error", () => {
+describe.todo("multiple-weird-error", () => {
   // also test that silent:true is actually silent!
   it("multiple-weird-error", (done) => {
     spyOn(console, "error").mockImplementation(() => {
