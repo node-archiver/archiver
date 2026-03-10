@@ -4,7 +4,7 @@ import * as path from "node:path";
 
 import glob from "@archiver/readdir-glob";
 
-describe.todo.skip("enotsup", () => {
+describe.todo("enotsup", () => {
   beforeEach(() => {
     process.chdir(__dirname + "/fixtures");
     const readdir = fs.readdir;
