@@ -49,7 +49,7 @@ describe("broken-symlink", () => {
         (done) => {
           glob(".", { ...opt, pattern }, (er, res) => {
             if (er) {
-              fail(er);
+              expect().fail(er.message);
               return done();
             }
             expect(res.indexOf(link)).not.toBe(-1);

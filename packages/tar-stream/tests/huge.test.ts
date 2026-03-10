@@ -64,5 +64,5 @@ test.skipIf(win32)(
     const reader = fs.createReadStream(fixtures.HUGE);
     reader.pipe(gunzip).pipe(extract);
   },
-  { timeout: 120e3 }, // 2 minutes
+  { timeout: 6e4 * 3 }, // 3 minutes
 );

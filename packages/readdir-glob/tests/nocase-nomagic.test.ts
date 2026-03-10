@@ -1,4 +1,4 @@
-import { it, beforeEach, describe, expect, spyOn } from "bun:test";
+import { it, beforeEach, describe, expect, spyOn, afterEach } from "bun:test";
 import * as fs from "node:fs";
 
 import glob from "@archiver/readdir-glob";
@@ -38,16 +38,15 @@ function fakeReaddir(path, opts) {
 }
 
 describe("nocase-nomagic", () => {
-  beforeEach(() => {
-    const stat = fs.stat;
-    const readdir = fs.readdir;
+  let statSpy, lstatSpy, readdirSpy;
 
+  beforeEach(() => {
     const statMock = (path, cb) => {
       const f = fakeStat(path);
       if (f) {
         process.nextTick(() => cb(null, f));
       } else {
-        stat.call(fs, path, cb);
+        statSpy.getOriginalImplementation().call(fs, path, cb);
       }
     };
 
@@ -56,13 +55,19 @@ describe("nocase-nomagic", () => {
       if (f) {
         process.nextTick(() => cb(null, f));
       } else {
-        readdir.call(fs, path, opts, cb);
+        readdirSpy.getOriginalImplementation().call(fs, path, opts, cb);
       }
     };
 
-    spyOn(fs, "stat").mockImplementation(statMock);
-    spyOn(fs, "lstat").mockImplementation(statMock);
-    spyOn(fs, "readdir").mockImplementation(readdirMock);
+    statSpy = spyOn(fs, "stat").mockImplementation(statMock);
+    lstatSpy = spyOn(fs, "lstat").mockImplementation(statMock);
+    readdirSpy = spyOn(fs, "readdir").mockImplementation(readdirMock);
+  });
+
+  afterEach(() => {
+    statSpy.mockRestore();
+    lstatSpy.mockRestore();
+    readdirSpy.mockRestore();
   });
 
   it("nocase, nomagic", (done) => {

@@ -4,8 +4,8 @@ import { beforeEach, it, describe, expect } from "bun:test";
 // don't match files when using a different cwd.
 import glob from "@archiver/readdir-glob";
 
-const pattern = "{*.md,test}/";
-const expected = ["test/"];
+const pattern = "{*.md,tests}/";
+const expected = ["tests/"];
 
 describe("slash-cwd", () => {
   beforeEach(() => {
