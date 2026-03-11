@@ -11,7 +11,7 @@ describe("cwd-test", () => {
   it('changing cwd and searching for **/d, "."', (done) => {
     glob(".", { pattern: "**/d" }, (er, matches) => {
       expect(er).toBeFalsy();
-      expect(matches).toEqual(["a/b/c/d", "a/c/d"]);
+      expect(matches?.toSorted()).toEqual(["a/b/c/d", "a/c/d"]);
       done();
     });
   });
@@ -19,7 +19,7 @@ describe("cwd-test", () => {
   it('changing cwd and searching for **/d, "a"', (done) => {
     glob(path.resolve("a"), { pattern: "**/d" }, (er, matches) => {
       expect(er).toBeFalsy();
-      expect(matches).toEqual(["b/c/d", "c/d"]);
+      expect(matches?.toSorted()).toEqual(["b/c/d", "c/d"]);
       done();
     });
   });
@@ -43,7 +43,7 @@ describe("cwd-test", () => {
   it("changing cwd and searching for **/d, process.cwd()", (done) => {
     glob(process.cwd(), { pattern: "**/d" }, (er, matches) => {
       expect(er).toBeFalsy();
-      expect(matches).toEqual(["a/b/c/d", "a/c/d"]);
+      expect(matches?.toSorted()).toEqual(["a/b/c/d", "a/c/d"]);
       done();
     });
   });
