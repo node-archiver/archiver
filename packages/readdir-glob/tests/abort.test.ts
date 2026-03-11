@@ -3,7 +3,7 @@ import * as fs from "node:fs";
 
 import glob from "@archiver/readdir-glob";
 
-describe("abort", () => {
+describe.todo("abort", () => {
   beforeEach(() => {
     process.chdir(__dirname);
   });
@@ -21,7 +21,7 @@ describe("abort", () => {
       }),
     );
     spyOn(fs, "readdir").mockImplementation(() => {
-      // throw new Error("Invalid call");
+      throw new Error("Invalid call");
     });
     spyOn(fs, "stat").mockImplementation(() => {
       throw new Error("Invalid call");

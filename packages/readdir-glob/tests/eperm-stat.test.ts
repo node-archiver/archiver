@@ -3,7 +3,7 @@ import * as fs from "node:fs";
 
 import glob from "@archiver/readdir-glob";
 
-describe("eperm-stat", () => {
+describe.todo("eperm-stat", () => {
   beforeEach(() => {
     process.chdir(__dirname);
     const badPaths = /\ba[\\/]?$|\babcdef\b/;

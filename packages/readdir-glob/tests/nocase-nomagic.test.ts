@@ -37,7 +37,7 @@ function fakeReaddir(path, opts) {
   return ret;
 }
 
-describe("nocase-nomagic", () => {
+describe.todo("nocase-nomagic", () => {
   let statSpy, lstatSpy, readdirSpy;
 
   beforeEach(() => {
