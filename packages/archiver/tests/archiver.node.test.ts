@@ -35,7 +35,7 @@ describe("archiver", () => {
           "tests/fixtures/directory/subdir/subsub/",
           "tests/fixtures/directory/subdir/subsublink",
         );
-      } catch (e) {}
+      } catch {}
     } else {
       writeFileSync(
         "tests/fixtures/directory/subdir/level0link.txt",
@@ -48,10 +48,10 @@ describe("archiver", () => {
   after(() => {
     try {
       unlinkSync("tests/fixtures/directory/subdir/level0link.txt");
-    } catch (e) {}
+    } catch {}
     try {
       unlinkSync("tests/fixtures/directory/subdir/subsublink");
-    } catch (e) {}
+    } catch {}
   });
 
   describe("core", () => {
