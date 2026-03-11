@@ -12,9 +12,70 @@ import {
 } from "node:fs";
 import { Readable } from "node:stream";
 
-import { JsonArchive } from "../src/index.ts";
-import { normalizeEntryData } from "../src/lib/core.ts";
+import { JsonArchive } from "@archiver/archiver";
+function normalizeEntryData(data, stats?) {
+  const normalizedData = {
+    type: "file",
+    name: null,
+    date: null,
+    mode: null,
+    prefix: null,
+    sourcePath: null,
+    stats: null,
+    ...data,
+  };
+  if (stats && normalizedData.stats === null) {
+    normalizedData.stats = stats;
+  }
+  let isDir = normalizedData.type === "directory";
+  if (normalizedData.name) {
+    if (
+      typeof normalizedData.prefix === "string" &&
+      "" !== normalizedData.prefix
+    ) {
+      normalizedData.name = normalizedData.prefix + "/" + normalizedData.name;
+      normalizedData.prefix = null;
+    }
+    normalizedData.name = sanitizePath(normalizedData.name);
+    if (
+      normalizedData.type !== "symlink" &&
+      normalizedData.name.slice(-1) === "/"
+    ) {
+      isDir = true;
+      normalizedData.type = "directory";
+    } else if (isDir) {
+      normalizedData.name += "/";
+    }
+  }
+  // 511 === 0777; 493 === 0755; 438 === 0666; 420 === 0644
+  if (typeof normalizedData.mode === "number") {
+    if (win32) {
+      normalizedData.mode &= 511;
+    } else {
+      normalizedData.mode &= 4095;
+    }
+  } else if (normalizedData.stats && normalizedData.mode === null) {
+    if (win32) {
+      normalizedData.mode = normalizedData.stats.mode & 511;
+    } else {
+      normalizedData.mode = normalizedData.stats.mode & 4095;
+    }
+    // stat isn't reliable on windows; force 0755 for dir
+    if (win32 && isDir) {
+      normalizedData.mode = 493;
+    }
+  } else if (normalizedData.mode === null) {
+    normalizedData.mode = isDir ? 493 : 420;
+  }
+  if (normalizedData.stats && normalizedData.date === null) {
+    normalizedData.date = normalizedData.stats.mtime;
+  } else {
+    normalizedData.date = dateify(normalizedData.date);
+  }
+  return normalizedData;
+}
 import { binaryBuffer, readJSON } from "./helpers/index.ts";
+import { sanitizePath } from "@archiver/archiver/utils";
 
 const testBuffer = binaryBuffer(1024 * 16);
 const testDate = new Date("Jan 03 2013 14:26:38 GMT");
