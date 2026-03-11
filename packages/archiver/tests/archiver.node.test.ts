@@ -12,7 +12,7 @@ import {
 } from "node:fs";
 import { Readable } from "node:stream";
 import { binaryBuffer, readJSON } from "./helpers/index.ts";
-import { sanitizePath,dateify } from "@archiver/archiver/utils";
+import { dateify, sanitizePath } from "@archiver/zip-stream/utils";
 
 import { JsonArchive } from "@archiver/archiver";
 function normalizeEntryData(data, stats?) {
