@@ -20,6 +20,7 @@
   "scripts": {
     "build": "tsdown",
     "test": "bun test --reporter dot",
+    "test-node": "node --test tests/*.node.test.ts",
     "bench": "bun benchmark/simple/pack-zip.js",
     "prepublishOnly": "bun run build"
   },
