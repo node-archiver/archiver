@@ -10,17 +10,19 @@ describe("stat", () => {
     const matches: string[] = [];
     g.on("match", (m) => {
       matches.push(m.relative);
-      expect(m.stat instanceof Stats).toBe(true);
+      expect(m.stat).toBeInstanceOf(Stats);
     });
     g.on("end", () => {
-      expect(matches.toSorted()).toEqual([
-        "a/abcdef",
-        "a/abcdef/g",
-        "a/abcdef/g/h",
-        "a/abcfed",
-        "a/abcfed/g",
-        "a/abcfed/g/h",
-      ].toSorted());
+      expect(matches.toSorted()).toEqual(
+        [
+          "a/abcdef",
+          "a/abcdef/g",
+          "a/abcdef/g/h",
+          "a/abcfed",
+          "a/abcfed/g",
+          "a/abcfed/g/h",
+        ].toSorted(),
+      );
       done();
     });
   });

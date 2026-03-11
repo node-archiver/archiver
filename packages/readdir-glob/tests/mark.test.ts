@@ -20,13 +20,13 @@ describe("mark", () => {
         "bc/e/",
         "c/d/",
         "cb/e/",
-      ].toSorted();
+      ];
 
       if (process.platform !== "win32") {
         expected.push("symlink/a/");
       }
 
-      expect(res?.toSorted()).toEqual(expected);
+      expect(res?.toSorted()).toEqual(expected.toSorted());
       done();
     });
   });
@@ -52,9 +52,9 @@ describe("mark", () => {
         "a/cb/",
         "a/cb/e/",
         "a/cb/e/f",
-      ].toSorted();
+      ];
 
-      expect(results?.toSorted()).toEqual(expected);
+      expect(results?.toSorted()).toEqual(expected.toSorted());
       done();
     });
   });
@@ -73,13 +73,13 @@ describe("mark", () => {
         "a/cb/",
         "a/x/",
         "a/z/",
-      ].toSorted();
+      ];
 
       if (process.platform !== "win32") {
         expected.push("a/symlink/");
       }
 
-      expect(results?.toSorted()).toEqual(expected);
+      expect(results?.toSorted()).toEqual(expected.toSorted());
       done();
     }).on("match", (m) => {
       expect(m.relative).toMatch(/\/$/);
