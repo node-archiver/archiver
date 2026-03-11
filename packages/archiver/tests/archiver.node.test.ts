@@ -12,9 +12,9 @@ import {
 } from "node:fs";
 import { Readable } from "node:stream";
 
-import { JsonArchive } from "../src/index.js";
-import { normalizeEntryData } from "../src/lib/core.js";
-import { binaryBuffer, readJSON } from "./helpers/index.js";
+import { JsonArchive } from "../src";
+import { normalizeEntryData } from "../src/lib/core";
+import { binaryBuffer, readJSON } from "./helpers";
 
 const testBuffer = binaryBuffer(1024 * 16);
 const testDate = new Date("Jan 03 2013 14:26:38 GMT");
