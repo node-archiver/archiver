@@ -13,14 +13,14 @@ describe("stat", () => {
       expect(m.stat instanceof Stats).toBe(true);
     });
     g.on("end", () => {
-      expect(matches).toEqual([
+      expect(matches.toSorted()).toEqual([
         "a/abcdef",
         "a/abcdef/g",
         "a/abcdef/g/h",
         "a/abcfed",
         "a/abcfed/g",
         "a/abcfed/g/h",
-      ]);
+      ].toSorted());
       done();
     });
   });

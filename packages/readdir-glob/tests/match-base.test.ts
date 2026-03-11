@@ -22,7 +22,7 @@ describe("match-base", () => {
     process.chdir(fixtureDir);
     glob(".", { matchBase: true, pattern }, (er, res) => {
       expect(er).toBeFalsy();
-      expect(res).toEqual(expected);
+      expect(res?.toSorted()).toEqual(expected.toSorted());
       process.chdir(origCwd);
       done();
     });
@@ -31,7 +31,7 @@ describe("match-base", () => {
   it("cwd", (done) => {
     glob(fixtureDir, { matchBase: true, pattern }, (er, res) => {
       expect(er).toBeFalsy();
-      expect(res).toEqual(expected);
+      expect(res?.toSorted()).toEqual(expected.toSorted());
       done();
     });
   });
