@@ -18,14 +18,16 @@
   "scripts": {
     "build": "tsdown",
     "test": "bun test --reporter dot --preload ./tests/hooks.ts --max-concurrency 1",
+    "bench": "bun run bench.mjs",
     "prepublishOnly": "bun run build"
   },
   "dependencies": {
     "picomatch": "^4.0.3"
   },
   "devDependencies": {
-    "tsdown": "catalog:",
-    "@types/picomatch": "^4.0.2"
+    "@types/picomatch": "^4.0.2",
+    "minimatch": "^5.1.9",
+    "tsdown": "catalog:"
   },
   "engines": {
     "node": ">=24"
