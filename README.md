@@ -13,8 +13,8 @@ The original `archiver` package is one of the most widely used archive libraries
 
 |                  | `archiver`        | `@archiver/archiver` |
 | ---------------- | ----------------- | -------------------- |
-| **Package Size** | 43.1 kB           | 38.7 kB              |
-| **Install Size** | 9.9 MB            | 227 kB               |
+| **Package Size** | 43.1 kB           | 38.8 kB              |
+| **Install Size** | 9.9 MB            | 213 kB               |
 | **Dependencies** | 66 total          | 3 direct, 8 total    |
 | **Types**        | `@types/archiver` | Built-in             |
 | **ESM**          | CommonJS only     | ESM only             |
