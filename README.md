@@ -1,7 +1,7 @@
 # @archiver/archiver
 
-[![version](https://npmx.dev/api/registry/badge/version/@archiver/archiver?name=true)](https://npmx.dev/package/@archiver/archiver)
-[![license](https://npmx.dev/api/registry/badge/license/@archiver/archiver?name=true)](https://npmx.dev/package/@archiver/archiver)
+[![version](https://npmx.dev/api/registry/badge/version/@archiver/archiver)](https://npmx.dev/package/@archiver/archiver)
+[![license](https://npmx.dev/api/registry/badge/license/@archiver/archiver)](https://npmx.dev/package/@archiver/archiver)
 
 A lightweight streaming interface for creating ZIP and TAR archives in Node.js.
 

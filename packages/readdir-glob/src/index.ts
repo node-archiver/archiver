@@ -365,9 +365,9 @@ export class ReaddirGlob extends EventEmitter<{
 }
 
 export const readdirGlob = (
-  pattern?: string,
+  cwd?: string,
   options?: Options | Callback,
   cb?: Callback,
-): ReaddirGlob => new ReaddirGlob(pattern, options, cb);
+): ReaddirGlob => new ReaddirGlob(cwd, options, cb);
 
 export default readdirGlob;
