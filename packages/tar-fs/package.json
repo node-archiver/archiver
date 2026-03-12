@@ -1,0 +1,34 @@
+{
+  "name": "@archiver/tar-fs",
+  "version": "0.0.0",
+  "description": "filesystem bindings for tar-stream",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/node-archiver/archiver.git",
+    "directory": "packages/tar-fs"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "test": "bun test --reporter dot",
+    "prepublishOnly": "bun run build"
+  },
+  "dependencies": {
+    "@archiver/tar-stream": "workspace:*",
+    "pump": "^3.0.0"
+  },
+  "devDependencies": {
+    "tsdown": "catalog:"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}
