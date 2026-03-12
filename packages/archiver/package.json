@@ -29,7 +29,6 @@
     "@archiver/zip-stream": "workspace:*"
   },
   "devDependencies": {
-    "@types/readdir-glob": "^1.1.5",
     "@types/yauzl": "^2.10.3",
     "stream-bench": "0.1.2",
     "tar": "7.5.11",

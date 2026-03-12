@@ -19,7 +19,7 @@ describe("absolute", () => {
       g.on("match", (m) => {
         expect(isAbsolute(m.absolute)).toBeTrue();
         matchCount++;
-        console.log("..");
+        // console.log("..");
       });
 
       g.on("end", () => {
