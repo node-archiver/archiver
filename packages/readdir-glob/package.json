@@ -21,10 +21,11 @@
     "prepublishOnly": "bun run build"
   },
   "dependencies": {
-    "minimatch": "^5.1.9"
+    "picomatch": "^4.0.3"
   },
   "devDependencies": {
-    "tsdown": "catalog:"
+    "tsdown": "catalog:",
+    "@types/picomatch": "^4.0.2"
   },
   "engines": {
     "node": ">=24"
