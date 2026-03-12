@@ -7,8 +7,8 @@ import {
   PassThrough,
 } from "node:stream";
 
+import { readdirGlob } from "@archiver/readdir-glob";
 import { dateify, sanitizePath, isStream } from "@archiver/zip-stream/utils";
-import readdirGlob from "readdir-glob";
 
 import { queue } from "./async";
 import { ArchiverError } from "./error";
@@ -33,8 +33,6 @@ function normalizeInputSource(source: Buffer | Stream | string | null) {
   return source;
 }
 
-const { ReaddirGlob } = readdirGlob;
-
 const win32 = process.platform === "win32";
 
 interface EntryData {
@@ -53,7 +51,9 @@ interface EntryData {
   stats?: fs.Stats;
 }
 
-interface GlobOptions {}
+interface GlobOptions {
+  cwd: string;
+}
 
 function normalizeEntryData(data: EntryData, stats?: fs.Stats): EntryData {
   const normalizedData = {
@@ -720,7 +720,7 @@ class Archiver extends Transform {
       entryData.name = match.relative;
       this._append(match.absolute, entryData);
     }
-    const globber = new ReaddirGlob(options.cwd || ".", options);
+    const globber = readdirGlob(options.cwd || ".", options);
     globber.on("error", onGlobError.bind(this));
     globber.on("match", onGlobMatch.bind(this));
     globber.on("end", onGlobEnd.bind(this));
