@@ -343,7 +343,7 @@ describe("tar-fs", () => {
     s.pipe(tar.extract(out)).on("error", function (err) {
       expect(err).toBeTruthy();
       fs.readFile(outside, "utf-8", function (err, str) {
-        expect(err).not.toContain("no error");
+        expect(err.toString()).not.toContain("no error");
         expect(str).toBe("something");
       });
     });
