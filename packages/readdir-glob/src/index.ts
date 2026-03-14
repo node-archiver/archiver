@@ -43,13 +43,23 @@ function createMatcher(
   const scan = picomatch.scan(stripped);
   // picomatch's extglob negations (e.g. !(foo)) don't respect dot:false,
   // so we manually reject dotfile segments beyond the literal base.
-  const checkDots = !options.dot && scan.isExtglob;
+  // Only enable this guard for negative extglobs — positive extglobs like
+  // @(.y) explicitly reference dotfiles and should still match.
+  const hasNegExtglob = /!\(/.test(stripped);
+  const checkDots = !options.dot && scan.isExtglob && hasNegExtglob;
   const baseDepth = scan.base ? scan.base.split("/").length : 0;
 
   const expanded = expandBraces(stripped);
   const variants = new Set<string>();
   for (const p of expanded) {
-    addGlobstarVariants(p, variants);
+    // Only generate zero-segment variants for trailing /** when globstar is
+    // active. With noglobstar, ** degrades to * and should not match zero
+    // segments.
+    if (options.noglobstar) {
+      variants.add(p);
+    } else {
+      addGlobstarVariants(p, variants);
+    }
   }
   const matchers = [...variants].map((p) => picomatch(p, options));
   return (path: string, isDirectory?: boolean) => {
