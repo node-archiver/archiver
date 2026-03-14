@@ -288,6 +288,7 @@ describe("tar-fs", () => {
     fs.rmSync(out, { recursive: true, force: true });
 
     fs.createReadStream(a)
+      // @ts-expect-error
       .pipe(tar.extract(out))
       .on("error", function (err) {
         expect(err.message).toMatch(/is not a valid symlink/i);
@@ -308,6 +309,7 @@ describe("tar-fs", () => {
     fs.rmSync(out, { recursive: true, force: true });
 
     fs.createReadStream(a)
+      // @ts-expect-error
       .pipe(tar.extract(out, { validateSymlinks: false }))
       .on("error", function (err) {
         expect(err.message).toMatch(/is not a valid symlink/i);
@@ -343,7 +345,7 @@ describe("tar-fs", () => {
     s.pipe(tar.extract(out)).on("error", function (err) {
       expect(err).toBeTruthy();
       fs.readFile(outside, "utf-8", function (err, str) {
-        expect(err.toString()).not.toContain("no error");
+        expect(err?.toString()).not.toContain("no error");
         expect(str).toBe("something");
       });
     });
