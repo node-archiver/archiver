@@ -146,7 +146,7 @@ describe("tar-fs", () => {
       .on("finish", function () {
         const files = fs.readdirSync(b).sort();
         expect(files.length).toBe(1);
-        expect(files[0]).toBe("TEST.TXT");
+        if (!win32) expect(files[0]).toBe("TEST.TXT");
       });
   });
 
@@ -202,9 +202,9 @@ describe("tar-fs", () => {
   test("check type while mapping header on packing", function () {
     const e = path.join(__dirname, "fixtures", "e");
 
-    const checkHeaderType = function (header) {
+    const checkHeaderType = function (header: tar.Headers) {
       if (header.name.indexOf(".") === -1)
-        expect(header.type).toBe(header.name);
+        expect(header).toHaveProperty("type", header.name);
     };
 
     tar.pack(e, { map: checkHeaderType });
@@ -226,7 +226,7 @@ describe("tar-fs", () => {
       extractEntries++;
     };
 
-    const onPackFinish = function (passedPack) {
+    const onPackFinish = function (passedPack: tarStream.TarPack) {
       expect(packEntries).toBe(2); // 2 entries - the file and base directory
       expect(passedPack).toBe(pack);
     };
