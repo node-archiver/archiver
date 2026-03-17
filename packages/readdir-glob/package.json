@@ -11,6 +11,7 @@
   "files": [
     "dist"
   ],
+  "type": "module",
   "exports": {
     ".": "./dist/index.mjs",
     "./package.json": "./package.json"
@@ -24,8 +25,8 @@
     "picomatch": "^4.0.3"
   },
   "devDependencies": {
-    "tsdown": "catalog:",
-    "@types/picomatch": "^4.0.2"
+    "@types/picomatch": "^4.0.2",
+    "tsdown": "catalog:"
   },
   "engines": {
     "node": ">=24"
