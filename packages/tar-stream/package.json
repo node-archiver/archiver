@@ -1,6 +1,6 @@
 {
   "name": "@archiver/tar-stream",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "a streaming tar parser and generator",
   "license": "MIT",
   "repository": {

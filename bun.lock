@@ -15,7 +15,7 @@
     },
     "packages/archiver": {
       "name": "@archiver/archiver",
-      "version": "0.0.6",
+      "version": "0.0.7",
       "dependencies": {
         "@archiver/readdir-glob": "workspace:*",
         "@archiver/tar-stream": "workspace:*",
@@ -31,14 +31,14 @@
     },
     "packages/compress-commons": {
       "name": "@archiver/compress-commons",
-      "version": "0.0.6",
+      "version": "0.0.7",
       "devDependencies": {
         "tsdown": "catalog:",
       },
     },
     "packages/readdir-glob": {
       "name": "@archiver/readdir-glob",
-      "version": "0.0.0",
+      "version": "0.0.7",
       "dependencies": {
         "picomatch": "^4.0.3",
       },
@@ -49,7 +49,7 @@
     },
     "packages/tar-stream": {
       "name": "@archiver/tar-stream",
-      "version": "0.0.6",
+      "version": "0.0.7",
       "devDependencies": {
         "concat-stream": "^2.0.0",
         "tsdown": "catalog:",
@@ -57,7 +57,7 @@
     },
     "packages/zip-stream": {
       "name": "@archiver/zip-stream",
-      "version": "0.0.6",
+      "version": "0.0.7",
       "dependencies": {
         "@archiver/compress-commons": "workspace:*",
       },
