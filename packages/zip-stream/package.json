@@ -25,9 +25,6 @@
     "test": "bun test --reporter dot",
     "prepublishOnly": "bun run build"
   },
-  "dependencies": {
-    "@archiver/compress-commons": "workspace:*"
-  },
   "devDependencies": {
     "tsdown": "catalog:"
   },
