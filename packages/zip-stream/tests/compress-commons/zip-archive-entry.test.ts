@@ -1,10 +1,10 @@
 import { expect, it, beforeEach, describe } from "bun:test";
 
-import { GeneralPurposeBit } from "../src/archivers/general-purpose-bit";
-import * as UnixStat from "../src/archivers/unix-stat";
-import { ZipArchiveEntry } from "../src/index";
+import { GeneralPurposeBit } from "../../src/compress-commons/archivers/general-purpose-bit";
+import * as UnixStat from "../../src/compress-commons/archivers/unix-stat";
+import { ZipArchiveEntry } from "../../src/compress-commons/index";
 
-let entry;
+let entry: ZipArchiveEntry;
 // Jan 03 2013 14:26:38 GMT
 const testDate = new Date(Date.UTC(2013, 0, 3, 14, 26, 38, 0));
 

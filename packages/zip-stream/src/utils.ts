@@ -2,7 +2,7 @@ import {
   normalizePath,
   sanitizePath,
   isStream,
-} from "@archiver/compress-commons/utils";
+} from "./compress-commons/utils";
 
 function dateify(dateish?: Date | string | null): Date {
   dateish ??= new Date();

@@ -3,7 +3,10 @@ import { createReadStream, mkdirSync } from "node:fs";
 import { Transform } from "node:stream";
 import { Readable } from "node:stream";
 
-import { ZipArchiveEntry, ZipArchiveOutputStream } from "../src/index";
+import {
+  ZipArchiveEntry,
+  ZipArchiveOutputStream,
+} from "../../src/compress-commons/index";
 import { WriteHashStream, binaryBuffer } from "./helpers/index";
 
 const testBuffer = binaryBuffer(1024 * 16);
@@ -67,7 +70,7 @@ describe("ZipArchiveOutputStream", () => {
       const archive = new ZipArchiveOutputStream();
       const testStream = new WriteHashStream("tmp/zip-stream-error.zip");
 
-      let callbackError = null;
+      let callbackError: Error | null = null;
       let callbackCalls = 0;
 
       const promise = new Promise((resolve) => {
