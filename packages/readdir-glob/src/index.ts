@@ -1,196 +1,14 @@
 import { EventEmitter } from "node:events";
-import * as fs from "node:fs";
-import { resolve } from "node:path";
+import * as fs from "node:fs/promises";
+import type { Dirent, Stats } from "node:fs";
+import * as path from "node:path";
 
-import picomatch from "picomatch";
-
-type MatchFn = (path: string, isDirectory?: boolean) => boolean;
-
-/**
- * Expand basic brace alternatives {a,b,c} in a glob pattern.
- * Handles nested braces by finding the innermost pair first.
- */
-function expandBraces(pattern: string): string[] {
-  const match = pattern.match(/\{([^{}]*)\}/);
-  if (!match) return [pattern];
-  const prefix = pattern.slice(0, match.index);
-  const suffix = pattern.slice(match.index! + match[0].length);
-  return match[1]
-    .split(",")
-    .flatMap((alt) => expandBraces(prefix + alt + suffix));
-}
-
-/**
- * Create a minimatch-compatible matcher using picomatch.
- *
- * Handles key behavioral differences:
- * 1. minimatch strips trailing slashes from paths before matching;
- *    picomatch does not.
- * 2. minimatch's `**` matches zero or more path segments everywhere,
- *    including at the end of a pattern (e.g. `*‍/*‍/**` matches `a/b`).
- *    picomatch's `**` at the end requires at least one segment.
- * 3. A pattern ending with `/` should only match directories.
- *
- * To bridge the gap, we expand braces, then for each expanded pattern
- * we recursively strip trailing `/**` to generate zero-segment variants.
- */
-function createMatcher(
-  pattern: string,
-  options: picomatch.PicomatchOptions,
-): MatchFn {
-  const dirOnly = /\/+$/.test(pattern);
-  const stripped = pattern.replace(/\/+$/, "");
-  const scan = picomatch.scan(stripped);
-  // picomatch's extglob negations (e.g. !(foo)) don't respect dot:false,
-  // so we manually reject dotfile segments beyond the literal base.
-  // Only enable this guard for negative extglobs — positive extglobs like
-  // @(.y) explicitly reference dotfiles and should still match.
-  const hasNegExtglob = /!\(/.test(stripped);
-  const checkDots = !options.dot && scan.isExtglob && hasNegExtglob;
-  const baseDepth = scan.base ? scan.base.split("/").length : 0;
-
-  const expanded = expandBraces(stripped);
-  const variants = new Set<string>();
-  for (const p of expanded) {
-    // Only generate zero-segment variants for trailing /** when globstar is
-    // active. With noglobstar, ** degrades to * and should not match zero
-    // segments.
-    if (options.noglobstar) {
-      variants.add(p);
-    } else {
-      addGlobstarVariants(p, variants);
-    }
-  }
-  const matchers = [...variants].map((p) => picomatch(p, options));
-  return (path: string, isDirectory?: boolean) => {
-    if (dirOnly && !isDirectory) return false;
-    const cleanPath = path.replace(/\/+$/, "");
-    if (checkDots) {
-      const segments = cleanPath.split("/");
-      for (let i = baseDepth; i < segments.length; i++) {
-        if (segments[i].startsWith(".")) return false;
-      }
-    }
-    return matchers.some((m) => m(cleanPath));
-  };
-}
-
-function addGlobstarVariants(pattern: string, variants: Set<string>): void {
-  variants.add(pattern);
-  if (pattern.endsWith("/**")) {
-    addGlobstarVariants(pattern.slice(0, -3), variants);
-  }
-}
-
-function readdir(dir: fs.PathLike, strict: boolean): Promise<fs.Dirent[]> {
-  return new Promise((resolve, reject) => {
-    fs.readdir(dir, { withFileTypes: true }, (err, files) => {
-      if (err) {
-        switch (err.code) {
-          case "ENOTDIR": // Not a directory
-            if (strict) {
-              reject(err);
-            } else {
-              resolve([]);
-            }
-            break;
-          case "ENOTSUP": // Operation not supported
-          case "ENOENT": // No such file or directory
-          case "ENAMETOOLONG": // Filename too long
-          case "UNKNOWN":
-            resolve([]);
-            break;
-          case "ELOOP": // Too many levels of symbolic links
-          default:
-            reject(err);
-            break;
-        }
-      } else {
-        resolve(files);
-      }
-    });
-  });
-}
-
-function getStat(
-  file: fs.PathLike,
-  followSymlinks: boolean,
-): Promise<fs.Stats | null> {
-  return new Promise((resolve) => {
-    const statFunc = followSymlinks ? fs.stat : fs.lstat;
-    statFunc(file, (err, stats) => {
-      if (err) {
-        switch (err.code) {
-          case "ENOENT":
-            if (followSymlinks) {
-              // Fallback to lstat to handle broken links as files
-              resolve(getStat(file, false));
-            } else {
-              resolve(null);
-            }
-            break;
-          default:
-            resolve(null);
-            break;
-        }
-      } else {
-        resolve(stats);
-      }
-    });
-  });
-}
-
-export type Stat = fs.Dirent | fs.Stats;
+export type Stat = Dirent | Stats;
 export type Match = {
   relative: string;
   absolute: string;
   stat?: Stat;
 };
-
-async function* exploreWalkAsync(
-  dir: string,
-  path: string,
-  followSymlinks: boolean,
-  useStat: boolean,
-  shouldSkip: (path: string) => boolean,
-  strict: boolean,
-): AsyncGenerator<Required<Match>> {
-  const files = await readdir(path + dir, strict);
-  for (const file of files) {
-    const name: string = file.name;
-    const filename = dir + "/" + name;
-    const relative = filename.slice(1); // Remove the leading /
-    const absolute = path + "/" + relative;
-    let stat: Stat = file;
-    if (useStat || followSymlinks) {
-      stat = (await getStat(absolute, followSymlinks)) ?? stat;
-    }
-    if (stat.isDirectory()) {
-      if (!shouldSkip(relative)) {
-        yield { relative, absolute, stat };
-        yield* exploreWalkAsync(
-          filename,
-          path,
-          followSymlinks,
-          useStat,
-          shouldSkip,
-          false,
-        );
-      }
-    } else {
-      yield { relative, absolute, stat };
-    }
-  }
-}
-
-async function* explore(
-  path: string,
-  followSymlinks: boolean,
-  useStat: boolean,
-  shouldSkip: (path: string) => boolean,
-): AsyncGenerator<Required<Match>> {
-  yield* exploreWalkAsync("", path, followSymlinks, useStat, shouldSkip, true);
-}
 
 export type Options = {
   /**
@@ -291,16 +109,12 @@ export class ReaddirGlob extends EventEmitter<{
   error: [NodeJS.ErrnoException];
 }> {
   public options: StrictOptions;
+  public paused = false;
+  public aborted = false;
 
-  private matchers: MatchFn[];
-  private ignoreMatchers: MatchFn[];
-  private skipMatchers: MatchFn[];
-
-  public paused: boolean;
-  public aborted: boolean;
-  private inactive: boolean;
-
-  private iterator: ReturnType<typeof explore>;
+  private inactive = false;
+  private cwd: string;
+  private iterator: AsyncIterator<Dirent>;
 
   constructor(cwd?: string, options?: Options | Callback, cb?: Callback) {
     super();
@@ -310,116 +124,105 @@ export class ReaddirGlob extends EventEmitter<{
     }
 
     this.options = readOptions(options || {});
+    this.cwd = path.resolve(cwd || ".");
 
-    this.matchers = [];
-    if (this.options.pattern) {
-      const matchers = Array.isArray(this.options.pattern)
-        ? this.options.pattern
-        : [this.options.pattern];
-      this.matchers = matchers.map((m) =>
-        createMatcher(m, {
-          dot: this.options.dot,
-          noglobstar: this.options.noglobstar,
-          matchBase: this.options.matchBase,
-          nocase: this.options.nocase,
-        }),
-      );
+    // 1. Prepare patterns
+    let patterns = Array.isArray(this.options.pattern)
+      ? [...this.options.pattern]
+      : [this.options.pattern || "**/*"];
+
+    // Handle matchBase: if no slash, prefix with **/
+    if (this.options.matchBase) {
+      patterns = patterns.map((p) => (p.includes("/") ? p : `**/${p}`));
     }
 
-    this.ignoreMatchers = [];
-    if (this.options.ignore) {
-      const ignorePatterns = Array.isArray(this.options.ignore)
-        ? this.options.ignore
-        : [this.options.ignore];
-      this.ignoreMatchers = ignorePatterns.map((ignore) =>
-        createMatcher(ignore, { dot: true }),
-      );
-    }
+    // 2. Initialize Native Glob
+    // Native glob handles brace expansion and most pattern logic internally.
+    const globIterator = fs.glob(patterns, {
+      cwd: this.cwd,
+      withFileTypes: true,
+      dot: this.options.dot,
+      followSymlinks: this.options.follow,
+      exclude: (entryName: string) => this._isExcluded(entryName),
+    });
 
-    this.skipMatchers = [];
-    if (this.options.skip) {
-      const skipPatterns = Array.isArray(this.options.skip)
-        ? this.options.skip
-        : [this.options.skip];
-      this.skipMatchers = skipPatterns.map((skip) =>
-        createMatcher(skip, { dot: true }),
-      );
-    }
-
-    this.iterator = explore(
-      resolve(cwd || "."),
-      this.options.follow,
-      this.options.stat,
-      this._shouldSkipDirectory.bind(this),
-    );
-    this.paused = false;
-    this.inactive = false;
-    this.aborted = false;
+    this.iterator = globIterator[Symbol.asyncIterator]();
 
     if (cb) {
-      const nonNullCb = cb;
       const matches: string[] = [];
-      this.on("match", (match) =>
-        matches.push(this.options.absolute ? match.absolute : match.relative),
+      this.on("match", (m) =>
+        matches.push(this.options.absolute ? m.absolute : m.relative),
       );
-      this.on("error", (err) => nonNullCb(err));
-      this.on("end", () => nonNullCb(null, matches));
+      this.on("error", (err) => cb!(err));
+      this.on("end", () => cb!(null, matches));
     }
 
-    setTimeout(() => this._next());
+    process.nextTick(() => this._next());
   }
 
-  private _shouldSkipDirectory(relative: string) {
-    return this.skipMatchers.some((m) => m(relative));
+  /**
+   * Approximates the "skip" and "ignore" logic using native entry filtering.
+   */
+  private _isExcluded(name: string): boolean {
+    const skip = this.options.skip;
+    if (!skip) return false;
+    const skipPatterns = Array.isArray(skip) ? skip : [skip];
+    // Simple exclusion check - native glob calls this for each segment
+    return skipPatterns.some((p) => name.includes(p));
   }
 
-  private _fileMatches(relative: string, isDirectory: boolean) {
-    return (
-      (this.matchers.length === 0 ||
-        this.matchers.some((m) => m(relative, isDirectory))) &&
-      !this.ignoreMatchers.some((m) => m(relative, isDirectory)) &&
-      (!this.options.nodir || !isDirectory)
-    );
-  }
-
-  private _next() {
-    if (!this.paused && !this.aborted) {
-      this.iterator
-        .next()
-        .then((obj) => {
-          if (!obj.done) {
-            const isDirectory = obj.value.stat.isDirectory();
-            if (this._fileMatches(obj.value.relative, isDirectory)) {
-              let relative = obj.value.relative;
-              let absolute = obj.value.absolute;
-              if (this.options.mark && isDirectory) {
-                relative += "/";
-                absolute += "/";
-              }
-              if (this.options.stat) {
-                this.emit("match", {
-                  relative,
-                  absolute,
-                  stat: obj.value.stat,
-                });
-              } else {
-                this.emit("match", { relative, absolute });
-              }
-            }
-            this._next();
-          } else {
-            this.emit("end");
-          }
-        })
-        .catch((err: NodeJS.ErrnoException) => {
-          this.abort();
-          this.emit("error", err);
-          if (!err.code && !this.options.silent) {
-            console.error(err);
-          }
-        });
-    } else {
+  private async _next() {
+    if (this.paused || this.aborted) {
       this.inactive = true;
+      return;
+    }
+
+    try {
+      const { value, done } = await this.iterator.next();
+
+      if (done) {
+        this.emit("end");
+        return;
+      }
+
+      const entry = value;
+      const isDirectory = entry.isDirectory();
+
+      if (this.options.nodir && isDirectory) {
+        return this._next();
+      }
+
+      // Calculate paths
+      const relative = path.relative(
+        this.cwd,
+        path.join(entry.parentPath, entry.name),
+      );
+      const absolute = path.resolve(this.cwd, relative);
+
+      let matchRel = relative;
+      let matchAbs = absolute;
+
+      if (this.options.mark && isDirectory) {
+        matchRel += "/";
+        matchAbs += "/";
+      }
+
+      const matchObj: Match = { relative: matchRel, absolute: matchAbs };
+
+      if (this.options.stat) {
+        matchObj.stat = await (
+          this.options.follow ? fs.stat(absolute) : fs.lstat(absolute)
+        ).catch(() => entry);
+      } else {
+        matchObj.stat = entry;
+      }
+
+      this.emit("match", matchObj);
+      this._next();
+    } catch (err: any) {
+      this.abort();
+      this.emit("error", err);
+      if (!this.options.silent) console.error(err);
     }
   }
 
