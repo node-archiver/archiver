@@ -1,8 +1,7 @@
 import { EventEmitter } from "node:events";
 import * as fs from "node:fs";
 import { resolve } from "node:path";
-
-import picomatch from "picomatch";
+import { globToRegExp } from "node:util";
 
 type MatchFn = (path: string, isDirectory?: boolean) => boolean;
 
@@ -21,33 +20,19 @@ function expandBraces(pattern: string): string[] {
 }
 
 /**
- * Create a minimatch-compatible matcher using picomatch.
- *
- * Handles key behavioral differences:
- * 1. minimatch strips trailing slashes from paths before matching;
- *    picomatch does not.
- * 2. minimatch's `**` matches zero or more path segments everywhere,
- *    including at the end of a pattern (e.g. `*‍/*‍/**` matches `a/b`).
- *    picomatch's `**` at the end requires at least one segment.
- * 3. A pattern ending with `/` should only match directories.
- *
- * To bridge the gap, we expand braces, then for each expanded pattern
- * we recursively strip trailing `/**` to generate zero-segment variants.
+ * Create a minimatch-compatible matcher using native Node.js util.globToRegExp.
  */
-function createMatcher(
-  pattern: string,
-  options: picomatch.PicomatchOptions,
-): MatchFn {
+function createMatcher(pattern: string, options: Options): MatchFn {
   const dirOnly = /\/+$/.test(pattern);
   const stripped = pattern.replace(/\/+$/, "");
-  const scan = picomatch.scan(stripped);
-  // picomatch's extglob negations (e.g. !(foo)) don't respect dot:false,
-  // so we manually reject dotfile segments beyond the literal base.
-  // Only enable this guard for negative extglobs — positive extglobs like
-  // @(.y) explicitly reference dotfiles and should still match.
-  const hasNegExtglob = /!\(/.test(stripped);
-  const checkDots = !options.dot && scan.isExtglob && hasNegExtglob;
-  const baseDepth = scan.base ? scan.base.split("/").length : 0;
+
+  // We approximate the 'base' depth to handle the dotfile exclusion logic
+  const baseDepth = stripped
+    .split("/")
+    .findIndex((s) => /[*?+!@()\[\]]/.test(s));
+
+  const effectiveBaseDepth =
+    baseDepth === -1 ? stripped.split("/").length : baseDepth;
 
   const expanded = expandBraces(stripped);
   const variants = new Set<string>();
@@ -61,17 +46,28 @@ function createMatcher(
       addGlobstarVariants(p, variants);
     }
   }
-  const matchers = [...variants].map((p) => picomatch(p, options));
+
+  const matchers = [...variants].map((p) =>
+    globToRegExp(p, {
+      extended: true,
+      globstar: !options.noglobstar,
+      caseInsensitive: !!options.nocase,
+    }),
+  );
+
   return (path: string, isDirectory?: boolean) => {
     if (dirOnly && !isDirectory) return false;
     const cleanPath = path.replace(/\/+$/, "");
-    if (checkDots) {
+
+    // Manual dotfile guard to match your previous picomatch config
+    if (!options.dot) {
       const segments = cleanPath.split("/");
-      for (let i = baseDepth; i < segments.length; i++) {
+      for (let i = Math.max(0, effectiveBaseDepth); i < segments.length; i++) {
         if (segments[i].startsWith(".")) return false;
       }
     }
-    return matchers.some((m) => m(cleanPath));
+
+    return matchers.some((re) => re.test(cleanPath));
   };
 }
 
@@ -87,12 +83,9 @@ function readdir(dir: fs.PathLike, strict: boolean): Promise<fs.Dirent[]> {
     fs.readdir(dir, { withFileTypes: true }, (err, files) => {
       if (err) {
         switch (err.code) {
-          case "ENOTDIR": // Not a directory
-            if (strict) {
-              reject(err);
-            } else {
-              resolve([]);
-            }
+          case "ENOTDIR":
+            if (strict) reject(err);
+            else resolve([]);
             break;
           case "ENOTSUP": // Operation not supported
           case "ENOENT": // No such file or directory
@@ -122,12 +115,8 @@ function getStat(
       if (err) {
         switch (err.code) {
           case "ENOENT":
-            if (followSymlinks) {
-              // Fallback to lstat to handle broken links as files
-              resolve(getStat(file, false));
-            } else {
-              resolve(null);
-            }
+            if (followSymlinks) resolve(getStat(file, false));
+            else resolve(null);
             break;
           default:
             resolve(null);
@@ -159,7 +148,7 @@ async function* exploreWalkAsync(
   for (const file of files) {
     const name: string = file.name;
     const filename = dir + "/" + name;
-    const relative = filename.slice(1); // Remove the leading /
+    const relative = filename.slice(1);
     const absolute = path + "/" + relative;
     let stat: Stat = file;
     if (useStat || followSymlinks) {
@@ -310,41 +299,11 @@ export class ReaddirGlob extends EventEmitter<{
     }
 
     this.options = readOptions(options || {});
-
-    this.matchers = [];
-    if (this.options.pattern) {
-      const matchers = Array.isArray(this.options.pattern)
-        ? this.options.pattern
-        : [this.options.pattern];
-      this.matchers = matchers.map((m) =>
-        createMatcher(m, {
-          dot: this.options.dot,
-          noglobstar: this.options.noglobstar,
-          matchBase: this.options.matchBase,
-          nocase: this.options.nocase,
-        }),
-      );
-    }
-
-    this.ignoreMatchers = [];
-    if (this.options.ignore) {
-      const ignorePatterns = Array.isArray(this.options.ignore)
-        ? this.options.ignore
-        : [this.options.ignore];
-      this.ignoreMatchers = ignorePatterns.map((ignore) =>
-        createMatcher(ignore, { dot: true }),
-      );
-    }
-
-    this.skipMatchers = [];
-    if (this.options.skip) {
-      const skipPatterns = Array.isArray(this.options.skip)
-        ? this.options.skip
-        : [this.options.skip];
-      this.skipMatchers = skipPatterns.map((skip) =>
-        createMatcher(skip, { dot: true }),
-      );
-    }
+    this.matchers = this._createMatchers(this.options.pattern);
+    this.ignoreMatchers = this._createMatchers(this.options.ignore, {
+      dot: true,
+    });
+    this.skipMatchers = this._createMatchers(this.options.skip, { dot: true });
 
     this.iterator = explore(
       resolve(cwd || "."),
@@ -367,6 +326,17 @@ export class ReaddirGlob extends EventEmitter<{
     }
 
     setTimeout(() => this._next());
+  }
+
+  private _createMatchers(
+    patterns?: string | readonly string[],
+    overrideOpts?: Partial<Options>,
+  ): MatchFn[] {
+    if (!patterns) return [];
+    const arr = Array.isArray(patterns) ? patterns : [patterns];
+    return arr.map((p) =>
+      createMatcher(p, { ...this.options, ...overrideOpts }),
+    );
   }
 
   private _shouldSkipDirectory(relative: string) {
