@@ -14,9 +14,7 @@
   "type": "module",
   "exports": {
     ".": "./dist/index.mjs",
-    "./compress-commons": "./dist/compress-commons/index.mjs",
-    "./compress-commons/constants": "./dist/compress-commons/constants.mjs",
-    "./compress-commons/utils": "./dist/compress-commons/utils.mjs",
+    "./constants": "./dist/constants.mjs",
     "./utils": "./dist/utils.mjs",
     "./package.json": "./package.json"
   },

@@ -6,7 +6,7 @@ import { Readable } from "node:stream";
 import {
   ZipArchiveEntry,
   ZipArchiveOutputStream,
-} from "../../src/compress-commons/index";
+} from "../../src/compress-commons";
 import { WriteHashStream, binaryBuffer } from "./helpers/index";
 
 const testBuffer = binaryBuffer(1024 * 16);

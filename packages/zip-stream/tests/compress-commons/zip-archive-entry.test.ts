@@ -1,8 +1,8 @@
 import { expect, it, beforeEach, describe } from "bun:test";
 
-import { GeneralPurposeBit } from "../../src/compress-commons/archivers/general-purpose-bit";
-import * as UnixStat from "../../src/compress-commons/archivers/unix-stat";
-import { ZipArchiveEntry } from "../../src/compress-commons/index";
+import { GeneralPurposeBit } from "../../src/archivers/general-purpose-bit";
+import * as UnixStat from "../../src/archivers/unix-stat";
+import { ZipArchiveEntry } from "../../src/compress-commons";
 
 let entry: ZipArchiveEntry;
 // Jan 03 2013 14:26:38 GMT

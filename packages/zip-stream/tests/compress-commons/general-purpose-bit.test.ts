@@ -1,6 +1,6 @@
 import { expect, it, beforeEach, describe } from "bun:test";
 
-import { GeneralPurposeBit } from "../../src/compress-commons/archivers/general-purpose-bit";
+import { GeneralPurposeBit } from "../../src/archivers/general-purpose-bit";
 
 let gpb;
 
