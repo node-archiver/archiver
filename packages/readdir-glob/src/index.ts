@@ -3,7 +3,7 @@ import * as fs from "node:fs/promises";
 import type { Dirent, Stats } from "node:fs";
 import * as path from "node:path";
 
-export type Stat = Dirent | Stats;
+export type Stat = Stats;
 export type Match = {
   relative: string;
   absolute: string;
@@ -140,10 +140,9 @@ export class ReaddirGlob extends EventEmitter<{
     // Native glob handles brace expansion and most pattern logic internally.
     const globIterator = fs.glob(patterns, {
       cwd: this.cwd,
-      withFileTypes: true,
       dot: this.options.dot,
       followSymlinks: this.options.follow,
-      exclude: (entryName: string) => this._isExcluded(entryName),
+      exclude: (entryName) => this._isExcluded(entryName),
     });
 
     this.iterator = globIterator[Symbol.asyncIterator]();
@@ -178,44 +177,47 @@ export class ReaddirGlob extends EventEmitter<{
     }
 
     try {
-      const { value, done } = await this.iterator.next();
+      const { value: pathString, done } = await this.iterator.next();
 
       if (done) {
         this.emit("end");
         return;
       }
 
-      const entry = value;
-      const isDirectory = entry.isDirectory();
+      // 1. Resolve paths (glob yields strings)
+      const absolutePath = path.isAbsolute(pathString)
+        ? pathString
+        : path.resolve(this.cwd, pathString);
+      const relativePath = path.relative(this.cwd, absolutePath);
 
+      // 2. Manual Stat (Required for nodir, mark, and match.stat)
+      const stats = await (
+        this.options.follow ? fs.stat(absolutePath) : fs.lstat(absolutePath)
+      ).catch(() => null);
+
+      if (!stats) return this._next();
+
+      const isDirectory = stats.isDirectory();
+
+      // 3. Filter nodir
       if (this.options.nodir && isDirectory) {
         return this._next();
       }
 
-      // Calculate paths
-      const relative = path.relative(
-        this.cwd,
-        path.join(entry.parentPath, entry.name),
-      );
-      const absolute = path.resolve(this.cwd, relative);
-
-      let matchRel = relative;
-      let matchAbs = absolute;
+      // 4. Construct Match
+      let matchRel = relativePath;
+      let matchAbs = absolutePath;
 
       if (this.options.mark && isDirectory) {
         matchRel += "/";
         matchAbs += "/";
       }
 
-      const matchObj: Match = { relative: matchRel, absolute: matchAbs };
-
-      if (this.options.stat) {
-        matchObj.stat = await (
-          this.options.follow ? fs.stat(absolute) : fs.lstat(absolute)
-        ).catch(() => entry);
-      } else {
-        matchObj.stat = entry;
-      }
+      const matchObj: Match = {
+        relative: matchRel,
+        absolute: matchAbs,
+        ...(this.options.stat ? { stat: stats } : {}),
+      };
 
       this.emit("match", matchObj);
       this._next();
