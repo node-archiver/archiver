@@ -1,10 +1,10 @@
 class FixedFIFO {
   buffer: Buffer[];
 
-  mask: number;
-  top: number;
-  btm: number;
-  next: FixedFIFO;
+  private mask: number;
+  private top: number;
+  private btm: number;
+  private next: FixedFIFO;
 
   constructor(hwm: number) {
     if (!(hwm > 0) || ((hwm - 1) & hwm) !== 0) {
@@ -25,7 +25,7 @@ class FixedFIFO {
     return true;
   }
 
-  shift(): Buffer {
+  shift(): Buffer | undefined {
     const last = this.buffer[this.btm];
     if (last === undefined) return undefined;
     this.buffer[this.btm] = undefined;
