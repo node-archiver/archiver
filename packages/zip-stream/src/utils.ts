@@ -1,8 +1,8 @@
 import { isReadable, isWritable, type Stream } from "node:stream";
 
 const isStream = (source: unknown): source is Stream =>
-  // @ts-expect-error
-  isReadable(source) || isWritable(source);
+  // @ts-expect-error: Argument of type 'unknown' is not assignable to parameter of type 'NodeJS.ReadableStream | ReadableStream<any>'.
+  Boolean(isReadable(source) || isWritable(source));
 
 function dateToDos(date: Date, forceLocalTime: boolean = false): number {
   const year = forceLocalTime ? date.getFullYear() : date.getUTCFullYear();
