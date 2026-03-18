@@ -14,6 +14,7 @@
   "type": "module",
   "exports": {
     ".": "./dist/index.mjs",
+    "./constants": "./dist/constants.mjs",
     "./utils": "./dist/utils.mjs",
     "./package.json": "./package.json"
   },
@@ -21,9 +22,6 @@
     "build": "tsdown",
     "test": "bun test --reporter dot",
     "prepublishOnly": "bun run build"
-  },
-  "dependencies": {
-    "@archiver/compress-commons": "workspace:*"
   },
   "devDependencies": {
     "tsdown": "catalog:"

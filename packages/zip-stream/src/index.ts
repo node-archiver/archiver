@@ -4,8 +4,7 @@ import {
   ZipArchiveOutputStream,
   ZipArchiveEntry,
   type ZipOptions,
-} from "@archiver/compress-commons";
-
+} from "./compress-commons";
 import { dateify, sanitizePath } from "./utils";
 
 interface ZlibOptions {

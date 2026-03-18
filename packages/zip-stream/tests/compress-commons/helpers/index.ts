@@ -13,8 +13,8 @@ class WriteHashStream extends WriteStream {
   hash: crypto.Hash;
   digest: null | string;
 
-  constructor(path: string, options?) {
-    super(path, options);
+  constructor(path: string) {
+    super(path);
     this.hash = crypto.createHash("sha1");
     this.digest = null;
     this.on("close", () => {
@@ -22,7 +22,7 @@ class WriteHashStream extends WriteStream {
     });
   }
 
-  write(chunk): boolean {
+  write(chunk: string | Buffer): boolean {
     if (chunk) {
       this.hash.update(chunk);
     }
