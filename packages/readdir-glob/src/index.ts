@@ -258,7 +258,7 @@ export class ReaddirGlob extends EventEmitter<{
         if (this.skips.some((re) => re.test(relPath))) continue;
 
         let isDir = entry.isDirectory();
-        let isSymlink = entry.isSymbolicLink();
+        const isSymlink = entry.isSymbolicLink();
         let statObj: Stat = entry;
 
         // 2. Handle Symlinks & Stats
