@@ -3,7 +3,7 @@ import { EventEmitter } from "node:events";
 const STREAM_DESTROYED = new Error("Stream was destroyed");
 
 import { FastFIFO as FIFO } from "./fifo";
-import { TextDecoder } from "./td/index";
+import { TextDecoder } from "./text-decoder";
 
 // 29 bits used total (4 from shared, 14 from read, and 11 from write)
 const MAX = (1 << 29) - 1;
@@ -393,7 +393,7 @@ class Readable extends Stream {
     return this._readableState.read();
   }
 
-  push(data: Buffer): boolean {
+  push(data: Buffer | null): boolean {
     this._readableState.updateNextTickIfOpen();
     return this._readableState.push(data);
   }
@@ -930,7 +930,7 @@ class ReadableState {
     pipeTo.emit("pipe", this.stream);
   }
 
-  push(data: Buffer): boolean {
+  push(data: Buffer | null): boolean {
     const stream = this.stream;
 
     if (data === null) {
