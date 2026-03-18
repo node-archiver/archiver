@@ -370,7 +370,7 @@ class Readable extends Stream {
     this._readableState.map = mapOrSkip;
     return this;
 
-    function mapOrSkip(data) {
+    function mapOrSkip(data: string | Buffer) {
       const next = dec.push(data);
       return next === "" && (data.byteLength !== 0 || dec.remaining > 0)
         ? null
@@ -871,7 +871,7 @@ class ReadableState {
   buffered: number;
   readAhead: boolean;
   error: Error | null;
-  map: (data: string | Buffer) => Buffer;
+  map: ((data: string | Buffer) => Buffer) | null;
 
   constructor(stream: Readable, options?: Partial<ReadableStateOptions>) {
     const {

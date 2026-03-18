@@ -1,10 +1,12 @@
-import * as b4a from "../b4a";
-
 /**
  * https://encoding.spec.whatwg.org/#utf-8-decoder
  */
 class UTF8Decoder {
   bytesSeen: 0 | 1;
+  bytesNeeded: number;
+  lowerBoundary: number;
+  upperBoundary: number;
+  codePoint: number;
 
   constructor() {
     this._reset();
@@ -14,12 +16,12 @@ class UTF8Decoder {
     return this.bytesSeen;
   }
 
-  decode(data): string {
+  decode(data: Buffer): string {
     if (data.byteLength === 0) return "";
 
     if (this.bytesNeeded === 0 && trailingIncomplete(data, 0) === 0) {
       this.bytesSeen = trailingBytesSeen(data);
-      return b4a.toString(data, "utf8");
+      return data.toString("utf8");
     }
 
     let result = "";
@@ -54,7 +56,7 @@ class UTF8Decoder {
     const trailing = trailingIncomplete(data, start);
     const end = data.byteLength - trailing;
 
-    if (end > start) result += b4a.toString(data, "utf8", start, end);
+    if (end > start) result += data.toString("utf8", start, end);
 
     for (let i = end; i < data.byteLength; i++) {
       const byte = data[i];

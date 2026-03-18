@@ -1,5 +1,3 @@
-import * as b4a from "../b4a";
-
 class PassThroughDecoder {
   encoding?: BufferEncoding;
 
@@ -11,8 +9,8 @@ class PassThroughDecoder {
     return 0;
   }
 
-  decode(data): string {
-    return b4a.toString(data, this.encoding);
+  decode(data: string | Buffer): string {
+    return data.toString(this.encoding);
   }
 
   flush() {
