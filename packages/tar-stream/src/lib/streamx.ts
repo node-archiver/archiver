@@ -3,7 +3,6 @@ import { EventEmitter } from "node:events";
 const STREAM_DESTROYED = new Error("Stream was destroyed");
 
 import { FastFIFO as FIFO } from "./fifo";
-import { TextDecoder } from "./text-decoder";
 
 // 29 bits used total (4 from shared, 14 from read, and 11 from write)
 const MAX = (1 << 29) - 1;
@@ -343,6 +342,283 @@ class Stream extends EventEmitter {
   }
 }
 
+/**
+ * https://encoding.spec.whatwg.org/#utf-8-decoder
+ */
+class UTF8Decoder {
+  bytesSeen: 0 | 1;
+  bytesNeeded: number;
+  lowerBoundary: number;
+  upperBoundary: number;
+  codePoint: number;
+
+  constructor() {
+    this._reset();
+  }
+
+  get remaining(): 0 | 1 {
+    return this.bytesSeen;
+  }
+
+  decode(data: Buffer): string {
+    if (data.byteLength === 0) return "";
+
+    if (this.bytesNeeded === 0 && trailingIncomplete(data, 0) === 0) {
+      this.bytesSeen = trailingBytesSeen(data);
+      return data.toString("utf8");
+    }
+
+    let result = "";
+    let start = 0;
+
+    if (this.bytesNeeded > 0) {
+      while (start < data.byteLength) {
+        const byte = data[start];
+
+        if (byte < this.lowerBoundary || byte > this.upperBoundary) {
+          result += "\ufffd";
+          this._reset();
+          break;
+        }
+
+        this.lowerBoundary = 0x80;
+        this.upperBoundary = 0xbf;
+        this.codePoint = (this.codePoint << 6) | (byte & 0x3f);
+        this.bytesSeen++;
+        start++;
+
+        if (this.bytesSeen === this.bytesNeeded) {
+          result += String.fromCodePoint(this.codePoint);
+          this._reset();
+          break;
+        }
+      }
+
+      if (this.bytesNeeded > 0) return result;
+    }
+
+    const trailing = trailingIncomplete(data, start);
+    const end = data.byteLength - trailing;
+
+    if (end > start) result += data.toString("utf8", start, end);
+
+    for (let i = end; i < data.byteLength; i++) {
+      const byte = data[i];
+
+      if (this.bytesNeeded === 0) {
+        if (byte <= 0x7f) {
+          this.bytesSeen = 0;
+          result += String.fromCharCode(byte);
+        } else if (byte >= 0xc2 && byte <= 0xdf) {
+          this.bytesNeeded = 2;
+          this.bytesSeen = 1;
+          this.codePoint = byte & 0x1f;
+        } else if (byte >= 0xe0 && byte <= 0xef) {
+          if (byte === 0xe0) this.lowerBoundary = 0xa0;
+          else if (byte === 0xed) this.upperBoundary = 0x9f;
+          this.bytesNeeded = 3;
+          this.bytesSeen = 1;
+          this.codePoint = byte & 0xf;
+        } else if (byte >= 0xf0 && byte <= 0xf4) {
+          if (byte === 0xf0) this.lowerBoundary = 0x90;
+          else if (byte === 0xf4) this.upperBoundary = 0x8f;
+          this.bytesNeeded = 4;
+          this.bytesSeen = 1;
+          this.codePoint = byte & 0x7;
+        } else {
+          this.bytesSeen = 1;
+          result += "\ufffd";
+        }
+
+        continue;
+      }
+
+      if (byte < this.lowerBoundary || byte > this.upperBoundary) {
+        result += "\ufffd";
+        i--;
+        this._reset();
+
+        continue;
+      }
+
+      this.lowerBoundary = 0x80;
+      this.upperBoundary = 0xbf;
+
+      this.codePoint = (this.codePoint << 6) | (byte & 0x3f);
+      this.bytesSeen++;
+
+      if (this.bytesSeen === this.bytesNeeded) {
+        result += String.fromCodePoint(this.codePoint);
+        this._reset();
+      }
+    }
+
+    return result;
+  }
+
+  flush(): "" | "\ufffd" {
+    const result = this.bytesNeeded > 0 ? "\ufffd" : "";
+    this._reset();
+    return result;
+  }
+
+  _reset(): void {
+    this.codePoint = 0;
+    this.bytesNeeded = 0;
+    this.bytesSeen = 0;
+    this.lowerBoundary = 0x80;
+    this.upperBoundary = 0xbf;
+  }
+}
+
+function trailingIncomplete(data, start: number): number {
+  const len = data.byteLength;
+  if (len <= start) return 0;
+
+  const limit = Math.max(start, len - 4);
+
+  let i = len - 1;
+  while (i > limit && (data[i] & 0xc0) === 0x80) i--;
+
+  if (i < start) return 0;
+
+  const byte = data[i];
+
+  let needed;
+  if (byte <= 0x7f) return 0;
+  if (byte >= 0xc2 && byte <= 0xdf) needed = 2;
+  else if (byte >= 0xe0 && byte <= 0xef) needed = 3;
+  else if (byte >= 0xf0 && byte <= 0xf4) needed = 4;
+  else return 0;
+
+  const available = len - i;
+  return available < needed ? available : 0;
+}
+
+function trailingBytesSeen(data): 0 | 1 {
+  const len = data.byteLength;
+  if (len === 0) return 0;
+
+  const last = data[len - 1];
+
+  if (last <= 0x7f) return 0;
+  if ((last & 0xc0) !== 0x80) return 1;
+
+  const limit = Math.max(0, len - 4);
+
+  let i = len - 2;
+  while (i >= limit && (data[i] & 0xc0) === 0x80) i--;
+
+  if (i < 0) return 1;
+
+  const first = data[i];
+
+  let needed;
+  if (first >= 0xc2 && first <= 0xdf) needed = 2;
+  else if (first >= 0xe0 && first <= 0xef) needed = 3;
+  else if (first >= 0xf0 && first <= 0xf4) needed = 4;
+  else return 1;
+
+  if (len - i !== needed) return 1;
+
+  if (needed >= 3) {
+    const second = data[i + 1];
+    if (first === 0xe0 && second < 0xa0) return 1;
+    if (first === 0xed && second > 0x9f) return 1;
+    if (first === 0xf0 && second < 0x90) return 1;
+    if (first === 0xf4 && second > 0x8f) return 1;
+  }
+
+  return 0;
+}
+
+class PassThroughDecoder {
+  encoding?: BufferEncoding;
+
+  constructor(encoding?: "ascii" | "latin1" | "hex") {
+    this.encoding = encoding;
+  }
+
+  get remaining() {
+    return 0;
+  }
+
+  decode(data: string | Buffer): string {
+    return data.toString(this.encoding);
+  }
+
+  flush() {
+    return "";
+  }
+}
+
+class CustomTextDecoder {
+  encoding: BufferEncoding;
+  decoder: PassThroughDecoder | UTF8Decoder;
+
+  constructor(encoding: BufferEncoding = "utf8") {
+    this.encoding = normalizeEncoding(encoding);
+
+    switch (this.encoding) {
+      case "utf8":
+        this.decoder = new UTF8Decoder();
+        break;
+      case "utf16le":
+      case "base64":
+        throw new Error("Unsupported encoding: " + this.encoding);
+      default:
+        this.decoder = new PassThroughDecoder(this.encoding);
+    }
+  }
+
+  get remaining(): number {
+    return this.decoder.remaining;
+  }
+
+  push(data: string | Buffer): string {
+    if (typeof data === "string") return data;
+    return this.decoder.decode(data);
+  }
+
+  // For Node.js compatibility
+  write(data: string | Buffer): string {
+    return this.push(data);
+  }
+
+  end(data: string | Buffer): string {
+    let result = "";
+    if (data) result = this.push(data);
+    result += this.decoder.flush();
+    return result;
+  }
+}
+
+function normalizeEncoding(
+  encoding: BufferEncoding,
+): "ascii" | "utf8" | "utf16le" | "base64" | "latin1" | "hex" {
+  const encoding_ = encoding.toLowerCase();
+
+  switch (encoding_) {
+    case "utf8":
+    case "utf-8":
+      return "utf8";
+    case "ucs2":
+    case "ucs-2":
+    case "utf16le":
+    case "utf-16le":
+      return "utf16le";
+    case "latin1":
+    case "binary":
+      return "latin1";
+    case "base64":
+    case "ascii":
+    case "hex":
+      return encoding_;
+    default:
+      throw new Error(`Unknown encoding: ${encoding_}`);
+  }
+}
+
 interface ReadableOptions extends StreamOptions, ReadableStateOptions {
   encoding?: BufferEncoding;
   read(callback: (err: Error | null) => void): void;
@@ -365,7 +641,7 @@ class Readable extends Stream {
   }
 
   setEncoding(encoding?: BufferEncoding): this {
-    const dec = new TextDecoder(encoding);
+    const dec = new CustomTextDecoder(encoding);
     const map = this._readableState.map ?? ((s) => s);
     this._readableState.map = mapOrSkip;
     return this;
