@@ -268,7 +268,7 @@ export class ReaddirGlob extends EventEmitter<{
               const stat = await fs.stat(absPath);
               isDir = stat.isDirectory();
               statObj = stat;
-            } catch (err) {
+            } catch {
               // Gracefully handle broken symlinks. Do not treat as a directory.
               isDir = false;
             }
@@ -280,7 +280,7 @@ export class ReaddirGlob extends EventEmitter<{
             statObj = await (this.options.follow
               ? fs.stat(absPath)
               : fs.lstat(absPath));
-          } catch (e) {
+          } catch {
             // Ignore stat failures to continue walking safely
           }
         }
@@ -327,7 +327,7 @@ export class ReaddirGlob extends EventEmitter<{
           ...(this.options.stat ? { stat: statObj } : {}),
         });
       }
-    } catch (err: any) {
+    } catch (err) {
       if (!this.options.silent) {
         this.emit("error", err);
       }
