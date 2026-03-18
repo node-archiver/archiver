@@ -4,6 +4,7 @@ const STREAM_DESTROYED = new Error("Stream was destroyed");
 
 import { FastFIFO as FIFO } from "./fifo";
 
+// #region constants
 // 29 bits used total (4 from shared, 14 from read, and 11 from write)
 const MAX = (1 << 29) - 1;
 
@@ -120,6 +121,7 @@ const WRITE_BACKPRESSURE_STATUS =
 const WRITE_UPDATE_SYNC_STATUS =
   WRITE_UPDATING | OPEN_STATUS | WRITE_NEXT_TICK | WRITE_PRIMARY;
 const WRITE_DROP_DATA = WRITE_FINISHING | WRITE_DONE | DESTROY_STATUS;
+// #endregion constants
 
 function afterDrain(): void {
   this.stream._duplexState |= READ_PIPE_DRAINED;
@@ -164,13 +166,15 @@ function afterDestroy(err) {
   }
 }
 
-function afterWrite(err) {
+function afterWrite(this: WritableState, err) {
   const stream = this.stream;
 
   if (err) stream.destroy(err);
   stream._duplexState &= WRITE_NOT_ACTIVE;
 
-  if (this.drains !== null) tickDrains(this.drains);
+  if (this.drains !== null) {
+    tickDrains(this.drains);
+  }
 
   if ((stream._duplexState & WRITE_DRAIN_STATUS) === WRITE_UNDRAINED) {
     stream._duplexState &= WRITE_DRAINED;

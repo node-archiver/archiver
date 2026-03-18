@@ -783,7 +783,7 @@ test("extract streams are async iterators", async function () {
   const expected = ["file-1.txt", "file-2.txt"];
 
   for await (const entry of extract) {
-    expect(entry.header.name).toBe(expected.shift());
+    expect<string | undefined>(entry.header.name).toBe(expected.shift());
     entry.resume();
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
