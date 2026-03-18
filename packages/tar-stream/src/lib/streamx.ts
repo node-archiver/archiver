@@ -342,9 +342,6 @@ class Stream extends EventEmitter {
   }
 }
 
-/**
- * https://encoding.spec.whatwg.org/#utf-8-decoder
- */
 class UTF8Decoder {
   bytesSeen: 0 | 1;
   bytesNeeded: number;

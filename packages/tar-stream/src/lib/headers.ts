@@ -40,11 +40,6 @@ export interface TarHeader {
   typeflag: number;
 }
 
-/**
- * Copied from the node-tar repo and modified to meet tar-stream coding standard.
- *
- * Source: https://github.com/npm/node-tar/blob/51b6627a1f357d2eb433e7378e5f05e83b7aa6cd/lib/header.js#L349
- */
 function parse256(buf) {
   // first byte MUST be either 80 or FF
   // 80 for positive, FF for 2's comp
