@@ -219,7 +219,7 @@ export class ReaddirGlob extends EventEmitter<{
 
       this.emit("match", matchObj);
       this._next();
-    } catch (err: any) {
+    } catch (err) {
       this.abort();
       this.emit("error", err);
       if (!this.options.silent) console.error(err);
