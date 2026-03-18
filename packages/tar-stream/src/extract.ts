@@ -138,6 +138,7 @@ class TarExtract extends Writable {
   private _callback?: (err?: Error | null) => void;
   private _locked: boolean;
   private _finished: boolean;
+  private _header: headers.DecodedHeader | null;
 
   constructor(opts?: TarExtractOptions) {
     super(opts);

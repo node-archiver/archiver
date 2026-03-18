@@ -39,8 +39,8 @@ class FixedFIFO {
 }
 
 class FastFIFO {
-  head: FixedFIFO;
-  tail: FixedFIFO;
+  private head: FixedFIFO;
+  private tail: FixedFIFO;
   length: number;
 
   constructor() {

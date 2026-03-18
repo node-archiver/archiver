@@ -6,5 +6,6 @@ export default defineConfig({
   rules: {
     ...config.rules,
     "no-this-alias": "warn",
+    "prefer-template": "warn",
   },
 });

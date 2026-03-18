@@ -119,12 +119,12 @@ interface EncodePaxOptions {
 function encodePax(opts: EncodePaxOptions): Buffer {
   // TODO: encode more stuff in pax
   let result = "";
-  if (opts.name) result += addLength(" path=" + opts.name + "\n");
-  if (opts.linkname) result += addLength(" linkpath=" + opts.linkname + "\n");
+  if (opts.name) result += addLength(` path=${opts.name}\n`);
+  if (opts.linkname) result += addLength(` linkpath=${opts.linkname}\n`);
   const pax = opts.pax;
   if (pax) {
     for (const key in pax) {
-      result += addLength(" " + key + "=" + pax[key] + "\n");
+      result += addLength(` ${key}=${pax[key]}\n`);
     }
   }
   return Buffer.from(result);
@@ -411,4 +411,11 @@ function encodeSize(num: number, buf: Buffer, off: number): void {
   }
 }
 
-export { decodeLongPath, encodePax, decodePax, decode, encode };
+export {
+  decodeLongPath,
+  encodePax,
+  decodePax,
+  decode,
+  encode,
+  type DecodedHeader,
+};

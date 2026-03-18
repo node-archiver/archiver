@@ -562,7 +562,7 @@ class CustomTextDecoder {
         break;
       case "utf16le":
       case "base64":
-        throw new Error("Unsupported encoding: " + this.encoding);
+        throw new Error(`Unsupported encoding: ${this.encoding}`);
       default:
         this.decoder = new PassThroughDecoder(this.encoding);
     }
