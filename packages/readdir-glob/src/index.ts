@@ -159,15 +159,22 @@ export class ReaddirGlob extends EventEmitter<{
     process.nextTick(() => this._next());
   }
 
-  /**
-   * Approximates the "skip" and "ignore" logic using native entry filtering.
-   */
-  private _isExcluded(name: string): boolean {
+  private _isExcluded(relative: string): boolean {
     const skip = this.options.skip;
-    if (!skip) return false;
-    const skipPatterns = Array.isArray(skip) ? skip : [skip];
-    // Simple exclusion check - native glob calls this for each segment
-    return skipPatterns.some((p) => name.includes(p));
+    const ignore = this.options.ignore;
+
+    const check = (patterns: string | readonly string[] | undefined) => {
+      if (!patterns) return false;
+      const arr = Array.isArray(patterns) ? patterns : [patterns];
+      return arr.some((p) => {
+        if (relative === p) return true;
+        return (
+          relative.startsWith(p + path.sep) || relative.startsWith(p + "/")
+        );
+      });
+    };
+
+    return check(skip) || check(ignore);
   }
 
   private async _next() {
@@ -184,13 +191,16 @@ export class ReaddirGlob extends EventEmitter<{
         return;
       }
 
-      // 1. Resolve paths (glob yields strings)
       const absolutePath = path.isAbsolute(pathString)
         ? pathString
         : path.resolve(this.cwd, pathString);
+
       const relativePath = path.relative(this.cwd, absolutePath);
 
-      // 2. Manual Stat (Required for nodir, mark, and match.stat)
+      // Need to handle the "parents" of this path because the original
+      // recursive walker emitted directories as it discovered them.
+      // fs.glob only yields the matches for the pattern itself.
+
       const stats = await (
         this.options.follow ? fs.stat(absolutePath) : fs.lstat(absolutePath)
       ).catch(() => null);
@@ -199,12 +209,16 @@ export class ReaddirGlob extends EventEmitter<{
 
       const isDirectory = stats.isDirectory();
 
-      // 3. Filter nodir
+      // Skip if nodir is set and it's a directory
       if (this.options.nodir && isDirectory) {
         return this._next();
       }
 
-      // 4. Construct Match
+      // Re-validate against exclusion (native glob 'exclude' is just a hint)
+      if (this._isExcluded(relativePath)) {
+        return this._next();
+      }
+
       let matchRel = relativePath;
       let matchAbs = absolutePath;
 
