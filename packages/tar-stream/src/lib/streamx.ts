@@ -726,31 +726,6 @@ class Readable extends Stream {
     }
   }
 
-  static from(data: unknown, opts?: Partial<ReadableOptions>): unknown {
-    if (isReadStreamx(data)) return data;
-
-    if (data[Symbol.asyncIterator])
-      return this._fromAsyncIterator(data[Symbol.asyncIterator](), opts);
-
-    if (!Array.isArray(data)) data = data === undefined ? [] : [data];
-
-    let i = 0;
-    return new Readable({
-      ...opts,
-      read(callback) {
-        this.push(i === data.length ? null : data[i++]);
-        callback(null);
-      },
-    });
-  }
-
-  static isBackpressured(rs: unknown): boolean {
-    return (
-      (rs._duplexState & READ_BACKPRESSURE_STATUS) !== 0 ||
-      rs._readableState.buffered >= rs._readableState.highWaterMark
-    );
-  }
-
   static isPaused(rs: unknown): boolean {
     return (rs._duplexState & READ_RESUMED) === 0;
   }
@@ -868,24 +843,6 @@ class Writable extends Stream {
 
   _final(callback: (err?: Error | null) => void): void {
     callback(null);
-  }
-
-  static isBackpressured(ws: Writable): boolean {
-    return (ws._duplexState & WRITE_BACKPRESSURE_STATUS) !== 0;
-  }
-
-  static drained(ws: Writable): Promise<boolean> {
-    if (ws.destroyed) return Promise.resolve(false);
-    const state = ws._writableState;
-    const pending = isWritev(ws)
-      ? Math.min(1, state.queue.length)
-      : state.queue.length;
-    const writes = pending + (ws._duplexState & WRITE_WRITING ? 1 : 0);
-    if (writes === 0) return Promise.resolve(true);
-    if (state.drains === null) state.drains = [];
-    return new Promise((resolve) => {
-      state.drains.push({ writes, resolve });
-    });
   }
 
   write(data: Buffer): boolean {
