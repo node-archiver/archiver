@@ -100,7 +100,6 @@ const SHOULD_NOT_READ =
   READ_DONE |
   READ_NEEDS_PUSH |
   READ_READ_AHEAD;
-const READ_BACKPRESSURE_STATUS = DESTROY_STATUS | READ_ENDING | READ_DONE;
 const READ_UPDATE_SYNC_STATUS =
   READ_UPDATING | OPEN_STATUS | READ_NEXT_TICK | READ_PRIMARY;
 const READ_NEXT_TICK_OR_OPENING = READ_NEXT_TICK | OPENING;
@@ -116,8 +115,6 @@ const WRITE_PRIMARY_AND_ACTIVE = WRITE_PRIMARY | WRITE_ACTIVE;
 const WRITE_ACTIVE_AND_WRITING = WRITE_ACTIVE | WRITE_WRITING;
 const WRITE_FINISHING_STATUS =
   OPEN_STATUS | WRITE_FINISHING | WRITE_QUEUED_AND_ACTIVE | WRITE_DONE;
-const WRITE_BACKPRESSURE_STATUS =
-  WRITE_UNDRAINED | DESTROY_STATUS | WRITE_FINISHING | WRITE_DONE;
 const WRITE_UPDATE_SYNC_STATUS =
   WRITE_UPDATING | OPEN_STATUS | WRITE_NEXT_TICK | WRITE_PRIMARY;
 const WRITE_DROP_DATA = WRITE_FINISHING | WRITE_DONE | DESTROY_STATUS;
@@ -694,42 +691,6 @@ class Readable extends Stream {
     return this;
   }
 
-  static _fromAsyncIterator(
-    iterator: AsyncIterator<Buffer, undefined>,
-    opts?: Partial<ReadableOptions>,
-  ): Readable {
-    let destroy;
-
-    const rs = new Readable({
-      ...opts,
-      read(callback) {
-        iterator
-          .next()
-          .then(push)
-          .then(callback.bind(null, null))
-          .catch(callback);
-      },
-      predestroy() {
-        destroy = iterator.return();
-      },
-      destroy(callback) {
-        if (!destroy) return callback(null);
-        destroy.then(callback.bind(null, null)).catch(callback);
-      },
-    });
-
-    return rs;
-
-    function push(data: IteratorResult<Buffer, undefined>) {
-      if (data.done) rs.push(null);
-      else rs.push(data.value);
-    }
-  }
-
-  static isPaused(rs: unknown): boolean {
-    return (rs._duplexState & READ_RESUMED) === 0;
-  }
-
   [Symbol.asyncIterator]() {
     const stream = this;
 
@@ -874,10 +835,6 @@ function getStreamError(stream: Stream, opts = {}): Error {
   return !opts.all && err === STREAM_DESTROYED ? null : err;
 }
 
-function isReadStreamx(stream) {
-  return isStreamx(stream) && stream.readable;
-}
-
 function isTypedArray(data) {
   return (
     typeof data === "object" &&
@@ -888,10 +845,6 @@ function isTypedArray(data) {
 
 function defaultByteLength(data): number {
   return isTypedArray(data) ? data.byteLength : 1024;
-}
-
-function isWritev(s): boolean {
-  return s._writev !== Writable.prototype._writev;
 }
 
 interface WritableStateOptions {
