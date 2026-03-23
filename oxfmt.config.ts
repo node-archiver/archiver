@@ -1,1 +1,3 @@
-export { default } from "@gameroman/config/oxfmt";
+import { config } from "@gameroman/config/oxfmt";
+
+export default config;

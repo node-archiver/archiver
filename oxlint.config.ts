@@ -1,10 +1,8 @@
-import config from "@gameroman/config/oxlint";
-import { defineConfig } from "oxlint";
+import { defineConfig } from "@gameroman/config/oxlint";
 
 export default defineConfig({
-  ...config,
   rules: {
-    ...config.rules,
     "no-this-alias": "warn",
+    "prefer-template": "warn",
   },
 });
