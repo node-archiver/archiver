@@ -1285,4 +1285,10 @@ class ReadableState {
   }
 }
 
-export { getStreamError, Writable, Readable, type ReadableOptions };
+export {
+  getStreamError,
+  Writable,
+  Readable,
+  type ReadableOptions,
+  type WritableOptions,
+};
