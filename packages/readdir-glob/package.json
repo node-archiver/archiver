@@ -1,6 +1,6 @@
 {
   "name": "@archiver/readdir-glob",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Recursive fs.readdir with streaming API and glob filtering.",
   "license": "MIT",
   "repository": {
