@@ -22,7 +22,7 @@
     "prepublishOnly": "bun run build"
   },
   "dependencies": {
-    "picomatch": "^4.0.3"
+    "picomatch": "^4.0.4"
   },
   "devDependencies": {
     "@types/picomatch": "^4.0.2",
