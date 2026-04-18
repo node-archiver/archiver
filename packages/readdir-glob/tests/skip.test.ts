@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 
-import glob from "@archiver/readdir-glob";
+import glob, { type Options } from "@archiver/readdir-glob";
 
 describe("skip", () => {
   beforeEach(() => {
@@ -8,7 +8,7 @@ describe("skip", () => {
   });
 
   // [cwd, options, expected]
-  const cases = [
+  const cases: [string, Options, string[]][] = [
     [
       "a",
       { pattern: "**/*", mark: true, skip: ["*/g", "cb"] },
@@ -34,6 +34,37 @@ describe("skip", () => {
       ],
     ],
     ["a/c", { mark: true, skip: "**/c" }, ["d/"]],
+    [
+      "a",
+      { pattern: "**/*", mark: true, skip: ["cb/"] },
+      [
+        "abcdef/",
+        "abcdef/g/",
+        "abcdef/g/h",
+        "abcfed/",
+        "abcfed/g/",
+        "abcfed/g/h",
+        "b/",
+        "b/c/",
+        "b/c/d",
+        "bc/",
+        "bc/e/",
+        "bc/e/f",
+        "c/",
+        "c/d/",
+        "c/d/c/",
+        "c/d/c/b",
+        "cb/",
+        "cb/e/",
+        "cb/e/f",
+        "symlink/",
+        "symlink/a/",
+        "symlink/a/b/",
+        "symlink/a/b/c",
+        "x/",
+        "z/",
+      ],
+    ],
   ];
 
   cases.forEach((c) => {
@@ -46,8 +77,7 @@ describe("skip", () => {
     it(cwd + " " + JSON.stringify(options), (done) => {
       glob(cwd, options, (er, res) => {
         expect(er).toBeFalsy();
-        res.sort();
-        expect(res).toEqual(expected);
+        expect(res?.toSorted()).toEqual(expected);
         done();
       });
     });

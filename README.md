@@ -1,23 +1,25 @@
 # @archiver/archiver
 
-[![version](https://npmx.dev/api/registry/badge/version/@archiver/archiver)](https://npmx.dev/package/@archiver/archiver)
-[![license](https://npmx.dev/api/registry/badge/license/@archiver/archiver)](https://npmx.dev/package/@archiver/archiver)
+[![version](https://npmx.dev/api/registry/badge/version/@archiver/archiver)](https://npmx.dev/package/@archiver/archiver) [![license](https://npmx.dev/api/registry/badge/license/@archiver/archiver)](https://npmx.dev/package/@archiver/archiver)
 
 A lightweight streaming interface for creating ZIP and TAR archives in Node.js.
 
 A modern, TypeScript-first rewrite of the popular [`archiver`](https://npmx.dev/package/archiver) package.
 
-## Why
-
-The original `archiver` package is one of the most widely used archive libraries in the Node.js ecosystem, but it ships with 66 transitive dependencies and roughly 10MB of install weight. It has no native TypeScript support, no ESM exports, and relies on packages like `readable-stream` for things Node.js has supported natively for years.
+## Comparison with `archiver`
 
 |                  | `archiver`        | `@archiver/archiver` |
 | ---------------- | ----------------- | -------------------- |
 | **Package Size** | 43.1 kB           | 38.8 kB              |
-| **Install Size** | 9.9 MB            | 213 kB               |
-| **Dependencies** | 66 total          | 3 direct, 8 total    |
+| **Install Size** | 9.9 MB            | 241.1 kB             |
+| **Dependencies** | 66 total          | 3 direct, 4 total    |
 | **Types**        | `@types/archiver` | Built-in             |
 | **ESM**          | CommonJS only     | ESM only             |
+
+## Migration
+
+> [!TIP]
+> Coming from `archiver`? See the [Migration Guide](./docs/MIGRATION.md).
 
 ## Install
 
@@ -37,6 +39,7 @@ yarn add @archiver/archiver
 bun add @archiver/archiver
 ```
 
+> [!NOTE]
 > Requires Node.js 24 or later.
 
 ## Quick Start
@@ -93,7 +96,7 @@ import { ZipArchive } from "@archiver/archiver";
 const archive = new ZipArchive(options);
 ```
 
-#### Options
+#### `ZipArchive` Options
 
 | Option             | Type          | Default   | Description                               |
 | ------------------ | ------------- | --------- | ----------------------------------------- |
@@ -115,7 +118,7 @@ import { TarArchive } from "@archiver/archiver";
 const archive = new TarArchive(options);
 ```
 
-#### Options
+#### `TarArchive` Options
 
 | Option            | Type          | Default   | Description                         |
 | ----------------- | ------------- | --------- | ----------------------------------- |
@@ -234,10 +237,6 @@ archive.on("warning", (err) => {
 });
 ```
 
-## Migration
-
-Coming from `archiver`? See the [Migration Guide](./docs/MIGRATION.md).
-
 ## Contributing
 
 See [CONTRIBUTING.md](./.github/CONTRIBUTING.md) for setup instructions and guidelines.
@@ -248,4 +247,4 @@ See [CONTRIBUTING.md](./.github/CONTRIBUTING.md) for setup instructions and guid
 
 ## Credits
 
-This project is a modern rewrite of the original [`archiver`](https://github.com/archiverjs/node-archiver) package by [Chris Talkington](https://github.com/ctalkington). Built as part of the [e18e](https://e18e.dev) ecosystem performance initiative. See the original [ecosystem issue](https://github.com/e18e/ecosystem-issues/issues/209) for context.
+This project is a modern rewrite of the original [`archiver`](https://github.com/archiverjs/node-archiver) package by [Chris Talkington](https://github.com/ctalkington).

@@ -1,6 +1,5 @@
 import { Transform, type TransformCallback } from "node:stream";
-import { DeflateRaw, type ZlibOptions } from "node:zlib";
-import { crc32 } from "node:zlib";
+import { DeflateRaw, crc32, type ZlibOptions } from "node:zlib";
 
 /**
  * @private

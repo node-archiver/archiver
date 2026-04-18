@@ -1,6 +1,11 @@
 import { FastFIFO as FIFO } from "./lib/fifo";
 import * as headers from "./lib/headers";
-import { Writable, Readable, getStreamError } from "./lib/streamx";
+import {
+  Writable,
+  Readable,
+  getStreamError,
+  type WritableOptions,
+} from "./lib/streamx";
 
 const EMPTY = Buffer.alloc(0);
 
@@ -24,11 +29,11 @@ class BufferList {
     this.queue.push(buffer);
   }
 
-  shiftFirst(size: number): Buffer {
+  shiftFirst(size: number): Buffer | null {
     return this.buffered === 0 ? null : this._next(size);
   }
 
-  shift(size: number): Buffer {
+  shift(size: number): Buffer | null {
     if (size > this.buffered) return null;
     if (size === 0) return EMPTY;
 
@@ -124,7 +129,7 @@ class TarExtractSource extends Readable {
   }
 }
 
-interface TarExtractOptions {
+interface TarExtractOptions extends WritableOptions {
   filenameEncoding?: string;
   allowUnknownFormat?: boolean;
 }
@@ -138,6 +143,7 @@ class TarExtract extends Writable {
   private _callback?: (err?: Error | null) => void;
   private _locked: boolean;
   private _finished: boolean;
+  private _header: headers.DecodedHeader | null;
 
   constructor(opts?: TarExtractOptions) {
     super(opts);

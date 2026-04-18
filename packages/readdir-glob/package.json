@@ -1,6 +1,6 @@
 {
   "name": "@archiver/readdir-glob",
-  "version": "0.0.0",
+  "version": "0.0.9",
   "description": "Recursive fs.readdir with streaming API and glob filtering.",
   "license": "MIT",
   "repository": {
@@ -11,6 +11,7 @@
   "files": [
     "dist"
   ],
+  "type": "module",
   "exports": {
     ".": "./dist/index.mjs",
     "./package.json": "./package.json"
@@ -21,9 +22,10 @@
     "prepublishOnly": "bun run build"
   },
   "dependencies": {
-    "minimatch": "^5.1.9"
+    "picomatch": "^4.0.3"
   },
   "devDependencies": {
+    "@types/picomatch": "^4.0.2",
     "tsdown": "catalog:"
   },
   "engines": {

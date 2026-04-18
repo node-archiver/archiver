@@ -783,10 +783,53 @@ test("extract streams are async iterators", async function () {
   const expected = ["file-1.txt", "file-2.txt"];
 
   for await (const entry of extract) {
-    expect(entry.header.name).toBe(expected.shift());
+    expect<string | undefined>(entry.header.name).toBe(expected.shift());
     entry.resume();
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
+});
+
+test("async iterator - early break calls destroy", async function () {
+  const extract = tar.extract();
+  const b = fs.readFileSync(fixtures.MULTI_FILE_TAR);
+
+  let closed = false;
+  extract.on("close", () => {
+    closed = true;
+  });
+
+  // Feed the data
+  extract.end(b);
+
+  // Iterate but break after the first entry
+  // This triggers the iterator's .return() -> internal destroy()
+  for await (const entry of extract) {
+    expect(entry.header.name).toBe("file-1.txt");
+    entry.resume();
+    break;
+  }
+
+  expect(extract.destroyed).toBeTrue();
+  expect(closed).toBeTrue();
+});
+
+test("async iterator - explicit throw calls destroy", async function () {
+  const extract = tar.extract();
+  const b = fs.readFileSync(fixtures.MULTI_FILE_TAR);
+  const error = new Error("Manual abort");
+
+  extract.end(b);
+
+  try {
+    for await (const entry of extract) {
+      entry.resume();
+      throw error; // This triggers the iterator's .throw() or .return()
+    }
+  } catch (err) {
+    expect(err).toBe(error);
+  }
+
+  expect(extract.destroyed).toBeTrue();
 });
 
 function clamp(index, len, defaultValue) {

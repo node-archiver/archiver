@@ -2,7 +2,85 @@ import { EventEmitter } from "node:events";
 import * as fs from "node:fs";
 import { resolve } from "node:path";
 
-import { Minimatch } from "minimatch";
+import picomatch from "picomatch";
+
+type MatchFn = (path: string, isDirectory?: boolean) => boolean;
+
+/**
+ * Expand basic brace alternatives {a,b,c} in a glob pattern.
+ * Handles nested braces by finding the innermost pair first.
+ */
+function expandBraces(pattern: string): string[] {
+  const match = pattern.match(/\{([^{}]*)\}/);
+  if (!match) return [pattern];
+  const prefix = pattern.slice(0, match.index);
+  const suffix = pattern.slice(match.index! + match[0].length);
+  return match[1]
+    .split(",")
+    .flatMap((alt) => expandBraces(prefix + alt + suffix));
+}
+
+/**
+ * Create a minimatch-compatible matcher using picomatch.
+ *
+ * Handles key behavioral differences:
+ * 1. minimatch strips trailing slashes from paths before matching;
+ *    picomatch does not.
+ * 2. minimatch's `**` matches zero or more path segments everywhere,
+ *    including at the end of a pattern (e.g. `*‍/*‍/**` matches `a/b`).
+ *    picomatch's `**` at the end requires at least one segment.
+ * 3. A pattern ending with `/` should only match directories.
+ *
+ * To bridge the gap, we expand braces, then for each expanded pattern
+ * we recursively strip trailing `/**` to generate zero-segment variants.
+ */
+function createMatcher(
+  pattern: string,
+  options: picomatch.PicomatchOptions,
+): MatchFn {
+  const dirOnly = /\/+$/.test(pattern);
+  const stripped = pattern.replace(/\/+$/, "");
+  const scan = picomatch.scan(stripped);
+  // picomatch's extglob negations (e.g. !(foo)) don't respect dot:false,
+  // so we manually reject dotfile segments beyond the literal base.
+  // Only enable this guard for negative extglobs — positive extglobs like
+  // @(.y) explicitly reference dotfiles and should still match.
+  const hasNegExtglob = /!\(/.test(stripped);
+  const checkDots = !options.dot && scan.isExtglob && hasNegExtglob;
+  const baseDepth = scan.base ? scan.base.split("/").length : 0;
+
+  const expanded = expandBraces(stripped);
+  const variants = new Set<string>();
+  for (const p of expanded) {
+    // Only generate zero-segment variants for trailing /** when globstar is
+    // active. With noglobstar, ** degrades to * and should not match zero
+    // segments.
+    if (options.noglobstar) {
+      variants.add(p);
+    } else {
+      addGlobstarVariants(p, variants);
+    }
+  }
+  const matchers = [...variants].map((p) => picomatch(p, options));
+  return (path: string, isDirectory?: boolean) => {
+    if (dirOnly && !isDirectory) return false;
+    const cleanPath = path.replace(/\/+$/, "");
+    if (checkDots) {
+      const segments = cleanPath.split("/");
+      for (let i = baseDepth; i < segments.length; i++) {
+        if (segments[i].startsWith(".")) return false;
+      }
+    }
+    return matchers.some((m) => m(cleanPath));
+  };
+}
+
+function addGlobstarVariants(pattern: string, variants: Set<string>): void {
+  variants.add(pattern);
+  if (pattern.endsWith("/**")) {
+    addGlobstarVariants(pattern.slice(0, -3), variants);
+  }
+}
 
 function readdir(dir: fs.PathLike, strict: boolean): Promise<fs.Dirent[]> {
   return new Promise((resolve, reject) => {
@@ -214,9 +292,9 @@ export class ReaddirGlob extends EventEmitter<{
 }> {
   public options: StrictOptions;
 
-  private matchers: Minimatch[];
-  private ignoreMatchers: Minimatch[];
-  private skipMatchers: Minimatch[];
+  private matchers: MatchFn[];
+  private ignoreMatchers: MatchFn[];
+  private skipMatchers: MatchFn[];
 
   public paused: boolean;
   public aborted: boolean;
@@ -238,14 +316,13 @@ export class ReaddirGlob extends EventEmitter<{
       const matchers = Array.isArray(this.options.pattern)
         ? this.options.pattern
         : [this.options.pattern];
-      this.matchers = matchers.map(
-        (m) =>
-          new Minimatch(m, {
-            dot: this.options.dot,
-            noglobstar: this.options.noglobstar,
-            matchBase: this.options.matchBase,
-            nocase: this.options.nocase,
-          }),
+      this.matchers = matchers.map((m) =>
+        createMatcher(m, {
+          dot: this.options.dot,
+          noglobstar: this.options.noglobstar,
+          matchBase: this.options.matchBase,
+          nocase: this.options.nocase,
+        }),
       );
     }
 
@@ -254,8 +331,8 @@ export class ReaddirGlob extends EventEmitter<{
       const ignorePatterns = Array.isArray(this.options.ignore)
         ? this.options.ignore
         : [this.options.ignore];
-      this.ignoreMatchers = ignorePatterns.map(
-        (ignore) => new Minimatch(ignore, { dot: true }),
+      this.ignoreMatchers = ignorePatterns.map((ignore) =>
+        createMatcher(ignore, { dot: true }),
       );
     }
 
@@ -264,8 +341,8 @@ export class ReaddirGlob extends EventEmitter<{
       const skipPatterns = Array.isArray(this.options.skip)
         ? this.options.skip
         : [this.options.skip];
-      this.skipMatchers = skipPatterns.map(
-        (skip) => new Minimatch(skip, { dot: true }),
+      this.skipMatchers = skipPatterns.map((skip) =>
+        createMatcher(skip, { dot: true }),
       );
     }
 
@@ -293,15 +370,14 @@ export class ReaddirGlob extends EventEmitter<{
   }
 
   private _shouldSkipDirectory(relative: string) {
-    return this.skipMatchers.some((m) => m.match(relative));
+    return this.skipMatchers.some((m) => m(relative));
   }
 
   private _fileMatches(relative: string, isDirectory: boolean) {
-    const file = relative + (isDirectory ? "/" : "");
     return (
       (this.matchers.length === 0 ||
-        this.matchers.some((m) => m.match(file))) &&
-      !this.ignoreMatchers.some((m) => m.match(file)) &&
+        this.matchers.some((m) => m(relative, isDirectory))) &&
+      !this.ignoreMatchers.some((m) => m(relative, isDirectory)) &&
       (!this.options.nodir || !isDirectory)
     );
   }

@@ -3,8 +3,8 @@ import { EventEmitter } from "node:events";
 const STREAM_DESTROYED = new Error("Stream was destroyed");
 
 import { FastFIFO as FIFO } from "./fifo";
-import { TextDecoder } from "./td/index";
 
+// #region constants
 // 29 bits used total (4 from shared, 14 from read, and 11 from write)
 const MAX = (1 << 29) - 1;
 
@@ -100,7 +100,6 @@ const SHOULD_NOT_READ =
   READ_DONE |
   READ_NEEDS_PUSH |
   READ_READ_AHEAD;
-const READ_BACKPRESSURE_STATUS = DESTROY_STATUS | READ_ENDING | READ_DONE;
 const READ_UPDATE_SYNC_STATUS =
   READ_UPDATING | OPEN_STATUS | READ_NEXT_TICK | READ_PRIMARY;
 const READ_NEXT_TICK_OR_OPENING = READ_NEXT_TICK | OPENING;
@@ -116,11 +115,10 @@ const WRITE_PRIMARY_AND_ACTIVE = WRITE_PRIMARY | WRITE_ACTIVE;
 const WRITE_ACTIVE_AND_WRITING = WRITE_ACTIVE | WRITE_WRITING;
 const WRITE_FINISHING_STATUS =
   OPEN_STATUS | WRITE_FINISHING | WRITE_QUEUED_AND_ACTIVE | WRITE_DONE;
-const WRITE_BACKPRESSURE_STATUS =
-  WRITE_UNDRAINED | DESTROY_STATUS | WRITE_FINISHING | WRITE_DONE;
 const WRITE_UPDATE_SYNC_STATUS =
   WRITE_UPDATING | OPEN_STATUS | WRITE_NEXT_TICK | WRITE_PRIMARY;
 const WRITE_DROP_DATA = WRITE_FINISHING | WRITE_DONE | DESTROY_STATUS;
+// #endregion constants
 
 function afterDrain(): void {
   this.stream._duplexState |= READ_PIPE_DRAINED;
@@ -165,13 +163,15 @@ function afterDestroy(err) {
   }
 }
 
-function afterWrite(err) {
+function afterWrite(this: WritableState, err) {
   const stream = this.stream;
 
   if (err) stream.destroy(err);
   stream._duplexState &= WRITE_NOT_ACTIVE;
 
-  if (this.drains !== null) tickDrains(this.drains);
+  if (this.drains !== null) {
+    tickDrains(this.drains);
+  }
 
   if ((stream._duplexState & WRITE_DRAIN_STATUS) === WRITE_UNDRAINED) {
     stream._duplexState &= WRITE_DRAINED;
@@ -343,6 +343,280 @@ class Stream extends EventEmitter {
   }
 }
 
+class UTF8Decoder {
+  bytesSeen: 0 | 1;
+  bytesNeeded: number;
+  lowerBoundary: number;
+  upperBoundary: number;
+  codePoint: number;
+
+  constructor() {
+    this._reset();
+  }
+
+  get remaining(): 0 | 1 {
+    return this.bytesSeen;
+  }
+
+  decode(data: Buffer): string {
+    if (data.byteLength === 0) return "";
+
+    if (this.bytesNeeded === 0 && trailingIncomplete(data, 0) === 0) {
+      this.bytesSeen = trailingBytesSeen(data);
+      return data.toString("utf8");
+    }
+
+    let result = "";
+    let start = 0;
+
+    if (this.bytesNeeded > 0) {
+      while (start < data.byteLength) {
+        const byte = data[start];
+
+        if (byte < this.lowerBoundary || byte > this.upperBoundary) {
+          result += "\ufffd";
+          this._reset();
+          break;
+        }
+
+        this.lowerBoundary = 0x80;
+        this.upperBoundary = 0xbf;
+        this.codePoint = (this.codePoint << 6) | (byte & 0x3f);
+        this.bytesSeen++;
+        start++;
+
+        if (this.bytesSeen === this.bytesNeeded) {
+          result += String.fromCodePoint(this.codePoint);
+          this._reset();
+          break;
+        }
+      }
+
+      if (this.bytesNeeded > 0) return result;
+    }
+
+    const trailing = trailingIncomplete(data, start);
+    const end = data.byteLength - trailing;
+
+    if (end > start) result += data.toString("utf8", start, end);
+
+    for (let i = end; i < data.byteLength; i++) {
+      const byte = data[i];
+
+      if (this.bytesNeeded === 0) {
+        if (byte <= 0x7f) {
+          this.bytesSeen = 0;
+          result += String.fromCharCode(byte);
+        } else if (byte >= 0xc2 && byte <= 0xdf) {
+          this.bytesNeeded = 2;
+          this.bytesSeen = 1;
+          this.codePoint = byte & 0x1f;
+        } else if (byte >= 0xe0 && byte <= 0xef) {
+          if (byte === 0xe0) this.lowerBoundary = 0xa0;
+          else if (byte === 0xed) this.upperBoundary = 0x9f;
+          this.bytesNeeded = 3;
+          this.bytesSeen = 1;
+          this.codePoint = byte & 0xf;
+        } else if (byte >= 0xf0 && byte <= 0xf4) {
+          if (byte === 0xf0) this.lowerBoundary = 0x90;
+          else if (byte === 0xf4) this.upperBoundary = 0x8f;
+          this.bytesNeeded = 4;
+          this.bytesSeen = 1;
+          this.codePoint = byte & 0x7;
+        } else {
+          this.bytesSeen = 1;
+          result += "\ufffd";
+        }
+
+        continue;
+      }
+
+      if (byte < this.lowerBoundary || byte > this.upperBoundary) {
+        result += "\ufffd";
+        i--;
+        this._reset();
+
+        continue;
+      }
+
+      this.lowerBoundary = 0x80;
+      this.upperBoundary = 0xbf;
+
+      this.codePoint = (this.codePoint << 6) | (byte & 0x3f);
+      this.bytesSeen++;
+
+      if (this.bytesSeen === this.bytesNeeded) {
+        result += String.fromCodePoint(this.codePoint);
+        this._reset();
+      }
+    }
+
+    return result;
+  }
+
+  flush(): "" | "\ufffd" {
+    const result = this.bytesNeeded > 0 ? "\ufffd" : "";
+    this._reset();
+    return result;
+  }
+
+  _reset(): void {
+    this.codePoint = 0;
+    this.bytesNeeded = 0;
+    this.bytesSeen = 0;
+    this.lowerBoundary = 0x80;
+    this.upperBoundary = 0xbf;
+  }
+}
+
+function trailingIncomplete(data, start: number): number {
+  const len = data.byteLength;
+  if (len <= start) return 0;
+
+  const limit = Math.max(start, len - 4);
+
+  let i = len - 1;
+  while (i > limit && (data[i] & 0xc0) === 0x80) i--;
+
+  if (i < start) return 0;
+
+  const byte = data[i];
+
+  let needed;
+  if (byte <= 0x7f) return 0;
+  if (byte >= 0xc2 && byte <= 0xdf) needed = 2;
+  else if (byte >= 0xe0 && byte <= 0xef) needed = 3;
+  else if (byte >= 0xf0 && byte <= 0xf4) needed = 4;
+  else return 0;
+
+  const available = len - i;
+  return available < needed ? available : 0;
+}
+
+function trailingBytesSeen(data): 0 | 1 {
+  const len = data.byteLength;
+  if (len === 0) return 0;
+
+  const last = data[len - 1];
+
+  if (last <= 0x7f) return 0;
+  if ((last & 0xc0) !== 0x80) return 1;
+
+  const limit = Math.max(0, len - 4);
+
+  let i = len - 2;
+  while (i >= limit && (data[i] & 0xc0) === 0x80) i--;
+
+  if (i < 0) return 1;
+
+  const first = data[i];
+
+  let needed;
+  if (first >= 0xc2 && first <= 0xdf) needed = 2;
+  else if (first >= 0xe0 && first <= 0xef) needed = 3;
+  else if (first >= 0xf0 && first <= 0xf4) needed = 4;
+  else return 1;
+
+  if (len - i !== needed) return 1;
+
+  if (needed >= 3) {
+    const second = data[i + 1];
+    if (first === 0xe0 && second < 0xa0) return 1;
+    if (first === 0xed && second > 0x9f) return 1;
+    if (first === 0xf0 && second < 0x90) return 1;
+    if (first === 0xf4 && second > 0x8f) return 1;
+  }
+
+  return 0;
+}
+
+class PassThroughDecoder {
+  encoding?: BufferEncoding;
+
+  constructor(encoding?: "ascii" | "latin1" | "hex") {
+    this.encoding = encoding;
+  }
+
+  get remaining() {
+    return 0;
+  }
+
+  decode(data: string | Buffer): string {
+    return data.toString(this.encoding);
+  }
+
+  flush() {
+    return "";
+  }
+}
+
+class CustomTextDecoder {
+  encoding: BufferEncoding;
+  decoder: PassThroughDecoder | UTF8Decoder;
+
+  constructor(encoding: BufferEncoding = "utf8") {
+    this.encoding = normalizeEncoding(encoding);
+
+    switch (this.encoding) {
+      case "utf8":
+        this.decoder = new UTF8Decoder();
+        break;
+      case "utf16le":
+      case "base64":
+        throw new Error(`Unsupported encoding: ${this.encoding}`);
+      default:
+        this.decoder = new PassThroughDecoder(this.encoding);
+    }
+  }
+
+  get remaining(): number {
+    return this.decoder.remaining;
+  }
+
+  push(data: string | Buffer): string {
+    if (typeof data === "string") return data;
+    return this.decoder.decode(data);
+  }
+
+  // For Node.js compatibility
+  write(data: string | Buffer): string {
+    return this.push(data);
+  }
+
+  end(data: string | Buffer): string {
+    let result = "";
+    if (data) result = this.push(data);
+    result += this.decoder.flush();
+    return result;
+  }
+}
+
+function normalizeEncoding(
+  encoding: BufferEncoding,
+): "ascii" | "utf8" | "utf16le" | "base64" | "latin1" | "hex" {
+  const encoding_ = encoding.toLowerCase();
+
+  switch (encoding_) {
+    case "utf8":
+    case "utf-8":
+      return "utf8";
+    case "ucs2":
+    case "ucs-2":
+    case "utf16le":
+    case "utf-16le":
+      return "utf16le";
+    case "latin1":
+    case "binary":
+      return "latin1";
+    case "base64":
+    case "ascii":
+    case "hex":
+      return encoding_;
+    default:
+      throw new Error(`Unknown encoding: ${encoding_}`);
+  }
+}
+
 interface ReadableOptions extends StreamOptions, ReadableStateOptions {
   encoding?: BufferEncoding;
   read(callback: (err: Error | null) => void): void;
@@ -365,12 +639,12 @@ class Readable extends Stream {
   }
 
   setEncoding(encoding?: BufferEncoding): this {
-    const dec = new TextDecoder(encoding);
+    const dec = new CustomTextDecoder(encoding);
     const map = this._readableState.map ?? ((s) => s);
     this._readableState.map = mapOrSkip;
     return this;
 
-    function mapOrSkip(data) {
+    function mapOrSkip(data: string | Buffer) {
       const next = dec.push(data);
       return next === "" && (data.byteLength !== 0 || dec.remaining > 0)
         ? null
@@ -393,7 +667,7 @@ class Readable extends Stream {
     return this._readableState.read();
   }
 
-  push(data: Buffer): boolean {
+  push(data: Buffer | null): boolean {
     this._readableState.updateNextTickIfOpen();
     return this._readableState.push(data);
   }
@@ -415,67 +689,6 @@ class Readable extends Stream {
         ? READ_PAUSED_NO_READ_AHEAD
         : READ_PAUSED;
     return this;
-  }
-
-  static _fromAsyncIterator(
-    iterator: AsyncIterator<Buffer, undefined>,
-    opts?: Partial<ReadableOptions>,
-  ): Readable {
-    let destroy;
-
-    const rs = new Readable({
-      ...opts,
-      read(callback) {
-        iterator
-          .next()
-          .then(push)
-          .then(callback.bind(null, null))
-          .catch(callback);
-      },
-      predestroy() {
-        destroy = iterator.return();
-      },
-      destroy(callback) {
-        if (!destroy) return callback(null);
-        destroy.then(callback.bind(null, null)).catch(callback);
-      },
-    });
-
-    return rs;
-
-    function push(data: IteratorResult<Buffer, undefined>) {
-      if (data.done) rs.push(null);
-      else rs.push(data.value);
-    }
-  }
-
-  static from(data: unknown, opts?: Partial<ReadableOptions>): unknown {
-    if (isReadStreamx(data)) return data;
-
-    if (data[Symbol.asyncIterator])
-      return this._fromAsyncIterator(data[Symbol.asyncIterator](), opts);
-
-    if (!Array.isArray(data)) data = data === undefined ? [] : [data];
-
-    let i = 0;
-    return new Readable({
-      ...opts,
-      read(callback) {
-        this.push(i === data.length ? null : data[i++]);
-        callback(null);
-      },
-    });
-  }
-
-  static isBackpressured(rs: unknown): boolean {
-    return (
-      (rs._duplexState & READ_BACKPRESSURE_STATUS) !== 0 ||
-      rs._readableState.buffered >= rs._readableState.highWaterMark
-    );
-  }
-
-  static isPaused(rs: unknown): boolean {
-    return (rs._duplexState & READ_RESUMED) === 0;
   }
 
   [Symbol.asyncIterator]() {
@@ -593,24 +806,6 @@ class Writable extends Stream {
     callback(null);
   }
 
-  static isBackpressured(ws: Writable): boolean {
-    return (ws._duplexState & WRITE_BACKPRESSURE_STATUS) !== 0;
-  }
-
-  static drained(ws: Writable): Promise<boolean> {
-    if (ws.destroyed) return Promise.resolve(false);
-    const state = ws._writableState;
-    const pending = isWritev(ws)
-      ? Math.min(1, state.queue.length)
-      : state.queue.length;
-    const writes = pending + (ws._duplexState & WRITE_WRITING ? 1 : 0);
-    if (writes === 0) return Promise.resolve(true);
-    if (state.drains === null) state.drains = [];
-    return new Promise((resolve) => {
-      state.drains.push({ writes, resolve });
-    });
-  }
-
   write(data: Buffer): boolean {
     this._writableState.updateNextTick();
     return this._writableState.push(data);
@@ -640,10 +835,6 @@ function getStreamError(stream: Stream, opts = {}): Error {
   return !opts.all && err === STREAM_DESTROYED ? null : err;
 }
 
-function isReadStreamx(stream) {
-  return isStreamx(stream) && stream.readable;
-}
-
 function isTypedArray(data) {
   return (
     typeof data === "object" &&
@@ -654,10 +845,6 @@ function isTypedArray(data) {
 
 function defaultByteLength(data): number {
   return isTypedArray(data) ? data.byteLength : 1024;
-}
-
-function isWritev(s): boolean {
-  return s._writev !== Writable.prototype._writev;
 }
 
 interface WritableStateOptions {
@@ -871,7 +1058,7 @@ class ReadableState {
   buffered: number;
   readAhead: boolean;
   error: Error | null;
-  map: (data: string | Buffer) => Buffer;
+  map: ((data: string | Buffer) => Buffer) | null;
 
   constructor(stream: Readable, options?: Partial<ReadableStateOptions>) {
     const {
@@ -930,7 +1117,7 @@ class ReadableState {
     pipeTo.emit("pipe", this.stream);
   }
 
-  push(data: Buffer): boolean {
+  push(data: Buffer | null): boolean {
     const stream = this.stream;
 
     if (data === null) {
@@ -1098,4 +1285,10 @@ class ReadableState {
   }
 }
 
-export { getStreamError, Writable, Readable, type ReadableOptions };
+export {
+  getStreamError,
+  Writable,
+  Readable,
+  type ReadableOptions,
+  type WritableOptions,
+};

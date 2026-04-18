@@ -55,6 +55,7 @@ class TarPackSink extends Writable {
   private _finished: boolean;
   private _pack: TarPack;
   private _linkname: Buffer | null;
+  private _openCallback?: null | ((err: Error | null) => void);
 
   constructor(
     pack: TarPack,
