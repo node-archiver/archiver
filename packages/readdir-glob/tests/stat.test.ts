@@ -2,7 +2,8 @@ import { describe, it, expect } from "bun:test";
 import { Stats } from "node:fs";
 
 import glob from "@archiver/readdir-glob";
-const dir = __dirname + "/fixtures";
+
+const dir = `${import.meta.dirname}/fixtures`;
 
 describe("stat", () => {
   it("stat all the things", (done) => {
@@ -10,7 +11,7 @@ describe("stat", () => {
     const matches: string[] = [];
     g.on("match", (m) => {
       matches.push(m.relative);
-      expect(m.stat).not.toBeInstanceOf(Stats);
+      expect(m.stat).toBeInstanceOf(Stats);
       expect(m.stat).toHaveProperty("isFile");
       expect(m.stat).toHaveProperty("isDirectory");
       expect(m.stat).toHaveProperty("isSymbolicLink");
