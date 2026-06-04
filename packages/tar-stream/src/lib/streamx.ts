@@ -661,10 +661,10 @@ class Readable extends Stream implements nodestream.Readable {
     callback(null);
   }
 
-  pipe(
-    dest: nodestream.Writable,
+  pipe<T extends nodestream.Writable>(
+    dest: T,
     callback?: (err: Error | null) => void,
-  ): Writable {
+  ): T {
     this._readableState.updateNextTick();
     this._readableState.pipe(dest, callback);
     return dest;
@@ -1095,7 +1095,10 @@ class ReadableState {
     return (this.stream._duplexState & READ_DONE) !== 0;
   }
 
-  pipe(pipeTo: Writable, callback?: (err: Error | null) => void): void {
+  pipe<T extends nodestream.Writable>(
+    pipeTo: T,
+    callback?: ((err: Error | null) => void) | null,
+  ): void {
     if (this.pipeTo !== null) {
       throw new Error("Can only pipe to one destination");
     }

@@ -192,7 +192,7 @@ test("chunked-multi-file", function () {
     );
   }
 
-  function onfile2(header, stream, cb) {
+  function onfile2(header: unknown, stream, cb) {
     expect(header).toEqual({
       name: "file-2.txt",
       mode: 0o644,
@@ -268,7 +268,7 @@ test("types", function () {
 
   extract.end(fs.readFileSync(fixtures.TYPES_TAR));
 
-  function ondir(header, stream, cb) {
+  function ondir(header: unknown, stream, cb) {
     expect(header).toEqual({
       name: "directory",
       mode: 0o755,
@@ -294,7 +294,7 @@ test("types", function () {
     cb();
   }
 
-  function onlink(header, stream, cb) {
+  function onlink(header: unknown, stream, cb) {
     expect(header).toEqual({
       name: "directory-link",
       mode: 0o755,
