@@ -158,9 +158,9 @@ async function* exploreWalkAsync(
   const files = await readdir(path + dir, strict);
   for (const file of files) {
     const name: string = file.name;
-    const filename = dir + "/" + name;
+    const filename = `${dir}/${name}`;
     const relative = filename.slice(1); // Remove the leading /
-    const absolute = path + "/" + relative;
+    const absolute = `${path}/${relative}`;
     let stat: Stat = file;
     if (useStat || followSymlinks) {
       stat = (await getStat(absolute, followSymlinks)) ?? stat;

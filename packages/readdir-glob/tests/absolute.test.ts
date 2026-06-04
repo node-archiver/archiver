@@ -7,11 +7,11 @@ import bashResults from "./bash-results.json";
 
 describe("absolute", () => {
   beforeEach(() => {
-    process.chdir(__dirname + "/fixtures");
+    process.chdir(`${__dirname}/fixtures`);
   });
 
   [true, false].forEach(function (mark) {
-    it("Emits absolute matches if option set, mark=" + mark, function (done) {
+    it(`Emits absolute matches if option set, mark=${mark}`, function (done) {
       const pattern = "a/b/**";
       const g = glob(".", { pattern });
 

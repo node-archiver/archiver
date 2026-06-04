@@ -6,7 +6,7 @@ const win32 = process.platform === "win32";
 
 describe("follow", () => {
   beforeEach(() => {
-    process.chdir(__dirname + "/fixtures");
+    process.chdir(`${__dirname}/fixtures`);
   });
 
   it.skipIf(win32)("follow symlinks", (done) => {

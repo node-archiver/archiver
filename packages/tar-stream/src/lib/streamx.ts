@@ -1,4 +1,5 @@
 import { EventEmitter } from "node:events";
+import type * as nodestream from "node:stream";
 
 const STREAM_DESTROYED = new Error("Stream was destroyed");
 
@@ -265,7 +266,7 @@ interface StreamOptions {
   predestroy?(): void;
 }
 
-class Stream extends EventEmitter {
+class Stream extends EventEmitter implements nodestream.Stream {
   _duplexState: number;
   _readableState: ReadableState | null;
   _writableState: WritableState | null;
@@ -340,6 +341,10 @@ class Stream extends EventEmitter {
       if (this._readableState !== null) this._readableState.updateNextTick();
       if (this._writableState !== null) this._writableState.updateNextTick();
     }
+  }
+
+  pipe<T extends NodeJS.WritableStream>(destination: T): T {
+    return destination;
   }
 }
 
@@ -622,7 +627,7 @@ interface ReadableOptions extends StreamOptions, ReadableStateOptions {
   read(callback: (err: Error | null) => void): void;
 }
 
-class Readable extends Stream {
+class Readable extends Stream implements nodestream.Readable {
   constructor(opts?: Partial<ReadableOptions>) {
     super(opts);
 
@@ -656,7 +661,10 @@ class Readable extends Stream {
     callback(null);
   }
 
-  pipe(dest: Writable, callback?: (err: Error | null) => void): Writable {
+  pipe(
+    dest: nodestream.Writable,
+    callback?: (err: Error | null) => void,
+  ): Writable {
     this._readableState.updateNextTick();
     this._readableState.pipe(dest, callback);
     return dest;
@@ -770,7 +778,7 @@ interface WritableOptions extends StreamOptions, WritableStateOptions {
   eagerOpen?: boolean;
 }
 
-class Writable extends Stream {
+class Writable extends Stream implements nodestream.Writable {
   constructor(opts?: WritableOptions) {
     super(opts);
 
@@ -798,7 +806,7 @@ class Writable extends Stream {
     callback(null);
   }
 
-  _write(data: Buffer, callback: (err?: Error) => void): void {
+  _write(data: Buffer, callback: (err?: Error | null) => void): void {
     this._writableState.autoBatch(data, callback);
   }
 

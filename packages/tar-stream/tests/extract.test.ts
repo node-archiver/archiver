@@ -1,7 +1,7 @@
 import { test, expect } from "bun:test";
 import * as fs from "node:fs";
 
-import concat from "concat-stream";
+import concat from "es-concat-stream";
 
 import * as tar from "../src/index.js";
 import * as fixtures from "./fixtures";
@@ -80,7 +80,7 @@ test("chunked-one-file", function () {
   const b = fs.readFileSync(fixtures.ONE_FILE_TAR);
 
   for (let i = 0; i < b.length; i += 321) {
-    extract.write(b.subarray(i, clamp(i + 321, b.length, b.length)));
+    extract.write(b.subarray(i, clamp(i + 321, b.length)));
   }
   extract.end();
 });
@@ -97,7 +97,7 @@ test("multi-file", function () {
 
   extract.end(fs.readFileSync(fixtures.MULTI_FILE_TAR));
 
-  function onfile1(header, stream, cb) {
+  function onfile1(header: unknown, stream, cb) {
     expect(header).toEqual({
       name: "file-1.txt",
       mode: 0o644,
@@ -123,7 +123,7 @@ test("multi-file", function () {
     );
   }
 
-  function onfile2(header, stream, cb) {
+  function onfile2(header: unknown, stream, cb) {
     expect(header).toEqual({
       name: "file-2.txt",
       mode: 0o644,
@@ -162,11 +162,11 @@ test("chunked-multi-file", function () {
 
   const b = fs.readFileSync(fixtures.MULTI_FILE_TAR);
   for (let i = 0; i < b.length; i += 321) {
-    extract.write(b.subarray(i, clamp(i + 321, b.length, b.length)));
+    extract.write(b.subarray(i, clamp(i + 321, b.length)));
   }
   extract.end();
 
-  function onfile1(header, stream, cb) {
+  function onfile1(header: unknown, stream, cb) {
     expect(header).toEqual({
       name: "file-1.txt",
       mode: 0o644,
@@ -721,7 +721,7 @@ test("unknown format attempts to extract if allowed", function () {
 
   extract.end(fs.readFileSync(fixtures.UNKNOWN_FORMAT));
 
-  function onfile1(header, stream, cb) {
+  function onfile1(header: unknown, stream, cb) {
     expect(header).toEqual({
       name: "file-1.txt",
       mode: 0o644,
@@ -747,7 +747,7 @@ test("unknown format attempts to extract if allowed", function () {
     );
   }
 
-  function onfile2(header, stream, cb) {
+  function onfile2(header: unknown, stream, cb) {
     expect(header).toEqual({
       name: "file-2.txt",
       mode: 0o644,
@@ -832,8 +832,7 @@ test("async iterator - explicit throw calls destroy", async function () {
   expect(extract.destroyed).toBeTrue();
 });
 
-function clamp(index, len, defaultValue) {
-  if (typeof index !== "number") return defaultValue;
+function clamp(index: number, len: number) {
   index = ~~index; // Coerce to integer.
   if (index >= len) return len;
   if (index >= 0) return index;

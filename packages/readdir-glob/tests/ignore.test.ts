@@ -307,7 +307,7 @@ describe("ignore", () => {
     opt.ignore = ignore;
 
     it(name, (done) => {
-      process.chdir(__dirname + "/fixtures");
+      process.chdir(`${__dirname}/fixtures`);
 
       glob(opt.cwd || ".", { ...opt, pattern }, (er, res) => {
         expect(er).toBeFalsy();

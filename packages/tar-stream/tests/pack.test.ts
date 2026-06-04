@@ -1,7 +1,7 @@
 import { test, expect } from "bun:test";
 import * as fs from "node:fs";
 
-import concat from "concat-stream";
+import concat from "es-concat-stream";
 
 import * as tar from "../src/index";
 import { Writable } from "../src/lib/streamx";
