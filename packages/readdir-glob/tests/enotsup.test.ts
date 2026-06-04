@@ -6,7 +6,7 @@ import glob from "@archiver/readdir-glob";
 
 describe.todo("enotsup", () => {
   beforeEach(() => {
-    process.chdir(__dirname + "/fixtures");
+    process.chdir(`${__dirname}/fixtures`);
     const readdir = fs.readdir;
     spyOn(fs, "readdir").mockImplementation(function (p, opts, cb) {
       if (

@@ -11,7 +11,7 @@ import glob from "@archiver/readdir-glob";
  */
 describe("extglob-dotfile", () => {
   it("positive extglob @(.y) should match the explicit dotfile segment with dot:false", (done) => {
-    process.chdir(__dirname + "/fixtures");
+    process.chdir(`${__dirname}/fixtures`);
 
     glob(".", { pattern: "a/x/@(.y)/b", dot: false }, (er, res) => {
       expect(er).toBeFalsy();
