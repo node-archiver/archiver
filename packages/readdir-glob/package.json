@@ -25,7 +25,7 @@
     "picomatch": "^4.0.4"
   },
   "devDependencies": {
-    "@types/picomatch": "^4.0.2",
+    "@types/picomatch": "4.0.3",
     "tsdown": "catalog:"
   },
   "engines": {

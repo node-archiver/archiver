@@ -22,8 +22,7 @@
     "prepublishOnly": "bun run build"
   },
   "devDependencies": {
-    "@types/concat-stream": "^2.0.3",
-    "concat-stream": "^2.0.0",
+    "es-concat-stream": "0.1.0",
     "tsdown": "catalog:"
   },
   "engines": {
