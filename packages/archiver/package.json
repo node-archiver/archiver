@@ -29,7 +29,7 @@
     "@archiver/zip-stream": "workspace:*"
   },
   "devDependencies": {
-    "@types/yauzl": "2.10.3",
+    "@types/yauzl": "3.3.0",
     "stream-bench": "0.1.2",
     "tar": "7.5.16",
     "tsdown": "catalog:",

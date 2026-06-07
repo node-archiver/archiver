@@ -21,7 +21,7 @@
         "@archiver/zip-stream": "workspace:*",
       },
       "devDependencies": {
-        "@types/yauzl": "2.10.3",
+        "@types/yauzl": "3.3.0",
         "stream-bench": "0.1.2",
         "tar": "7.5.16",
         "tsdown": "catalog:",
@@ -226,7 +226,7 @@
 
     "@types/picomatch": ["@types/picomatch@4.0.3", "", {}, "sha512-iG0T6+nYJ9FAPmx9SsUlnwcq1ZVRuCXcVEvWnntoPlrOpwtSTKNDC9uVAxTsC3PUvJ+99n4RpAcNgBbHX3JSnQ=="],
 
-    "@types/yauzl": ["@types/yauzl@2.10.3", "", { "dependencies": { "@types/node": "*" } }, "sha512-oJoftv0LSuaDZE3Le4DbKX+KS9G36NzOeSap90UIK0yMA/NhKJhqlSGtNDORNRaIbQfzjXDrQa0ytJ6mNRGz/Q=="],
+    "@types/yauzl": ["@types/yauzl@3.3.0", "", { "dependencies": { "@types/node": "*" } }, "sha512-7YJZZveDGYqCMt0PrN0sjZj9gT07xLqnHBimKwhWYTJ4lh5MxDGmaCaN4+6x1TOPt+dk3Ge8w9cO3uJXoy/qrA=="],
 
     "ansis": ["ansis@4.3.0", "", {}, "sha512-44mvgtPvohuU/70DdY5Oz2AIrLJ9k6/5x4KmoSvPwO+5Moijo0+N9D0fKbbYZQWP1hNm5CpOf+E01jhxG/r8xg=="],
 
