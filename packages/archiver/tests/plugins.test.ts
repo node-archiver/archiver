@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeAll, afterAll } from "bun:test";
+import assert from "node:assert/strict";
 import {
   chmodSync,
   createReadStream,
@@ -8,6 +8,7 @@ import {
   createWriteStream,
   mkdirSync,
 } from "node:fs";
+import { describe, it, before, after } from "node:test";
 
 import * as tar from "tar";
 import yauzl from "yauzl";
@@ -20,7 +21,7 @@ const testDate = new Date("Jan 03 2013 14:26:38 GMT");
 const win32 = process.platform === "win32";
 
 describe("plugins", () => {
-  beforeAll(() => {
+  before(() => {
     mkdirSync("tmp", { recursive: true });
     if (!win32) {
       chmodSync("tests/fixtures/executable.sh", 511); // 0777
@@ -39,7 +40,7 @@ describe("plugins", () => {
     }
   });
 
-  afterAll(() => {
+  after(() => {
     unlinkSync("tests/fixtures/directory/subdir/level0link.txt");
     unlinkSync("tests/fixtures/directory/subdir/subsublink");
   });
@@ -49,109 +50,111 @@ describe("plugins", () => {
     let archive: TarArchive;
     const entries = {};
 
-    beforeAll((done) => {
+    before(async () => {
       archive = new TarArchive();
-      const testStream = new tar.Parser();
+      await new Promise<void>((resolve) => {
+        const testStream = new tar.Parser();
 
-      testStream.on("entry", (entry) => {
-        actual.push(entry.path);
-        entries[entry.path] = {
-          type: entry.type,
-          path: entry.path,
-          mode: entry.mode,
-          uid: entry.uid,
-          gid: entry.gid,
-          uname: entry.uname,
-          gname: entry.gname,
-          size: entry.size,
-          mtime: entry.mtime,
-          atime: entry.atime,
-          ctime: entry.ctime,
-          linkpath: entry.linkpath,
-        };
-        entry.resume();
+        testStream.on("entry", (entry) => {
+          actual.push(entry.path);
+          entries[entry.path] = {
+            type: entry.type,
+            path: entry.path,
+            mode: entry.mode,
+            uid: entry.uid,
+            gid: entry.gid,
+            uname: entry.uname,
+            gname: entry.gname,
+            size: entry.size,
+            mtime: entry.mtime,
+            atime: entry.atime,
+            ctime: entry.ctime,
+            linkpath: entry.linkpath,
+          };
+          entry.resume();
+        });
+
+        testStream.on("end", () => {
+          resolve();
+        });
+
+        archive.pipe(testStream);
+        archive
+          .append(testBuffer, { name: "buffer.txt", date: testDate })
+          .append(createReadStream("tests/fixtures/test.txt"), {
+            name: "stream.txt",
+            date: testDate,
+          })
+          .append(null, { name: "folder/", date: testDate })
+          .directory("tests/fixtures/directory", "directory")
+          .symlink("manual-link.txt", "manual-link-target.txt")
+          .finalize();
       });
-
-      testStream.on("end", () => {
-        done();
-      });
-
-      archive.pipe(testStream);
-      archive
-        .append(testBuffer, { name: "buffer.txt", date: testDate })
-        .append(createReadStream("tests/fixtures/test.txt"), {
-          name: "stream.txt",
-          date: testDate,
-        })
-        .append(null, { name: "folder/", date: testDate })
-        .directory("tests/fixtures/directory", "directory")
-        .symlink("manual-link.txt", "manual-link-target.txt")
-        .finalize();
     });
 
     it("should append multiple entries", () => {
-      expect(Array.isArray(actual)).toBe(true);
-      expect(actual.length).toBeGreaterThan(10);
+      assert.ok(Array.isArray(actual));
+      assert.ok(actual.length > 10);
     });
 
     it("should append buffer", () => {
-      expect(entries).toHaveProperty(["buffer.txt"]);
-      expect(entries["buffer.txt"]).toHaveProperty("path", "buffer.txt");
-      expect(entries["buffer.txt"]).toHaveProperty("type", "File");
-      expect(entries["buffer.txt"]).toHaveProperty("mode", 420);
-      expect(entries["buffer.txt"]).toHaveProperty("size", 16384);
+      assert.ok("buffer.txt" in entries);
+      assert.strictEqual(entries["buffer.txt"].path, "buffer.txt");
+      assert.strictEqual(entries["buffer.txt"].type, "File");
+      assert.strictEqual(entries["buffer.txt"].mode, 420);
+      assert.strictEqual(entries["buffer.txt"].size, 16384);
     });
 
     it("should append stream", () => {
-      expect(entries).toHaveProperty(["stream.txt"]);
-      expect(entries["stream.txt"]).toHaveProperty("path", "stream.txt");
-      expect(entries["stream.txt"]).toHaveProperty("type", "File");
-      expect(entries["stream.txt"]).toHaveProperty("mode", 420);
-      expect(entries["stream.txt"]).toHaveProperty("size", 19);
+      assert.ok("stream.txt" in entries);
+      assert.strictEqual(entries["stream.txt"].path, "stream.txt");
+      assert.strictEqual(entries["stream.txt"].type, "File");
+      assert.strictEqual(entries["stream.txt"].mode, 420);
+      assert.strictEqual(entries["stream.txt"].size, 19);
     });
 
     it("should append folder", () => {
-      expect(entries).toHaveProperty("folder/");
-      expect(entries["folder/"]).toHaveProperty("path", "folder/");
-      expect(entries["folder/"]).toHaveProperty("type", "Directory");
-      expect(entries["folder/"]).toHaveProperty("mode", 493);
-      expect(entries["folder/"]).toHaveProperty("size", 0);
+      assert.ok("folder/" in entries);
+      assert.strictEqual(entries["folder/"].path, "folder/");
+      assert.strictEqual(entries["folder/"].type, "Directory");
+      assert.strictEqual(entries["folder/"].mode, 493);
+      assert.strictEqual(entries["folder/"].size, 0);
     });
 
     it("should append manual symlink", () => {
-      expect(entries).toHaveProperty(["manual-link.txt"]);
-      expect(entries["manual-link.txt"]).toHaveProperty("type", "SymbolicLink");
-      expect(entries["manual-link.txt"]).toHaveProperty(
-        "linkpath",
+      assert.ok("manual-link.txt" in entries);
+      assert.strictEqual(entries["manual-link.txt"].type, "SymbolicLink");
+      assert.strictEqual(
+        entries["manual-link.txt"].linkpath,
         "manual-link-target.txt",
       );
     });
 
     it("should append via directory", () => {
-      expect(entries).toHaveProperty(["directory/subdir/level1.txt"]);
-      expect(entries).toHaveProperty(["directory/subdir/level0link.txt"]);
+      assert.ok("directory/subdir/level1.txt" in entries);
+      assert.ok("directory/subdir/level0link.txt" in entries);
     });
 
     it("should retain symlinks via directory", () => {
       if (win32) {
         return;
       }
-      expect(entries).toHaveProperty(["directory/subdir/level0link.txt"]);
-      expect(entries["directory/subdir/level0link.txt"]).toHaveProperty(
-        "type",
+      assert.ok("directory/subdir/level0link.txt" in entries);
+      assert.strictEqual(
+        entries["directory/subdir/level0link.txt"].type,
         "SymbolicLink",
       );
-      expect(entries["directory/subdir/level0link.txt"]).toHaveProperty(
-        "linkpath",
+      assert.strictEqual(
+        entries["directory/subdir/level0link.txt"].linkpath,
         "../level0.txt",
       );
-      expect(entries).toHaveProperty("directory/subdir/subsublink");
-      expect(entries["directory/subdir/subsublink"]).toHaveProperty(
-        "type",
+      assert.ok("directory/subdir/subsublink" in entries);
+      assert.strictEqual(
+        entries["directory/subdir/subsublink"].type,
         "SymbolicLink",
       );
-      expect(entries["directory/subdir/subsublink"]).toHaveProperty(
-        "linkpath",
+      assert.strictEqual(
+        entries["directory/subdir/subsublink"].linkpath,
         "subsub",
       );
     });
@@ -163,118 +166,119 @@ describe("plugins", () => {
     const entries = {};
     let zipComment = "";
 
-    beforeAll((done) => {
+    before(async () => {
       archive = new ZipArchive({ comment: "archive comment" });
-      const testStream = createWriteStream("tmp/plugin.zip");
+      await new Promise<void>((resolve) => {
+        const testStream = createWriteStream("tmp/plugin.zip");
 
-      testStream.on("close", () => {
-        yauzl.open("tmp/plugin.zip", (err, zip) => {
-          if (err) throw err;
-          zip.on("entry", (entry) => {
-            actual.push(entry.fileName);
-            entries[entry.fileName] = entry;
-          });
-          zip.on("close", () => {
-            zipComment = zip.comment || "";
-            done();
+        testStream.on("close", () => {
+          yauzl.open("tmp/plugin.zip", (err, zip) => {
+            if (err) throw err;
+            zip.on("entry", (entry) => {
+              actual.push(entry.fileName);
+              entries[entry.fileName] = entry;
+            });
+            zip.on("close", () => {
+              zipComment = zip.comment || "";
+              resolve();
+            });
           });
         });
-      });
 
-      archive.pipe(testStream);
-      archive
-        .append(testBuffer, {
-          name: "buffer.txt",
-          date: testDate,
-          comment: "entry comment",
-        })
-        .append(createReadStream("tests/fixtures/test.txt"), {
-          name: "stream.txt",
-          date: testDate,
-        })
-        .file("tests/fixtures/executable.sh", {
-          name: "executable.sh",
-          mode: win32 ? 511 : null, // 0777
-        })
-        .directory("tests/fixtures/directory", "directory")
-        .symlink("manual-link.txt", "manual-link-target.txt")
-        .finalize();
+        archive.pipe(testStream);
+        archive
+          .append(testBuffer, {
+            name: "buffer.txt",
+            date: testDate,
+            comment: "entry comment",
+          })
+          .append(createReadStream("tests/fixtures/test.txt"), {
+            name: "stream.txt",
+            date: testDate,
+          })
+          .file("tests/fixtures/executable.sh", {
+            name: "executable.sh",
+            mode: win32 ? 511 : null, // 0777
+          })
+          .directory("tests/fixtures/directory", "directory")
+          .symlink("manual-link.txt", "manual-link-target.txt")
+          .finalize();
+      });
     });
 
     it("should append multiple entries", () => {
-      expect(Array.isArray(actual)).toBe(true);
-      expect(actual.length).toBeGreaterThan(10);
+      assert.ok(Array.isArray(actual));
+      assert.ok(actual.length > 10);
     });
 
     it("should append buffer", () => {
-      expect(entries).toHaveProperty(["buffer.txt"]);
-      expect(entries["buffer.txt"]).toHaveProperty("uncompressedSize", 16384);
-      expect(entries["buffer.txt"]).toHaveProperty("crc32", 3893830384);
+      assert.ok("buffer.txt" in entries);
+      assert.strictEqual(entries["buffer.txt"].uncompressedSize, 16384);
+      assert.strictEqual(entries["buffer.txt"].crc32, 3893830384);
     });
 
     it("should append stream", () => {
-      expect(entries).toHaveProperty(["stream.txt"]);
-      expect(entries["stream.txt"]).toHaveProperty("uncompressedSize", 19);
-      expect(entries["stream.txt"]).toHaveProperty("crc32", 585446183);
+      assert.ok("stream.txt" in entries);
+      assert.strictEqual(entries["stream.txt"].uncompressedSize, 19);
+      assert.strictEqual(entries["stream.txt"].crc32, 585446183);
     });
 
     it("should append via file", () => {
-      expect(entries).toHaveProperty(["executable.sh"]);
-      expect(entries["executable.sh"]).toHaveProperty("uncompressedSize", 11);
-      expect(entries["executable.sh"]).toHaveProperty("crc32", 3957348457);
+      assert.ok("executable.sh" in entries);
+      assert.strictEqual(entries["executable.sh"].uncompressedSize, 11);
+      assert.strictEqual(entries["executable.sh"].crc32, 3957348457);
     });
 
     it("should append via directory", () => {
-      expect(entries).toHaveProperty(["directory/subdir/level1.txt"]);
-      expect(entries["directory/subdir/level1.txt"]).toHaveProperty(
-        "uncompressedSize",
+      assert.ok("directory/subdir/level1.txt" in entries);
+      assert.strictEqual(
+        entries["directory/subdir/level1.txt"].uncompressedSize,
         6,
       );
-      expect(entries["directory/subdir/level1.txt"]).toHaveProperty(
-        "crc32",
+      assert.strictEqual(
+        entries["directory/subdir/level1.txt"].crc32,
         133711013,
       );
     });
 
     it("should append manual symlink", () => {
-      expect(entries).toHaveProperty(["manual-link.txt"]);
-      expect(entries["manual-link.txt"]).toHaveProperty("crc32", 1121667014);
-      expect(entries["manual-link.txt"]).toHaveProperty(
-        "externalFileAttributes",
+      assert.ok("manual-link.txt" in entries);
+      assert.strictEqual(entries["manual-link.txt"].crc32, 1121667014);
+      assert.strictEqual(
+        entries["manual-link.txt"].externalFileAttributes,
         2684354592,
       );
     });
 
     it("should allow for custom unix mode", () => {
-      expect(entries).toHaveProperty(["executable.sh"]);
-      expect(entries["executable.sh"]).toHaveProperty(
-        "externalFileAttributes",
+      assert.ok("executable.sh" in entries);
+      assert.strictEqual(
+        entries["executable.sh"].externalFileAttributes,
         2180972576,
       );
-      expect(
+      assert.strictEqual(
         (entries["executable.sh"].externalFileAttributes >>> 16) & 0xfff,
-      ).toBe(511);
+        511,
+      );
 
-      expect(entries).toHaveProperty("directory/subdir/");
-      expect(entries["directory/subdir/"]).toHaveProperty(
-        "externalFileAttributes",
+      assert.ok("directory/subdir/" in entries);
+      assert.strictEqual(
+        entries["directory/subdir/"].externalFileAttributes,
         1106051088,
       );
-      expect(
+      assert.strictEqual(
         (entries["directory/subdir/"].externalFileAttributes >>> 16) & 0xfff,
-      ).toBe(493);
+        493,
+      );
     });
 
     it("should allow for entry comments", () => {
-      expect(entries).toHaveProperty(["buffer.txt"]);
-      expect(entries["buffer.txt"]).toHaveProperty(
-        "fileComment",
-        "entry comment",
-      );
+      assert.ok("buffer.txt" in entries);
+      assert.strictEqual(entries["buffer.txt"].fileComment, "entry comment");
     });
 
     it("should allow for archive comment", () => {
-      expect(zipComment).toBe("archive comment");
+      assert.strictEqual(zipComment, "archive comment");
     });
   });
 });

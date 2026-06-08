@@ -1,6 +1,7 @@
+import assert from "node:assert/strict";
 // basic test
 // show that it does the same thing by default as the shell.
-import { it, beforeEach, describe, expect } from "bun:test";
+import { describe, it, beforeEach } from "node:test";
 
 import glob from "@archiver/readdir-glob";
 
@@ -29,17 +30,19 @@ describe("bash-comparison", () => {
       expectedFiles = expectedFiles.filter((m) => m.indexOf("symlink") === -1);
     }
 
-    it(pattern, (done) => {
-      const g = glob(".", { pattern });
-      let matches: string[] = [];
-      g.on("match", (match) => {
-        matches.push(match.relative);
-      });
-      g.on("end", () => {
-        // sort and unmark, just to match the shell results
-        matches = cleanResults(matches);
-        expect(matches).toEqual(expectedFiles);
-        done();
+    it(pattern, async () => {
+      await new Promise<void>((resolve) => {
+        const g = glob(".", { pattern });
+        let matches: string[] = [];
+        g.on("match", (match) => {
+          matches.push(match.relative);
+        });
+        g.on("end", () => {
+          // sort and unmark, just to match the shell results
+          matches = cleanResults(matches);
+          assert.deepStrictEqual(matches, expectedFiles);
+          resolve();
+        });
       });
     });
   });

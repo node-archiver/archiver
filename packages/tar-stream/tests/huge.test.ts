@@ -1,5 +1,6 @@
-import { test, expect } from "bun:test";
+import assert from "node:assert/strict";
 import * as fs from "node:fs";
+import { test } from "node:test";
 import * as zlib from "node:zlib";
 
 import * as tar from "../src/index";
@@ -8,9 +9,9 @@ import * as fixtures from "./fixtures";
 
 const win32 = process.platform === "win32";
 
-test.skipIf(win32)(
-  "huge",
-  (done) => {
+const it = win32 ? test.skip : test;
+it("huge", { timeout: 6e4 * 3 }, () => {
+  return new Promise<void>((resolve) => {
     const extract = tar.extract();
     let noEntries = false;
     const hugeFileSize = 8804630528; // ~8.2GB
@@ -25,7 +26,7 @@ test.skipIf(win32)(
 
     // Make sure we read the correct pax size entry for a file larger than 8GB.
     extract.on("entry", function (header, stream, callback) {
-      expect(header).toEqual({
+      assert.deepStrictEqual(header, {
         devmajor: 0,
         devminor: 0,
         gid: 20,
@@ -55,14 +56,13 @@ test.skipIf(win32)(
     });
 
     extract.on("finish", function () {
-      expect(noEntries).toBeTrue();
-      expect(dataLength).toBe(hugeFileSize);
-      done();
+      assert.ok(noEntries);
+      assert.strictEqual(dataLength, hugeFileSize);
+      resolve();
     });
 
     const gunzip = zlib.createGunzip();
     const reader = fs.createReadStream(fixtures.HUGE);
     reader.pipe(gunzip).pipe(extract);
-  },
-  { timeout: 6e4 * 3 }, // 3 minutes
-);
+  });
+});

@@ -1,4 +1,5 @@
-import { it, beforeEach, describe, expect } from "bun:test";
+import assert from "node:assert/strict";
+import { describe, it, beforeEach } from "node:test";
 
 import glob from "@archiver/readdir-glob";
 
@@ -39,12 +40,14 @@ describe("nodir", () => {
     if (process.platform === "win32") {
       expected = expected.filter((path) => path.indexOf("symlink") === -1);
     }
-    it(pattern + " " + JSON.stringify(options), (done) => {
-      glob(options.cwd || ".", { pattern, ...options }, (er, res) => {
-        expect(er).toBeFalsy();
-        res.sort();
-        expect(res).toEqual(expected);
-        done();
+    it(pattern + " " + JSON.stringify(options), async () => {
+      await new Promise<void>((resolve) => {
+        glob(options.cwd || ".", { pattern, ...options }, (er, res) => {
+          assert.ok(!er);
+          res.sort();
+          assert.deepStrictEqual(res, expected);
+          resolve();
+        });
       });
     });
   });

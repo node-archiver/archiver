@@ -1,4 +1,5 @@
-import { it, describe, expect } from "bun:test";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 
 import glob from "@archiver/readdir-glob";
 
@@ -306,24 +307,26 @@ describe("ignore", () => {
     const matches = [];
     opt.ignore = ignore;
 
-    it(name, (done) => {
-      process.chdir(`${__dirname}/fixtures`);
+    it(name, async () => {
+      await new Promise<void>((resolve) => {
+        process.chdir(`${__dirname}/fixtures`);
 
-      glob(opt.cwd || ".", { ...opt, pattern }, (er, res) => {
-        expect(er).toBeFalsy();
+        glob(opt.cwd || ".", { ...opt, pattern }, (er, res) => {
+          assert.ok(!er);
 
-        if (process.platform === "win32") {
-          expectedFiles = expectedFiles.filter(
-            (f) => f.indexOf("symlink") === -1,
-          );
-        }
-        res.sort();
-        matches.sort();
+          if (process.platform === "win32") {
+            expectedFiles = expectedFiles.filter(
+              (f) => f.indexOf("symlink") === -1,
+            );
+          }
+          res.sort();
+          matches.sort();
 
-        expect(res).toEqual(expectedFiles);
-        expect(matches).toEqual(expectedFiles);
-        done();
-      }).on("match", (p) => matches.push(p.relative));
+          assert.deepStrictEqual(res, expectedFiles);
+          assert.deepStrictEqual(matches, expectedFiles);
+          resolve();
+        }).on("match", (p) => matches.push(p.relative));
+      });
     });
   });
 
@@ -339,19 +342,21 @@ describe("ignore", () => {
             cwd,
           };
           const expectedFiles = ignore ? [] : ["fixtures/a"];
-          it("race condition: " + JSON.stringify(opt), (done) => {
-            let cb;
-            const cbSet = new Promise((resolve, _) => (cb = resolve));
-            process.chdir(__dirname);
-            glob(cwd, { ...opt, pattern }, (_, matches) => cb(matches)).on(
-              "end",
-              () => {
-                cbSet.then((res) => {
-                  expect(res).toEqual(expectedFiles);
-                  done();
-                });
-              },
-            );
+          it("race condition: " + JSON.stringify(opt), async () => {
+            await new Promise<void>((resolve) => {
+              let cb;
+              const cbSet = new Promise((resolve, _) => (cb = resolve));
+              process.chdir(__dirname);
+              glob(cwd, { ...opt, pattern }, (_, matches) => cb(matches)).on(
+                "end",
+                () => {
+                  cbSet.then((res) => {
+                    assert.deepStrictEqual(res, expectedFiles);
+                    resolve();
+                  });
+                },
+              );
+            });
           });
         });
       });

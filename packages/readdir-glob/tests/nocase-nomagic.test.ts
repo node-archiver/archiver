@@ -1,5 +1,6 @@
-import { it, beforeEach, describe, expect, spyOn, afterEach } from "bun:test";
+import assert from "node:assert/strict";
 import * as fs from "node:fs";
+import { describe, it, beforeEach, afterEach, mock } from "node:test";
 
 import glob from "@archiver/readdir-glob";
 
@@ -37,86 +38,99 @@ function fakeReaddir(path, opts) {
   return ret;
 }
 
-describe.todo("nocase-nomagic", () => {
+describe.skip("nocase-nomagic", () => {
   let statSpy, lstatSpy, readdirSpy;
 
   beforeEach(() => {
-    const statMock = (path, cb) => {
+    const originalStat = fs.stat;
+    const originalLstat = fs.lstat;
+    const originalRead = fs.readdir;
+
+    statSpy = mock.method(fs, "stat", (path, cb) => {
       const f = fakeStat(path);
       if (f) {
         process.nextTick(() => cb(null, f));
       } else {
-        statSpy.getOriginalImplementation().call(fs, path, cb);
+        originalStat.call(fs, path, cb);
       }
-    };
+    });
 
-    const readdirMock = (path, opts, cb) => {
+    lstatSpy = mock.method(fs, "lstat", (path, cb) => {
+      const f = fakeStat(path);
+      if (f) {
+        process.nextTick(() => cb(null, f));
+      } else {
+        originalLstat.call(fs, path, cb);
+      }
+    });
+
+    readdirSpy = mock.method(fs, "readdir", (path, opts, cb) => {
       const f = fakeReaddir(path, opts);
       if (f) {
         process.nextTick(() => cb(null, f));
       } else {
-        readdirSpy.getOriginalImplementation().call(fs, path, opts, cb);
+        originalRead.call(fs, path, opts, cb);
       }
-    };
-
-    statSpy = spyOn(fs, "stat").mockImplementation(statMock);
-    lstatSpy = spyOn(fs, "lstat").mockImplementation(statMock);
-    readdirSpy = spyOn(fs, "readdir").mockImplementation(readdirMock);
+    });
   });
 
   afterEach(() => {
-    statSpy.mockRestore();
-    lstatSpy.mockRestore();
-    readdirSpy.mockRestore();
+    statSpy.mock.restore();
+    lstatSpy.mock.restore();
+    readdirSpy.mock.restore();
   });
 
-  it("nocase, nomagic", (done) => {
-    let n = 2;
-    const want = [
-      "TMP/A",
-      "TMP/a",
-      "tMP/A",
-      "tMP/a",
-      "tMp/A",
-      "tMp/a",
-      "tmp/A",
-      "tmp/a",
-    ];
-    glob(".", { nocase: true, pattern: "tmp/a" }, (er, res) => {
-      expect(er).toBeFalsy();
-      res.sort();
-      expect(res).toEqual(want);
-      if (--n === 0) {
-        done();
-      }
-    });
-    glob(".", { nocase: true, pattern: "tmp/A" }, (er, res) => {
-      expect(er).toBeFalsy();
-      res.sort();
-      expect(res).toEqual(want);
-      if (--n === 0) {
-        done();
-      }
+  it("nocase, nomagic", async () => {
+    await new Promise<void>((resolve) => {
+      let n = 2;
+      const want = [
+        "TMP/A",
+        "TMP/a",
+        "tMP/A",
+        "tMP/a",
+        "tMp/A",
+        "tMp/a",
+        "tmp/A",
+        "tmp/a",
+      ];
+      glob(".", { nocase: true, pattern: "tmp/a" }, (er, res) => {
+        assert.ok(!er);
+        res.sort();
+        assert.deepStrictEqual(res, want);
+        if (--n === 0) {
+          resolve();
+        }
+      });
+      glob(".", { nocase: true, pattern: "tmp/A" }, (er, res) => {
+        assert.ok(!er);
+        res.sort();
+        assert.deepStrictEqual(res, want);
+        if (--n === 0) {
+          resolve();
+        }
+      });
     });
   });
 
-  it("nocase, with some magic", (done) => {
-    const want = [
-      "TMP/A",
-      "TMP/a",
-      "tMP/A",
-      "tMP/a",
-      "tMp/A",
-      "tMp/a",
-      "tmp/A",
-      "tmp/a",
-    ];
+  it("nocase, with some magic", async () => {
+    await new Promise<void>((resolve) => {
+      const want = [
+        "TMP/A",
+        "TMP/a",
+        "tMP/A",
+        "tMP/a",
+        "tMp/A",
+        "tMp/a",
+        "tmp/A",
+        "tmp/a",
+      ];
 
-    glob(".", { nocase: true, pattern: "tmp/*" }, (er, res) => {
-      expect(er).toBeFalsy();
-      res.sort();
-      expect(res).toEqual(want);
-      done();
+      glob(".", { nocase: true, pattern: "tmp/*" }, (er, res) => {
+        assert.ok(!er);
+        res.sort();
+        assert.deepStrictEqual(res, want);
+        resolve();
+      });
     });
   });
 });

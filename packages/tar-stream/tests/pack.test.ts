@@ -1,5 +1,6 @@
-import { test, expect } from "bun:test";
+import assert from "node:assert/strict";
 import * as fs from "node:fs";
+import { test } from "node:test";
 
 import concat from "es-concat-stream";
 
@@ -27,8 +28,8 @@ test("one-file", function () {
 
   pack.pipe(
     concat(function (data) {
-      expect(data.length & 511).toBe(0);
-      expect(data).toEqual(fs.readFileSync(fixtures.ONE_FILE_TAR));
+      assert.strictEqual(data.length & 511, 0);
+      assert.deepStrictEqual(data, fs.readFileSync(fixtures.ONE_FILE_TAR));
     }),
   );
 });
@@ -66,8 +67,8 @@ test("multi-file", function () {
 
   pack.pipe(
     concat(function (data) {
-      expect(data.length & 511).toBe(0);
-      expect(data).toEqual(fs.readFileSync(fixtures.MULTI_FILE_TAR));
+      assert.strictEqual(data.length & 511, 0);
+      assert.deepStrictEqual(data, fs.readFileSync(fixtures.MULTI_FILE_TAR));
     }),
   );
 });
@@ -93,8 +94,8 @@ test("pax", function () {
 
   pack.pipe(
     concat(function (data) {
-      expect(data.length & 511).toBe(0);
-      expect(data).toEqual(fs.readFileSync(fixtures.PAX_TAR));
+      assert.strictEqual(data.length & 511, 0);
+      assert.deepStrictEqual(data, fs.readFileSync(fixtures.PAX_TAR));
     }),
   );
 });
@@ -130,37 +131,39 @@ test("types", function () {
 
   pack.pipe(
     concat(function (data) {
-      expect(data.length & 511).toBe(0);
-      expect(data).toEqual(fs.readFileSync(fixtures.TYPES_TAR));
+      assert.strictEqual(data.length & 511, 0);
+      assert.deepStrictEqual(data, fs.readFileSync(fixtures.TYPES_TAR));
     }),
   );
 });
 
-test("empty directory body is valid", function (done) {
-  const pack = tar.pack();
+test("empty directory body is valid", () => {
+  return new Promise<void>((resolve) => {
+    const pack = tar.pack();
 
-  pack.entry(
-    {
-      name: "directory",
-      mtime: new Date(1387580181000),
-      type: "directory",
-      mode: 0o755,
-      uname: "maf",
-      gname: "staff",
-      uid: 501,
-      gid: 20,
-    },
-    "",
-  );
+    pack.entry(
+      {
+        name: "directory",
+        mtime: new Date(1387580181000),
+        type: "directory",
+        mode: 0o755,
+        uname: "maf",
+        gname: "staff",
+        uid: 501,
+        gid: 20,
+      },
+      "",
+    );
 
-  pack.finalize();
+    pack.finalize();
 
-  pack.resume();
+    pack.resume();
 
-  pack.on("error", () => expect().fail("should not throw"));
-  pack.on("close", () => {
-    expect().pass("closed");
-    done();
+    pack.on("error", () => assert.fail("should not throw"));
+    pack.on("close", () => {
+      assert.ok(true);
+      resolve();
+    });
   });
 });
 
@@ -185,8 +188,8 @@ test("long-name", function () {
 
   pack.pipe(
     concat(function (data) {
-      expect(data.length & 511).toBe(0);
-      expect(data).toEqual(fs.readFileSync(fixtures.LONG_NAME_TAR));
+      assert.strictEqual(data.length & 511, 0);
+      assert.deepStrictEqual(data, fs.readFileSync(fixtures.LONG_NAME_TAR));
     }),
   );
 });
@@ -211,8 +214,8 @@ test("large-uid-gid", function () {
 
   pack.pipe(
     concat(function (data) {
-      expect(data.length & 511).toBe(0);
-      expect(data).toEqual(fs.readFileSync(fixtures.LARGE_UID_GID));
+      assert.strictEqual(data.length & 511, 0);
+      assert.deepStrictEqual(data, fs.readFileSync(fixtures.LARGE_UID_GID));
     }),
   );
 });
@@ -238,56 +241,58 @@ test("unicode", function () {
 
   pack.pipe(
     concat(function (data) {
-      expect(data.length & 511).toBe(0);
-      expect(data).toEqual(fs.readFileSync(fixtures.UNICODE_TAR));
+      assert.strictEqual(data.length & 511, 0);
+      assert.deepStrictEqual(data, fs.readFileSync(fixtures.UNICODE_TAR));
     }),
   );
 });
 
-test("backpressure", function (done) {
-  const slowStream = new Writable({
-    highWaterMark: 1,
+test("backpressure", () => {
+  return new Promise<void>((resolve) => {
+    const slowStream = new Writable({
+      highWaterMark: 1,
 
-    write(data, cb) {
-      setImmediate(cb);
-    },
+      write(data, cb) {
+        setImmediate(cb);
+      },
+    });
+
+    slowStream.on("finish", () => {
+      assert.ok(true);
+      resolve();
+    });
+
+    const pack = tar.pack();
+
+    let later = false;
+
+    setImmediate(() => {
+      later = true;
+    });
+
+    pack.on("end", () => assert.ok(later)).pipe(slowStream);
+
+    let i = 0;
+    const next = () => {
+      if (++i < 25) {
+        const header = {
+          name: `file${i}.txt`,
+          mtime: new Date(1387580181000),
+          mode: 0o644,
+          uname: "maf",
+          gname: "staff",
+          uid: 501,
+          gid: 20,
+        };
+
+        const buffer = Buffer.alloc(1024);
+
+        pack.entry(header, buffer, next);
+      } else {
+        pack.finalize();
+      }
+    };
+
+    next();
   });
-
-  slowStream.on("finish", () => {
-    expect().pass();
-    done();
-  });
-
-  const pack = tar.pack();
-
-  let later = false;
-
-  setImmediate(() => {
-    later = true;
-  });
-
-  pack.on("end", () => expect(later).toBeTrue()).pipe(slowStream);
-
-  let i = 0;
-  const next = () => {
-    if (++i < 25) {
-      const header = {
-        name: `file${i}.txt`,
-        mtime: new Date(1387580181000),
-        mode: 0o644,
-        uname: "maf",
-        gname: "staff",
-        uid: 501,
-        gid: 20,
-      };
-
-      const buffer = Buffer.alloc(1024);
-
-      pack.entry(header, buffer, next);
-    } else {
-      pack.finalize();
-    }
-  };
-
-  next();
 });
