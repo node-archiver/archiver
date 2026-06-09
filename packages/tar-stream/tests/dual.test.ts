@@ -1,4 +1,5 @@
-import { test, expect } from "bun:test";
+import assert from "node:assert/strict";
+import { test } from "node:test";
 
 import * as tar from "../src/index";
 import { Readable } from "../src/lib/streamx";
@@ -15,13 +16,13 @@ test("write and read huge archive", () => {
     });
 
     stream.on("end", function () {
-      expect(size).toBe(header.size);
+      assert.strictEqual(size, header.size);
       next();
     });
   });
 
   pack.pipe(extract, function (err) {
-    expect(!err).toBeTrue();
+    assert.ok(!err);
   });
 
   const entry = pack.entry({

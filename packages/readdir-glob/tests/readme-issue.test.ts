@@ -1,5 +1,6 @@
-import { it, beforeEach, describe, expect, afterEach } from "bun:test";
+import assert from "node:assert/strict";
 import * as fs from "node:fs";
+import { describe, it, beforeEach, afterEach } from "node:test";
 
 import glob from "@archiver/readdir-glob";
 
@@ -16,17 +17,19 @@ describe("readme-issue", () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
-  it("glob", (done) => {
-    const opt = {
-      pattern: "README?(.*)",
-      nocase: true,
-      mark: true,
-    };
+  it("glob", async () => {
+    await new Promise<void>((resolve) => {
+      const opt = {
+        pattern: "README?(.*)",
+        nocase: true,
+        mark: true,
+      };
 
-    glob(dir, opt, (er, files) => {
-      expect(er).toBeFalsy();
-      expect(files).toEqual(["README"]);
-      done();
+      glob(dir, opt, (er, files) => {
+        assert.ok(!er);
+        assert.deepStrictEqual(files, ["README"]);
+        resolve();
+      });
     });
   });
 });

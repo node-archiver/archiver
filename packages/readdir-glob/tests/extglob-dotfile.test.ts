@@ -1,4 +1,5 @@
-import { it, describe, expect } from "bun:test";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 
 import glob from "@archiver/readdir-glob";
 
@@ -10,13 +11,15 @@ import glob from "@archiver/readdir-glob";
  * deliberate in the pattern.
  */
 describe("extglob-dotfile", () => {
-  it("positive extglob @(.y) should match the explicit dotfile segment with dot:false", (done) => {
-    process.chdir(`${__dirname}/fixtures`);
+  it("positive extglob @(.y) should match the explicit dotfile segment with dot:false", async () => {
+    await new Promise<void>((resolve) => {
+      process.chdir(`${__dirname}/fixtures`);
 
-    glob(".", { pattern: "a/x/@(.y)/b", dot: false }, (er, res) => {
-      expect(er).toBeFalsy();
-      expect(res).toEqual(["a/x/.y/b"]);
-      done();
+      glob(".", { pattern: "a/x/@(.y)/b", dot: false }, (er, res) => {
+        assert.ok(!er);
+        assert.deepStrictEqual(res, ["a/x/.y/b"]);
+        resolve();
+      });
     });
   });
 });

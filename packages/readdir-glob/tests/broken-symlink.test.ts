@@ -1,5 +1,6 @@
-import { it, beforeEach, describe, expect, afterEach } from "bun:test";
+import assert from "node:assert/strict";
 import * as fs from "node:fs";
+import { describe, it, beforeEach, afterEach } from "node:test";
 
 import glob from "@archiver/readdir-glob";
 
@@ -12,7 +13,7 @@ function cleanup() {
 describe("broken-symlink", () => {
   beforeEach(() => {
     process.chdir(__dirname);
-    fs.mkdirSync(process.cwd() + "/broken-symlink/a/broken-link", {
+    fs.mkdirSync(`${process.cwd()}/broken-symlink/a/broken-link`, {
       recursive: true,
     });
     fs.symlinkSync("this-does-not-exist", "broken-symlink/a/broken-link/link");
@@ -42,18 +43,21 @@ describe("broken-symlink", () => {
     { follow: true },
   ];
 
+  const _it = win32 ? it.skip : it;
+
   patterns.forEach((pattern) => {
     opts.forEach((opt) => {
-      it.skipIf(win32)(
-        "async test pattern=" + pattern + ", opts=" + JSON.stringify(opt),
-        (done) => {
-          glob(".", { ...opt, pattern }, (er, res) => {
-            if (er) {
-              expect().fail(er.message);
-              return done();
-            }
-            expect(res.indexOf(link)).not.toBe(-1);
-            done();
+      _it(
+        `async test pattern=${pattern}, opts=${JSON.stringify(opt)}`,
+        async () => {
+          await new Promise<void>((resolve) => {
+            glob(".", { ...opt, pattern }, (er, res) => {
+              if (er) {
+                assert.fail(er.message);
+              }
+              assert.notStrictEqual(res.indexOf(link), -1);
+              resolve();
+            });
           });
         },
       );

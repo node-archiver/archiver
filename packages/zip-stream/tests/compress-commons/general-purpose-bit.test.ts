@@ -1,4 +1,5 @@
-import { expect, it, beforeEach, describe } from "bun:test";
+import assert from "node:assert/strict";
+import { describe, it, beforeEach } from "node:test";
 
 import { GeneralPurposeBit } from "../../src/archivers/general-purpose-bit";
 
@@ -13,7 +14,7 @@ describe("GeneralPurposeBit", () => {
     it("should return a Buffer", () => {
       gpb.useDataDescriptor(true);
       const encoded = gpb.encode();
-      expect(Buffer.isBuffer(encoded)).toBe(true);
+      assert.ok(Buffer.isBuffer(encoded));
     });
   });
 });

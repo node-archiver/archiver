@@ -1,10 +1,10 @@
-import { afterAll, afterEach, beforeAll } from "bun:test";
 import { spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as fsPromises from "node:fs/promises";
 // just a little pre-run script to set up the fixtures.
 // zz-finish cleans it up
 import * as path from "node:path";
+import { after, afterEach, before } from "node:test";
 
 function cleanResults(m: string[]) {
   // normalize discrepancies in ordering, duplication,
@@ -32,7 +32,7 @@ function alphasort(a: string, b: string) {
   return a > b ? 1 : a < b ? -1 : 0;
 }
 
-beforeAll(async () => {
+before(async () => {
   const fixtureDir = path.resolve(__dirname, "fixtures");
 
   let files = [
@@ -139,7 +139,7 @@ beforeAll(async () => {
   await fsPromises.writeFile(fname, data);
 });
 
-afterAll(async () => {
+after(async () => {
   await new Promise((resolve) =>
     fs.rm(
       path.resolve(__dirname, "fixtures"),

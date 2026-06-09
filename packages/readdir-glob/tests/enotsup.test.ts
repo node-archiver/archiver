@@ -1,14 +1,15 @@
-import { it, beforeEach, describe, expect, spyOn } from "bun:test";
+import assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { describe, it, beforeEach, mock } from "node:test";
 
 import glob from "@archiver/readdir-glob";
 
-describe.todo("enotsup", () => {
+describe.skip("enotsup", () => {
   beforeEach(() => {
     process.chdir(`${__dirname}/fixtures`);
     const readdir = fs.readdir;
-    spyOn(fs, "readdir").mockImplementation(function (p, opts, cb) {
+    mock.method(fs, "readdir", function (p, opts, cb) {
       if (
         allowedDirs.indexOf(path.resolve(p)) === -1 &&
         !p.match(/[\\/]node_modules[\\/]/)
@@ -38,13 +39,15 @@ describe.todo("enotsup", () => {
   ];
   const pattern = "a/**/h";
 
-  it(pattern, (done) => {
-    glob(".", { pattern }, (er, res) => {
-      expect(er).toBeFalsy();
-      expect(sawAsyncENOTSUP).toBeTruthy();
-      res.sort();
-      expect(res).toEqual(["a/abcdef/g/h", "a/abcfed/g/h"]);
-      done();
+  it(pattern, async () => {
+    await new Promise<void>((resolve) => {
+      glob(".", { pattern }, (er, res) => {
+        assert.ok(!er);
+        assert.ok(sawAsyncENOTSUP);
+        res.sort();
+        assert.deepStrictEqual(res, ["a/abcdef/g/h", "a/abcfed/g/h"]);
+        resolve();
+      });
     });
   });
 });

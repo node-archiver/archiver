@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeAll, afterAll } from "bun:test";
+import assert from "node:assert/strict";
 import {
   createWriteStream,
   chmodSync,
@@ -10,6 +10,7 @@ import {
   mkdirSync,
 } from "node:fs";
 import { Readable } from "node:stream";
+import { describe, it, before, after } from "node:test";
 
 import { JsonArchive } from "../src/index.js";
 import { normalizeEntryData } from "../src/lib/core.js";
@@ -20,7 +21,7 @@ const testDate = new Date("Jan 03 2013 14:26:38 GMT");
 const win32 = process.platform === "win32";
 
 describe("archiver", () => {
-  beforeAll(() => {
+  before(() => {
     mkdirSync("tmp", { recursive: true });
     if (!win32) {
       chmodSync("tests/fixtures/executable.sh", 511); // 0777
@@ -42,7 +43,7 @@ describe("archiver", () => {
     }
   });
 
-  afterAll(() => {
+  after(() => {
     unlinkSync("tests/fixtures/directory/subdir/level0link.txt");
     unlinkSync("tests/fixtures/directory/subdir/subsublink");
   });
@@ -54,13 +55,13 @@ describe("archiver", () => {
           name: "entry.txt",
           prefix: "prefix/",
         });
-        expect(prefix1).toHaveProperty("name", "prefix/entry.txt");
+        assert.strictEqual(prefix1.name, "prefix/entry.txt");
 
         const prefix2 = normalizeEntryData({
           name: "entry.txt",
           prefix: "",
         });
-        expect(prefix2).toHaveProperty("name", "entry.txt");
+        assert.strictEqual(prefix2.name, "entry.txt");
       });
 
       it("should support special bits on unix", () => {
@@ -69,7 +70,7 @@ describe("archiver", () => {
             name: "executable.sh",
             mode: statSync("tests/fixtures/executable.sh").mode,
           });
-          expect(mode).toHaveProperty("mode", 511);
+          assert.strictEqual(mode.mode, 511);
         }
       });
     });
@@ -79,26 +80,28 @@ describe("archiver", () => {
     describe("#abort", () => {
       let archive: JsonArchive;
 
-      beforeAll((done) => {
+      before(async () => {
         archive = new JsonArchive();
-        const testStream = createWriteStream("tmp/abort.json");
-        testStream.on("close", () => {
-          done();
+        await new Promise<void>((resolve) => {
+          const testStream = createWriteStream("tmp/abort.json");
+          testStream.on("close", () => {
+            resolve();
+          });
+          archive.pipe(testStream);
+          archive
+            .append(testBuffer, { name: "buffer.txt", date: testDate })
+            .append(createReadStream("tests/fixtures/test.txt"), {
+              name: "stream.txt",
+              date: testDate,
+            })
+            .file("tests/fixtures/test.txt")
+            .abort();
         });
-        archive.pipe(testStream);
-        archive
-          .append(testBuffer, { name: "buffer.txt", date: testDate })
-          .append(createReadStream("tests/fixtures/test.txt"), {
-            name: "stream.txt",
-            date: testDate,
-          })
-          .file("tests/fixtures/test.txt")
-          .abort();
       });
 
       it("should have a state of aborted", () => {
-        expect(archive).toHaveProperty("_state");
-        expect(archive._state).toHaveProperty("aborted", true);
+        assert.ok("_state" in archive);
+        assert.strictEqual(archive._state.aborted, true);
       });
     });
 
@@ -107,183 +110,177 @@ describe("archiver", () => {
       let archive: JsonArchive;
       const entries = {};
 
-      beforeAll((done) => {
+      before(async () => {
         archive = new JsonArchive();
-        const testStream = createWriteStream("tmp/append.json");
-        testStream.on("close", () => {
-          actual = readJSON("tmp/append.json");
-          actual.forEach((entry) => {
-            entries[entry.name] = entry;
+        await new Promise<void>((resolve) => {
+          const testStream = createWriteStream("tmp/append.json");
+          testStream.on("close", () => {
+            actual = readJSON("tmp/append.json");
+            actual.forEach((entry) => {
+              entries[entry.name] = entry;
+            });
+            resolve();
           });
-          done();
+          archive.pipe(testStream);
+          archive
+            .append(testBuffer, { name: "buffer.txt", date: testDate })
+            .append(createReadStream("tests/fixtures/test.txt"), {
+              name: "stream.txt",
+              date: testDate,
+            })
+            .append(Readable.from(["test"]), {
+              name: "stream-like.txt",
+              date: testDate,
+            })
+            .append(null, { name: "directory/", date: testDate })
+            .finalize();
         });
-        archive.pipe(testStream);
-        archive
-          .append(testBuffer, { name: "buffer.txt", date: testDate })
-          .append(createReadStream("tests/fixtures/test.txt"), {
-            name: "stream.txt",
-            date: testDate,
-          })
-          .append(Readable.from(["test"]), {
-            name: "stream-like.txt",
-            date: testDate,
-          })
-          .append(null, { name: "directory/", date: testDate })
-          .finalize();
       });
 
       it("should append multiple entries", () => {
-        expect(Array.isArray(actual)).toBe(true);
-        expect(actual).toHaveLength(4);
+        assert.ok(Array.isArray(actual));
+        assert.strictEqual(actual.length, 4);
       });
 
       it("should append buffer", () => {
-        expect(entries).toHaveProperty(["buffer.txt"]);
-        expect(entries["buffer.txt"]).toHaveProperty("name", "buffer.txt");
-        expect(entries["buffer.txt"]).toHaveProperty("type", "file");
-        expect(entries["buffer.txt"]).toHaveProperty(
-          "date",
+        assert.ok("buffer.txt" in entries);
+        assert.strictEqual(entries["buffer.txt"].name, "buffer.txt");
+        assert.strictEqual(entries["buffer.txt"].type, "file");
+        assert.strictEqual(
+          entries["buffer.txt"].date,
           "2013-01-03T14:26:38.000Z",
         );
-        expect(entries["buffer.txt"]).toHaveProperty("mode", 420);
-        expect(entries["buffer.txt"]).toHaveProperty("crc32", 3893830384);
-        expect(entries["buffer.txt"]).toHaveProperty("size", 16384);
+        assert.strictEqual(entries["buffer.txt"].mode, 420);
+        assert.strictEqual(entries["buffer.txt"].crc32, 3893830384);
+        assert.strictEqual(entries["buffer.txt"].size, 16384);
       });
 
       it("should append stream", () => {
-        expect(entries).toHaveProperty(["stream.txt"]);
-        expect(entries["stream.txt"]).toHaveProperty("name", "stream.txt");
-        expect(entries["stream.txt"]).toHaveProperty("type", "file");
-        expect(entries["stream.txt"]).toHaveProperty(
-          "date",
+        assert.ok("stream.txt" in entries);
+        assert.strictEqual(entries["stream.txt"].name, "stream.txt");
+        assert.strictEqual(entries["stream.txt"].type, "file");
+        assert.strictEqual(
+          entries["stream.txt"].date,
           "2013-01-03T14:26:38.000Z",
         );
-        expect(entries["stream.txt"]).toHaveProperty("mode", 420);
-        expect(entries["stream.txt"]).toHaveProperty("crc32", 585446183);
-        expect(entries["stream.txt"]).toHaveProperty("size", 19);
+        assert.strictEqual(entries["stream.txt"].mode, 420);
+        assert.strictEqual(entries["stream.txt"].crc32, 585446183);
+        assert.strictEqual(entries["stream.txt"].size, 19);
       });
 
       it("should append stream-like source", () => {
-        expect(entries).toHaveProperty(["stream-like.txt"]);
-        expect(entries["stream-like.txt"]).toHaveProperty(
-          "name",
-          "stream-like.txt",
-        );
-        expect(entries["stream-like.txt"]).toHaveProperty("type", "file");
-        expect(entries["stream-like.txt"]).toHaveProperty(
-          "date",
+        assert.ok("stream-like.txt" in entries);
+        assert.strictEqual(entries["stream-like.txt"].name, "stream-like.txt");
+        assert.strictEqual(entries["stream-like.txt"].type, "file");
+        assert.strictEqual(
+          entries["stream-like.txt"].date,
           "2013-01-03T14:26:38.000Z",
         );
-        expect(entries["stream-like.txt"]).toHaveProperty("mode", 420);
-        expect(entries["stream-like.txt"]).toHaveProperty("crc32", 3632233996);
-        expect(entries["stream-like.txt"]).toHaveProperty("size", 4);
+        assert.strictEqual(entries["stream-like.txt"].mode, 420);
+        assert.strictEqual(entries["stream-like.txt"].crc32, 3632233996);
+        assert.strictEqual(entries["stream-like.txt"].size, 4);
       });
 
       it("should append directory", () => {
-        expect(entries).toHaveProperty("directory/");
-        expect(entries["directory/"]).toHaveProperty("name", "directory/");
-        expect(entries["directory/"]).toHaveProperty("type", "directory");
-        expect(entries["directory/"]).toHaveProperty(
-          "date",
+        assert.ok("directory/" in entries);
+        assert.strictEqual(entries["directory/"].name, "directory/");
+        assert.strictEqual(entries["directory/"].type, "directory");
+        assert.strictEqual(
+          entries["directory/"].date,
           "2013-01-03T14:26:38.000Z",
         );
-        expect(entries["directory/"]).toHaveProperty("mode", 493);
-        expect(entries["directory/"]).toHaveProperty("crc32", 0);
-        expect(entries["directory/"]).toHaveProperty("size", 0);
+        assert.strictEqual(entries["directory/"].mode, 493);
+        assert.strictEqual(entries["directory/"].crc32, 0);
+        assert.strictEqual(entries["directory/"].size, 0);
       });
     });
 
     describe("#directory", () => {
       let actual;
-      let archive;
+      let archive: JsonArchive;
       const entries = {};
 
-      beforeAll((done) => {
+      before(async () => {
         archive = new JsonArchive();
-        const testStream = createWriteStream("tmp/directory.json");
-        testStream.on("close", () => {
-          actual = readJSON("tmp/directory.json");
-          actual.forEach((entry) => {
-            entries[entry.name] = entry;
+        await new Promise<void>((resolve) => {
+          const testStream = createWriteStream("tmp/directory.json");
+          testStream.on("close", () => {
+            actual = readJSON("tmp/directory.json");
+            actual.forEach((entry) => {
+              entries[entry.name] = entry;
+            });
+            resolve();
           });
-          done();
+          archive.pipe(testStream);
+          archive
+            .directory("tests/fixtures/directory", null, { date: testDate })
+            .directory("tests/fixtures/directory", "Win\\DS\\", {
+              date: testDate,
+            })
+            .directory(
+              "tests/fixtures/directory",
+              "directory",
+              function (data) {
+                if (data.name === "ignore.txt") {
+                  return false;
+                }
+                data.funcProp = true;
+                return data;
+              },
+            )
+            .finalize();
         });
-        archive.pipe(testStream);
-        archive
-          .directory("tests/fixtures/directory", null, { date: testDate })
-          .directory("tests/fixtures/directory", "Win\\DS\\", {
-            date: testDate,
-          })
-          .directory("tests/fixtures/directory", "directory", function (data) {
-            if (data.name === "ignore.txt") {
-              return false;
-            }
-            data.funcProp = true;
-            return data;
-          })
-          .finalize();
       });
 
       it("should append multiple entries", () => {
-        expect(Array.isArray(actual)).toBe(true);
-        expect(entries).toHaveProperty(["tests/fixtures/directory/level0.txt"]);
-        expect(entries).toHaveProperty("tests/fixtures/directory/subdir/");
-        expect(entries).toHaveProperty([
-          "tests/fixtures/directory/subdir/level1.txt",
-        ]);
-        expect(entries).toHaveProperty(
-          "tests/fixtures/directory/subdir/subsub/",
+        assert.ok(Array.isArray(actual));
+        assert.ok("tests/fixtures/directory/level0.txt" in entries);
+        assert.ok("tests/fixtures/directory/subdir/" in entries);
+        assert.ok("tests/fixtures/directory/subdir/level1.txt" in entries);
+        assert.ok("tests/fixtures/directory/subdir/subsub/" in entries);
+        assert.ok(
+          "tests/fixtures/directory/subdir/subsub/level2.txt" in entries,
         );
-        expect(entries).toHaveProperty([
-          "tests/fixtures/directory/subdir/subsub/level2.txt",
-        ]);
-        expect(entries["tests/fixtures/directory/level0.txt"]).toHaveProperty(
-          "date",
+        assert.strictEqual(
+          entries["tests/fixtures/directory/level0.txt"].date,
           "2013-01-03T14:26:38.000Z",
         );
-        expect(entries["tests/fixtures/directory/subdir/"]).toHaveProperty(
-          "date",
+        assert.strictEqual(
+          entries["tests/fixtures/directory/subdir/"].date,
           "2013-01-03T14:26:38.000Z",
         );
-        expect(entries).toHaveProperty(["directory/level0.txt"]);
-        expect(entries).toHaveProperty("directory/subdir/");
-        expect(entries).toHaveProperty(["directory/subdir/level1.txt"]);
-        expect(entries).toHaveProperty("directory/subdir/subsub/");
-        expect(entries).toHaveProperty(["directory/subdir/subsub/level2.txt"]);
+        assert.ok("directory/level0.txt" in entries);
+        assert.ok("directory/subdir/" in entries);
+        assert.ok("directory/subdir/level1.txt" in entries);
+        assert.ok("directory/subdir/subsub/" in entries);
+        assert.ok("directory/subdir/subsub/level2.txt" in entries);
       });
 
       it("should support setting data properties via function", () => {
-        expect(entries).toHaveProperty(["directory/level0.txt"]);
-        expect(entries["directory/level0.txt"]).toHaveProperty(
-          "funcProp",
-          true,
-        );
+        assert.ok("directory/level0.txt" in entries);
+        assert.strictEqual(entries["directory/level0.txt"].funcProp, true);
       });
 
       it("should support ignoring matches via function", () => {
-        expect(entries).not.toHaveProperty(["directory/ignore.txt"]);
+        assert.ok(!("directory/ignore.txt" in entries));
       });
 
       it("should find dot files", () => {
-        expect(entries).toHaveProperty(["directory/.dotfile"]);
+        assert.ok("directory/.dotfile" in entries);
       });
 
       it("should retain symlinks", () => {
-        expect(entries).toHaveProperty([
-          "tests/fixtures/directory/subdir/level0link.txt",
-        ]);
-        expect(entries).toHaveProperty(["directory/subdir/level0link.txt"]);
+        assert.ok("tests/fixtures/directory/subdir/level0link.txt" in entries);
+        assert.ok("directory/subdir/level0link.txt" in entries);
       });
 
       it("should retain directory symlink", () => {
-        expect(entries).toHaveProperty(
-          "tests/fixtures/directory/subdir/subsublink",
-        );
-        expect(entries).toHaveProperty("directory/subdir/subsublink");
+        assert.ok("tests/fixtures/directory/subdir/subsublink" in entries);
+        assert.ok("directory/subdir/subsublink" in entries);
       });
 
       it("should handle windows path separators in prefix", () => {
-        expect(entries).toHaveProperty(["Win/DS/level0.txt"]);
+        assert.ok("Win/DS/level0.txt" in entries);
       });
     });
 
@@ -292,62 +289,61 @@ describe("archiver", () => {
       let archive;
       const entries = {};
 
-      beforeAll((done) => {
+      before(async () => {
         archive = new JsonArchive();
-        const testStream = createWriteStream("tmp/file.json");
-        testStream.on("close", () => {
-          actual = readJSON("tmp/file.json");
-          actual.forEach((entry) => {
-            entries[entry.name] = entry;
+        await new Promise<void>((resolve) => {
+          const testStream = createWriteStream("tmp/file.json");
+          testStream.on("close", () => {
+            actual = readJSON("tmp/file.json");
+            actual.forEach((entry) => {
+              entries[entry.name] = entry;
+            });
+            resolve();
           });
-          done();
+          archive.pipe(testStream);
+          archive
+            .file("tests/fixtures/test.txt", {
+              name: "test.txt",
+              date: testDate,
+            })
+            .file("tests/fixtures/test.txt")
+            .file("tests/fixtures/executable.sh", { mode: win32 ? 511 : null }) // 0777
+            .finalize();
         });
-        archive.pipe(testStream);
-        archive
-          .file("tests/fixtures/test.txt", { name: "test.txt", date: testDate })
-          .file("tests/fixtures/test.txt")
-          .file("tests/fixtures/executable.sh", { mode: win32 ? 511 : null }) // 0777
-          .finalize();
       });
 
       it("should append multiple entries", () => {
-        expect(Array.isArray(actual)).toBe(true);
-        expect(actual).toHaveLength(3);
+        assert.ok(Array.isArray(actual));
+        assert.strictEqual(actual.length, 3);
       });
 
       it("should append filepath", () => {
-        expect(entries).toHaveProperty(["test.txt"]);
-        expect(entries["test.txt"]).toHaveProperty("name", "test.txt");
-        expect(entries["test.txt"]).toHaveProperty(
-          "date",
+        assert.ok("test.txt" in entries);
+        assert.strictEqual(entries["test.txt"].name, "test.txt");
+        assert.strictEqual(
+          entries["test.txt"].date,
           "2013-01-03T14:26:38.000Z",
         );
-        expect(entries["test.txt"]).toHaveProperty("crc32", 585446183);
-        expect(entries["test.txt"]).toHaveProperty("size", 19);
+        assert.strictEqual(entries["test.txt"].crc32, 585446183);
+        assert.strictEqual(entries["test.txt"].size, 19);
       });
 
       it("should fallback to filepath when no name is set", () => {
-        expect(entries).toHaveProperty(["tests/fixtures/test.txt"]);
+        assert.ok("tests/fixtures/test.txt" in entries);
       });
 
       it("should fallback to file stats when applicable", () => {
-        expect(entries).toHaveProperty(["tests/fixtures/executable.sh"]);
-        expect(entries["tests/fixtures/executable.sh"]).toHaveProperty(
-          "name",
+        assert.ok("tests/fixtures/executable.sh" in entries);
+        assert.strictEqual(
+          entries["tests/fixtures/executable.sh"].name,
           "tests/fixtures/executable.sh",
         );
-        expect(entries["tests/fixtures/executable.sh"]).toHaveProperty(
-          "mode",
-          511,
-        );
-        expect(entries["tests/fixtures/executable.sh"]).toHaveProperty(
-          "crc32",
+        assert.strictEqual(entries["tests/fixtures/executable.sh"].mode, 511);
+        assert.strictEqual(
+          entries["tests/fixtures/executable.sh"].crc32,
           3957348457,
         );
-        expect(entries["tests/fixtures/executable.sh"]).toHaveProperty(
-          "size",
-          11,
-        );
+        assert.strictEqual(entries["tests/fixtures/executable.sh"].size, 11);
       });
     });
 
@@ -356,42 +352,44 @@ describe("archiver", () => {
       let archive;
       const entries = {};
 
-      beforeAll((done) => {
+      before(async () => {
         archive = new JsonArchive();
-        const testStream = createWriteStream("tmp/glob.json");
-        testStream.on("close", () => {
-          actual = readJSON("tmp/glob.json");
-          actual.forEach((entry) => {
-            entries[entry.name] = entry;
+        await new Promise<void>((resolve) => {
+          const testStream = createWriteStream("tmp/glob.json");
+          testStream.on("close", () => {
+            actual = readJSON("tmp/glob.json");
+            actual.forEach((entry) => {
+              entries[entry.name] = entry;
+            });
+            resolve();
           });
-          done();
+          archive.pipe(testStream);
+          archive
+            .glob("tests/fixtures/test.txt", null)
+            .glob("tests/fixtures/empty.txt", null)
+            .glob("tests/fixtures/executable.sh", null)
+            .glob("tests/fixtures/directory/**/*", {
+              ignore: "tests/fixtures/directory/subdir/**/*",
+              nodir: true,
+            })
+            .glob("**/*", { cwd: "tests/fixtures/directory/subdir/" })
+            .finalize();
         });
-        archive.pipe(testStream);
-        archive
-          .glob("tests/fixtures/test.txt", null)
-          .glob("tests/fixtures/empty.txt", null)
-          .glob("tests/fixtures/executable.sh", null)
-          .glob("tests/fixtures/directory/**/*", {
-            ignore: "tests/fixtures/directory/subdir/**/*",
-            nodir: true,
-          })
-          .glob("**/*", { cwd: "tests/fixtures/directory/subdir/" })
-          .finalize();
       });
 
       it("should append multiple entries", () => {
-        expect(Array.isArray(actual)).toBe(true);
-        expect(entries).toHaveProperty(["tests/fixtures/test.txt"]);
-        expect(entries).toHaveProperty(["tests/fixtures/executable.sh"]);
-        expect(entries).toHaveProperty(["tests/fixtures/empty.txt"]);
-        expect(entries).toHaveProperty(["tests/fixtures/directory/level0.txt"]);
-        expect(entries).toHaveProperty(["level1.txt"]);
-        expect(entries).toHaveProperty(["subsub/level2.txt"]);
+        assert.ok(Array.isArray(actual));
+        assert.ok("tests/fixtures/test.txt" in entries);
+        assert.ok("tests/fixtures/executable.sh" in entries);
+        assert.ok("tests/fixtures/empty.txt" in entries);
+        assert.ok("tests/fixtures/directory/level0.txt" in entries);
+        assert.ok("level1.txt" in entries);
+        assert.ok("subsub/level2.txt" in entries);
       });
     });
 
     describe("#promise", () => {
-      it("should use a promise", (done) => {
+      it("should use a promise", async () => {
         const archive = new JsonArchive();
         const testStream = createWriteStream("tmp/promise.json");
         archive.pipe(testStream);
@@ -401,41 +399,42 @@ describe("archiver", () => {
             name: "stream.txt",
             date: testDate,
           })
-          .append(null, { name: "directory/", date: testDate })
-          .finalize()
-          .then(() => {
-            done();
-          });
+          .append(null, { name: "directory/", date: testDate });
+        await archive.finalize();
       });
     });
 
     describe("#errors", () => {
-      it("should allow continue on stat failing", (done) => {
+      it("should allow continue on stat failing", async () => {
         const archive = new JsonArchive();
-        const testStream = createWriteStream("tmp/errors-stat.json");
-        testStream.on("close", () => {
-          done();
+        await new Promise<void>((resolve) => {
+          const testStream = createWriteStream("tmp/errors-stat.json");
+          testStream.on("close", () => {
+            resolve();
+          });
+          archive.pipe(testStream);
+          archive
+            .file("tests/fixtures/test.txt")
+            .file("tests/fixtures/test-missing.txt")
+            .file("tests/fixtures/empty.txt")
+            .finalize();
         });
-        archive.pipe(testStream);
-        archive
-          .file("tests/fixtures/test.txt")
-          .file("tests/fixtures/test-missing.txt")
-          .file("tests/fixtures/empty.txt")
-          .finalize();
       });
 
-      it("should allow continue on with several stat failings", (done) => {
+      it("should allow continue on with several stat failings", async () => {
         const archive = new JsonArchive();
-        const testStream = createWriteStream("tmp/errors-stat.json");
-        testStream.on("close", () => {
-          done();
+        await new Promise<void>((resolve) => {
+          const testStream = createWriteStream("tmp/errors-stat.json");
+          testStream.on("close", () => {
+            resolve();
+          });
+          archive.pipe(testStream);
+          archive.file("tests/fixtures/test.txt");
+          for (let i = 1; i <= 20; i++) {
+            archive.file("tests/fixtures/test-missing.txt");
+          }
+          archive.finalize();
         });
-        archive.pipe(testStream);
-        archive.file("tests/fixtures/test.txt");
-        for (let i = 1; i <= 20; i++) {
-          archive.file("tests/fixtures/test-missing.txt");
-        }
-        archive.finalize();
       });
     });
   });
@@ -445,38 +444,39 @@ describe("archiver", () => {
     let archive: JsonArchive;
     const entries = {};
 
-    beforeAll((done) => {
+    before(async () => {
       archive = new JsonArchive();
-      const testStream = createWriteStream("tmp/symlink.json");
-      testStream.on("close", () => {
-        actual = readJSON("tmp/symlink.json");
-        actual.forEach((entry) => {
-          entries[entry.name] = entry;
+      await new Promise<void>((resolve) => {
+        const testStream = createWriteStream("tmp/symlink.json");
+        testStream.on("close", () => {
+          actual = readJSON("tmp/symlink.json");
+          actual.forEach((entry) => {
+            entries[entry.name] = entry;
+          });
+          resolve();
         });
-        done();
+        archive.pipe(testStream);
+        archive
+          .append("file-a", { name: "file-a" })
+          .symlink("directory-a/symlink-to-file-a", "../file-a")
+          .symlink(
+            "directory-b/directory-c/symlink-to-directory-a",
+            "../../directory-a",
+            493,
+          )
+          .finalize();
       });
-      archive.pipe(testStream);
-      archive
-        .append("file-a", { name: "file-a" })
-        .symlink("directory-a/symlink-to-file-a", "../file-a")
-        .symlink(
-          "directory-b/directory-c/symlink-to-directory-a",
-          "../../directory-a",
-          493,
-        )
-        .finalize();
     });
 
     it("should append multiple entries", () => {
-      expect(Array.isArray(actual)).toBe(true);
-      expect(entries).toHaveProperty("file-a");
-      expect(entries).toHaveProperty("directory-a/symlink-to-file-a");
-      expect(entries).toHaveProperty(
-        "directory-b/directory-c/symlink-to-directory-a",
+      assert.ok(Array.isArray(actual));
+      assert.ok("file-a" in entries);
+      assert.ok("directory-a/symlink-to-file-a" in entries);
+      assert.ok("directory-b/directory-c/symlink-to-directory-a" in entries);
+      assert.strictEqual(
+        entries["directory-b/directory-c/symlink-to-directory-a"].mode,
+        493,
       );
-      expect(
-        entries["directory-b/directory-c/symlink-to-directory-a"],
-      ).toHaveProperty("mode", 493);
     });
   });
 });

@@ -1,4 +1,5 @@
-import { it, beforeEach, describe, expect } from "bun:test";
+import assert from "node:assert/strict";
+import { describe, it, beforeEach } from "node:test";
 
 import glob from "@archiver/readdir-glob";
 
@@ -9,21 +10,25 @@ describe("follow", () => {
     process.chdir(`${__dirname}/fixtures`);
   });
 
-  it.skipIf(win32)("follow symlinks", (done) => {
-    const pattern = "a/symlink/**";
-    const long = "a/symlink/a/b/c/c/d";
+  const _it = win32 ? it.skip : it;
 
-    glob(".", { pattern }, (er, res) => {
-      expect(er).toBeFalsy();
-      const noFollow = res.sort();
-      expect(noFollow).not.toContain(long);
+  _it("follow symlinks", async () => {
+    await new Promise<void>((resolve) => {
+      const pattern = "a/symlink/**";
+      const long = "a/symlink/a/b/c/c/d";
 
-      glob(".", { follow: true, pattern }, (er, res) => {
-        expect(er).toBeFalsy();
-        const follow = res.sort();
+      glob(".", { pattern }, (er, res) => {
+        assert.ok(!er);
+        const noFollow = res.sort();
+        assert.ok(!noFollow.includes(long));
 
-        expect(follow).toContain(long);
-        done();
+        glob(".", { follow: true, pattern }, (er, res) => {
+          assert.ok(!er);
+          const follow = res.sort();
+
+          assert.ok(follow.includes(long));
+          resolve();
+        });
       });
     });
   });

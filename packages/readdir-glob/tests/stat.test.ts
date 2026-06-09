@@ -1,51 +1,55 @@
-import { describe, it, expect } from "bun:test";
+import assert from "node:assert/strict";
 import { Stats } from "node:fs";
+import { describe, it } from "node:test";
 
 import glob from "@archiver/readdir-glob";
 
 const dir = `${import.meta.dirname}/fixtures`;
 
 describe("stat", () => {
-  it("stat all the things", (done) => {
-    const g = glob(dir, { stat: true, pattern: "a/*abc*/**" });
-    const matches: string[] = [];
-    g.on("match", (m) => {
-      matches.push(m.relative);
-      expect(m.stat).toBeInstanceOf(Stats);
-      expect(m.stat).toHaveProperty("isFile");
-      expect(m.stat).toHaveProperty("isDirectory");
-      expect(m.stat).toHaveProperty("isSymbolicLink");
-      expect(m.stat).toHaveProperty("isBlockDevice");
-      expect(m.stat).toHaveProperty("isCharacterDevice");
-      expect(m.stat).toHaveProperty("isFIFO");
-      expect(m.stat).toHaveProperty("isSocket");
-      expect(m.stat).toHaveProperty("dev");
-      expect(m.stat).toHaveProperty("ino");
-      expect(m.stat).toHaveProperty("mode");
-      expect(m.stat).toHaveProperty("nlink");
-      expect(m.stat).toHaveProperty("uid");
-      expect(m.stat).toHaveProperty("gid");
-      expect(m.stat).toHaveProperty("rdev");
-      expect(m.stat).toHaveProperty("size");
-      expect(m.stat).toHaveProperty("blksize");
-      expect(m.stat).toHaveProperty("blocks");
-      expect(m.stat).toHaveProperty("atimeMs");
-      expect(m.stat).toHaveProperty("mtimeMs");
-      expect(m.stat).toHaveProperty("ctimeMs");
-      expect(m.stat).toHaveProperty("birthtimeMs");
-    });
-    g.on("end", () => {
-      expect(matches.toSorted()).toEqual(
-        [
-          "a/abcdef",
-          "a/abcdef/g",
-          "a/abcdef/g/h",
-          "a/abcfed",
-          "a/abcfed/g",
-          "a/abcfed/g/h",
-        ].toSorted(),
-      );
-      done();
+  it("stat all the things", async () => {
+    await new Promise<void>((resolve) => {
+      const g = glob(dir, { stat: true, pattern: "a/*abc*/**" });
+      const matches: string[] = [];
+      g.on("match", (m) => {
+        matches.push(m.relative);
+        assert.ok(m.stat instanceof Stats);
+        assert.ok("isFile" in m.stat);
+        assert.ok("isDirectory" in m.stat);
+        assert.ok("isSymbolicLink" in m.stat);
+        assert.ok("isBlockDevice" in m.stat);
+        assert.ok("isCharacterDevice" in m.stat);
+        assert.ok("isFIFO" in m.stat);
+        assert.ok("isSocket" in m.stat);
+        assert.ok("dev" in m.stat);
+        assert.ok("ino" in m.stat);
+        assert.ok("mode" in m.stat);
+        assert.ok("nlink" in m.stat);
+        assert.ok("uid" in m.stat);
+        assert.ok("gid" in m.stat);
+        assert.ok("rdev" in m.stat);
+        assert.ok("size" in m.stat);
+        assert.ok("blksize" in m.stat);
+        assert.ok("blocks" in m.stat);
+        assert.ok("atimeMs" in m.stat);
+        assert.ok("mtimeMs" in m.stat);
+        assert.ok("ctimeMs" in m.stat);
+        assert.ok("birthtimeMs" in m.stat);
+      });
+      g.on("end", () => {
+        assert.deepStrictEqual(
+          matches.toSorted(),
+          [
+            "a/abcdef",
+            "a/abcdef/g",
+            "a/abcdef/g/h",
+            "a/abcfed",
+            "a/abcfed/g",
+            "a/abcfed/g/h",
+          ].toSorted(),
+        );
+        resolve();
+      });
     });
   });
 });

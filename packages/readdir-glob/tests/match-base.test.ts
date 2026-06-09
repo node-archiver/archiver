@@ -1,5 +1,6 @@
-import { it, describe, expect } from "bun:test";
+import assert from "node:assert/strict";
 import * as path from "node:path";
+import { describe, it } from "node:test";
 
 import glob from "@archiver/readdir-glob";
 
@@ -17,22 +18,26 @@ if (process.platform === "win32") {
 }
 
 describe("match-base", () => {
-  it("chdir", (done) => {
-    const origCwd = process.cwd();
-    process.chdir(fixtureDir);
-    glob(".", { matchBase: true, pattern }, (er, res) => {
-      expect(er).toBeFalsy();
-      expect(res?.toSorted()).toEqual(expected.toSorted());
-      process.chdir(origCwd);
-      done();
+  it("chdir", async () => {
+    await new Promise<void>((resolve) => {
+      const origCwd = process.cwd();
+      process.chdir(fixtureDir);
+      glob(".", { matchBase: true, pattern }, (er, res) => {
+        assert.ok(!er);
+        assert.deepStrictEqual(res?.toSorted(), expected.toSorted());
+        process.chdir(origCwd);
+        resolve();
+      });
     });
   });
 
-  it("cwd", (done) => {
-    glob(fixtureDir, { matchBase: true, pattern }, (er, res) => {
-      expect(er).toBeFalsy();
-      expect(res?.toSorted()).toEqual(expected.toSorted());
-      done();
+  it("cwd", async () => {
+    await new Promise<void>((resolve) => {
+      glob(fixtureDir, { matchBase: true, pattern }, (er, res) => {
+        assert.ok(!er);
+        assert.deepStrictEqual(res?.toSorted(), expected.toSorted());
+        resolve();
+      });
     });
   });
 });
