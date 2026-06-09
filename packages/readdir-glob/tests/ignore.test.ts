@@ -304,7 +304,7 @@ describe("ignore", () => {
       opt = {};
     }
 
-    const matches = [];
+    const matches: string[] = [];
     opt.ignore = ignore;
 
     it(name, async () => {
@@ -319,11 +319,9 @@ describe("ignore", () => {
               (f) => f.indexOf("symlink") === -1,
             );
           }
-          res.sort();
-          matches.sort();
 
-          assert.deepStrictEqual(res, expectedFiles);
-          assert.deepStrictEqual(matches, expectedFiles);
+          assert.deepStrictEqual(res?.toSorted(), expectedFiles);
+          assert.deepStrictEqual(matches.toSorted(), expectedFiles);
           resolve();
         }).on("match", (p) => matches.push(p.relative));
       });

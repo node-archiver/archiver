@@ -4,7 +4,7 @@ import { describe, it, beforeEach, mock } from "node:test";
 
 import glob from "@archiver/readdir-glob";
 
-describe.skip("error-callack", () => {
+describe.skip("error-callback", () => {
   let logCalled = undefined;
   beforeEach(() => {
     logCalled = [];
