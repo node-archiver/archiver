@@ -9,29 +9,32 @@ const pattern = "a/!(symlink)/**";
 
 describe("pause-resume", () => {
   beforeEach(() => {
-    process.chdir(__dirname + "/fixtures");
+    process.chdir(`${__dirname}/fixtures`);
   });
 
-  function alphasort(a, b) {
+  function alphasort(a: string, b: string) {
     a = a.toLowerCase();
     b = b.toLowerCase();
     return a > b ? 1 : a < b ? -1 : 0;
   }
 
-  function cleanResults(m) {
+  function cleanResults(m: string[]) {
     // normalize discrepancies in ordering, duplication,
     // and ending slashes.
     return m.sort(alphasort);
   }
 
   it("use a ReaddirGlob object, and pause/resume it", async () => {
-    await new Promise<void>((resolve) => {
+    await new Promise<void>((resolve, reject) => {
       let globResults: string[] = [];
 
-      let cb;
-      const cbSet = new Promise((resolve) => (cb = resolve));
+      let cb: (value: string[]) => void;
+      const cbSet = new Promise<string[]>((resolve) => (cb = resolve));
 
-      const g = readdirGlob(".", { pattern }, (_, matches) => cb(matches));
+      const g = readdirGlob(".", { pattern }, (err, matches) => {
+        if (err) return reject(err);
+        cb(matches);
+      });
       const expected = bashResults[pattern];
 
       g.on("match", (m) => {
@@ -43,13 +46,15 @@ describe("pause-resume", () => {
       });
 
       g.on("end", () => {
-        cbSet.then((matches) => {
-          globResults = cleanResults(globResults);
-          matches = cleanResults(matches);
-          assert.deepStrictEqual(matches, globResults);
-          assert.deepStrictEqual(matches, expected);
-          resolve();
-        });
+        cbSet
+          .then((matches) => {
+            globResults = cleanResults(globResults);
+            matches = cleanResults(matches);
+            assert.deepStrictEqual(matches, globResults);
+            assert.deepStrictEqual(matches, expected);
+            resolve();
+          })
+          .catch(reject);
       });
     });
   });
