@@ -3,7 +3,7 @@ import { describe, it, beforeEach } from "node:test";
 
 import { GeneralPurposeBit } from "../../src/archivers/general-purpose-bit";
 import * as UnixStat from "../../src/archivers/unix-stat";
-import { ZipArchiveEntry } from "../../src/compress-commons";
+import { ZipArchiveEntry } from "../../src/archivers/zip-archive-entry";
 
 let entry: ZipArchiveEntry;
 // Jan 03 2013 14:26:38 GMT

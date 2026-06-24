@@ -1,10 +1,10 @@
 import type { Stream } from "node:stream";
 
+import { ZipArchiveEntry } from "./archivers/zip-archive-entry";
 import {
   ZipArchiveOutputStream,
-  ZipArchiveEntry,
   type ZipOptions,
-} from "./compress-commons";
+} from "./archivers/zip-archive-output-stream";
 import { dateify, sanitizePath } from "./utils";
 
 interface ZlibOptions {
