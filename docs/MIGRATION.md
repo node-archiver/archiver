@@ -130,13 +130,13 @@ const archive = new TarArchive({
 
 These APIs existed on the old `archiver` factory function and are no longer needed with the class-based approach:
 
-| Old API                                   | Status     | Why                                                    |
-| ----------------------------------------- | ---------- | ------------------------------------------------------ |
-| `archiver.registerFormat(format, module)` | Removed    | Not needed — use `ZipArchive` or `TarArchive` directly |
-| `archiver.isRegisteredFormat(format)`     | Removed    | Not needed — formats are classes, not a registry       |
-| `archive.setFormat(format)`               | Removed    | Format is determined by which class you instantiate    |
-| `archive.setModule(module)`               | Removed    | Module is set internally by the class constructor      |
-| `JsonArchive`                             | Deprecated | Will be removed in a future version                    |
+| Old API                                   | Status  | Why                                                                                                                  |
+| ----------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------- |
+| `archiver.registerFormat(format, module)` | Removed | Not needed — use `ZipArchive` or `TarArchive` directly                                                               |
+| `archiver.isRegisteredFormat(format)`     | Removed | Not needed — formats are classes, not a registry                                                                     |
+| `archive.setFormat(format)`               | Removed | Format is determined by which class you instantiate                                                                  |
+| `archive.setModule(module)`               | Removed | Module is set internally by the class constructor                                                                    |
+| `JsonArchive`                             | Removed | There is no reason to use it. If you still need it, you can manually implement it by extending main `Archiver` class |
 
 If you were using `registerFormat` to add custom archive formats, you can extend the `Archiver` base class directly instead.
 
@@ -144,11 +144,11 @@ If you were using `registerFormat` to add custom archive formats, you can extend
 
 If you depend on any of the underlying packages directly, here is how they map:
 
-| Old package                  | New package                                         |
-| ---------------------------- | --------------------------------------------------- |
-| `archiver`                   | `@archiver/archiver`                                |
-| `zip-stream`                 | `@archiver/zip-stream`                              |
-| `compress-commons`           | `@archiver/compress-commons`                        |
-| `tar-stream` (by @mafintosh) | `@archiver/tar-stream`                              |
-| `is-stream`                  | Use `isStream` from `@archiver/archiver/utils`      |
-| `normalize-path`             | Use `normalizePath` from `@archiver/archiver/utils` |
+| Old package                  | New package                                                     |
+| ---------------------------- | --------------------------------------------------------------- |
+| `archiver`                   | `@archiver/archiver`                                            |
+| `zip-stream`                 | `@archiver/zip-stream`                                          |
+| `tar-stream` (by @mafintosh) | `@archiver/tar-stream`                                          |
+| `is-stream`                  | Use `isStream` from `@archiver/archiver/utils`                  |
+| `normalize-path`             | Use `normalizePath` from `@archiver/archiver/utils`             |
+| `compress-commons`           | Not needed anymore. If you have a usecase, please open an issue |

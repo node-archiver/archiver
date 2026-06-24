@@ -1,5 +1,4 @@
 import { Archiver, type ArchiverOptions, type ProgressData } from "./lib/core";
-import { Json } from "./lib/plugins/json";
 import { Tar, type TarOptions } from "./lib/plugins/tar";
 import { Zip, type ZipOptions } from "./lib/plugins/zip";
 
@@ -27,20 +26,4 @@ class TarArchive extends Archiver {
   }
 }
 
-interface JsonArchiveOptions extends ArchiverOptions {}
-
-/**
- * @deprecated
- * There is no reason to use this. This will be removed
- */
-class JsonArchive extends Archiver {
-  constructor(options?: Partial<JsonArchiveOptions>) {
-    super(options);
-    this._module = new Json(options);
-    this._supportsDirectory = true;
-    this._supportsSymlink = true;
-    this._modulePipe();
-  }
-}
-
-export { ZipArchive, TarArchive, JsonArchive, Archiver, type ProgressData };
+export { ZipArchive, TarArchive, Archiver, type ProgressData };
