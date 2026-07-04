@@ -1,4 +1,5 @@
-import { describe, expect, it } from "bun:test";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 
 import { dateify, sanitizePath } from "../src/utils";
 
@@ -8,35 +9,44 @@ const testDate = new Date(testDateString);
 describe("utils", () => {
   describe("dateify(dateish)", () => {
     it("should return an instance of Date", () => {
-      expect(dateify(testDate)).toBeInstanceOf(Date);
-      expect(dateify(testDateString)).toBeInstanceOf(Date);
-      expect(dateify(null)).toBeInstanceOf(Date);
+      assert.ok(dateify(testDate) instanceof Date);
+      assert.ok(dateify(testDateString) instanceof Date);
+      assert.ok(dateify(null) instanceof Date);
     });
 
     it("should passthrough an instance of Date", () => {
-      expect(dateify(testDate)).toEqual(testDate);
+      assert.deepStrictEqual(dateify(testDate), testDate);
     });
 
     it("should convert dateish string to an instance of Date", () => {
-      expect(dateify(testDateString)).toEqual(testDate);
+      assert.deepStrictEqual(dateify(testDateString), testDate);
     });
   });
 
   describe("sanitizePath(filepath)", () => {
     it("should sanitize filepath", () => {
-      expect(sanitizePath("\\this/path//file.txt")).toBe("this/path/file.txt");
-      expect(sanitizePath("/this/path/file.txt")).toBe("this/path/file.txt");
-      expect(sanitizePath("./this\\path\\file.txt")).toBe(
+      assert.strictEqual(
+        sanitizePath("\\this/path//file.txt"),
+        "this/path/file.txt",
+      );
+      assert.strictEqual(
+        sanitizePath("/this/path/file.txt"),
+        "this/path/file.txt",
+      );
+      assert.strictEqual(
+        sanitizePath("./this\\path\\file.txt"),
         "./this/path/file.txt",
       );
-      expect(sanitizePath("../this\\path\\file.txt")).toBe(
+      assert.strictEqual(
+        sanitizePath("../this\\path\\file.txt"),
         "this/path/file.txt",
       );
 
-      expect(sanitizePath("c:\\this\\path\\file.txt")).toBe(
+      assert.strictEqual(
+        sanitizePath("c:\\this\\path\\file.txt"),
         "this/path/file.txt",
       );
-      expect(sanitizePath("\\\\server\\share\\")).toBe("server/share/");
+      assert.strictEqual(sanitizePath("\\\\server\\share\\"), "server/share/");
     });
   });
 });

@@ -1,9 +1,9 @@
-import { spyOn, it, beforeEach, describe } from "bun:test";
 import * as fs from "node:fs";
+import { describe, it, beforeEach, mock } from "node:test";
 
 import glob from "@archiver/readdir-glob";
 
-describe.todo("abort", () => {
+describe.skip("abort", () => {
   beforeEach(() => {
     process.chdir(__dirname);
   });
@@ -15,21 +15,21 @@ describe.todo("abort", () => {
       glob(".", { pattern: "a/" }),
     ];
 
-    globs.forEach((glob) =>
-      spyOn(glob, "emit").mockImplementation(() => {
+    globs.forEach((g) =>
+      mock.method(g, "emit", () => {
         throw new Error("Invalid call");
       }),
     );
-    spyOn(fs, "readdir").mockImplementation(() => {
+    mock.method(fs, "readdir", () => {
       throw new Error("Invalid call");
     });
-    spyOn(fs, "stat").mockImplementation(() => {
+    mock.method(fs, "stat", () => {
       throw new Error("Invalid call");
     });
-    spyOn(fs, "lstat").mockImplementation(() => {
+    mock.method(fs, "lstat", () => {
       throw new Error("Invalid call");
     });
 
-    globs.forEach((glob) => glob.abort());
+    globs.forEach((g) => g.abort());
   });
 });

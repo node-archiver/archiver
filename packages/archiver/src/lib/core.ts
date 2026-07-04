@@ -15,7 +15,7 @@ import { ArchiverError } from "./error";
 import { Readable } from "./lazystream";
 
 function trailingSlashIt(str: string): string {
-  return str.slice(-1) !== "/" ? str + "/" : str;
+  return str.slice(-1) !== "/" ? `${str}/` : str;
 }
 
 function normalizeInputSource(source: Buffer | Stream | string | null) {
@@ -75,7 +75,7 @@ function normalizeEntryData(data: EntryData, stats?: fs.Stats): EntryData {
       typeof normalizedData.prefix === "string" &&
       "" !== normalizedData.prefix
     ) {
-      normalizedData.name = normalizedData.prefix + "/" + normalizedData.name;
+      normalizedData.name = `${normalizedData.prefix}/${normalizedData.name}`;
       normalizedData.prefix = null;
     }
     normalizedData.name = sanitizePath(normalizedData.name);

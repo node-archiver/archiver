@@ -8,13 +8,13 @@ A modern, TypeScript-first rewrite of the popular [`archiver`](https://npmx.dev/
 
 ## Comparison with `archiver`
 
-|                  | `archiver@7`      | `archiver@8`      | `@archiver/archiver` |
-| ---------------- | ----------------- | ----------------- | -------------------- |
-| **Package Size** | 43.1 kB           | 39.6 kB           | 38.8 kB              |
-| **Install Size** | 9.9 MB            | 6.4 MB            | 241.1 kB             |
-| **Dependencies** | 66 total          | 36 total          | 3 direct, 4 total    |
-| **Types**        | `@types/archiver` | `@types/archiver` | Built-in             |
-| **ESM**          | CommonJS only     | ESM only          | ESM only             |
+|                  | `archiver@7`      | `archiver@8`      | `@archiver/archiver@0.1.0` |
+| ---------------- | ----------------- | ----------------- | -------------------------- |
+| **Package Size** | 43.1 kB           | 39.6 kB           | 37.5 kB                    |
+| **Install Size** | 9.9 MB            | 6.4 MB            | 239.1 kB                   |
+| **Dependencies** | 66 total          | 36 total          | 3 direct, 4 total          |
+| **Types**        | `@types/archiver` | `@types/archiver` | Built-in                   |
+| **ESM**          | CommonJS only     | ESM only          | ESM only                   |
 
 ## Migration
 

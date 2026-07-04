@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it } from "bun:test";
+import assert from "node:assert/strict";
+import { describe, it, beforeEach } from "node:test";
 
 import glob, { type Options } from "@archiver/readdir-glob";
 
@@ -74,11 +75,13 @@ describe("skip", () => {
     if (process.platform === "win32") {
       expected = expected.filter((path) => path.indexOf("symlink") === -1);
     }
-    it(cwd + " " + JSON.stringify(options), (done) => {
-      glob(cwd, options, (er, res) => {
-        expect(er).toBeFalsy();
-        expect(res?.toSorted()).toEqual(expected);
-        done();
+    it(cwd + " " + JSON.stringify(options), async () => {
+      await new Promise<void>((resolve) => {
+        glob(cwd, options, (er, res) => {
+          assert.ok(!er);
+          assert.deepStrictEqual(res?.toSorted(), expected);
+          resolve();
+        });
       });
     });
   });

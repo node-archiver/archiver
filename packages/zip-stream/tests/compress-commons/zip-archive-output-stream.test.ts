@@ -1,17 +1,16 @@
-import { expect, it, beforeAll, describe } from "bun:test";
+import assert from "node:assert/strict";
 import { createReadStream, mkdirSync } from "node:fs";
 import { Transform } from "node:stream";
 import { Readable } from "node:stream";
+import { describe, it, before } from "node:test";
 
-import {
-  ZipArchiveEntry,
-  ZipArchiveOutputStream,
-} from "../../src/compress-commons";
+import { ZipArchiveEntry } from "../../src/archivers/zip-archive-entry";
+import { ZipArchiveOutputStream } from "../../src/archivers/zip-archive-output-stream";
 import { WriteHashStream, binaryBuffer } from "./helpers/index";
 
 const testBuffer = binaryBuffer(1024 * 16);
 
-beforeAll(() => {
+before(() => {
   mkdirSync("tmp", { recursive: true });
 });
 
@@ -75,8 +74,8 @@ describe("ZipArchiveOutputStream", () => {
 
       const promise = new Promise((resolve) => {
         testStream.on("close", () => {
-          expect(callbackError?.message).toBe("something went wrong");
-          expect(callbackCalls).toBe(1);
+          assert.strictEqual(callbackError?.message, "something went wrong");
+          assert.strictEqual(callbackCalls, 1);
           resolve(undefined);
         });
       });
@@ -92,7 +91,7 @@ describe("ZipArchiveOutputStream", () => {
       archive.finish();
 
       // Give it a tick to make sure entry is being processed
-      await Bun.sleep(1);
+      await new Promise((r) => setTimeout(r, 1));
 
       file.emit("error", new Error("something went wrong"));
 

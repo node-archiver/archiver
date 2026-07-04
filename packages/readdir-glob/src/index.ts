@@ -302,7 +302,11 @@ export class ReaddirGlob extends EventEmitter<{
 
   private iterator: ReturnType<typeof explore>;
 
-  constructor(cwd?: string, options?: Options | Callback, cb?: Callback) {
+  constructor(
+    cwd?: string | false,
+    options?: Options | Callback,
+    cb?: Callback,
+  ) {
     super();
     if (typeof options === "function") {
       cb = options;
@@ -441,7 +445,7 @@ export class ReaddirGlob extends EventEmitter<{
 }
 
 export const readdirGlob = (
-  cwd?: string,
+  cwd?: string | false,
   options?: Options | Callback,
   cb?: Callback,
 ): ReaddirGlob => new ReaddirGlob(cwd, options, cb);

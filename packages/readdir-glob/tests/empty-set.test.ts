@@ -1,4 +1,5 @@
-import { it, describe, expect } from "bun:test";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 
 import glob from "@archiver/readdir-glob";
 
@@ -12,11 +13,13 @@ const patterns = [
 
 describe("empty-set", () => {
   patterns.forEach((p) => {
-    it("Empty-set: " + JSON.stringify(p), (done) => {
-      glob(".", { pattern: p }, (e, f) => {
-        expect(e).toBeNull();
-        expect(f).toEqual([]);
-        done();
+    it("Empty-set: " + JSON.stringify(p), async () => {
+      await new Promise<void>((resolve) => {
+        glob(".", { pattern: p }, (e, f) => {
+          assert.strictEqual(e, null);
+          assert.deepStrictEqual(f, []);
+          resolve();
+        });
       });
     });
   });

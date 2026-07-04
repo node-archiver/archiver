@@ -1,5 +1,6 @@
-import { test, expect } from "bun:test";
+import assert from "node:assert/strict";
 import * as fs from "node:fs";
+import { test } from "node:test";
 
 import concat from "es-concat-stream";
 
@@ -11,7 +12,7 @@ test("one-file", () => {
   let noEntries = false;
 
   extract.on("entry", function (header, stream, cb) {
-    expect(header).toEqual({
+    assert.deepStrictEqual(header, {
       name: "test.txt",
       mode: 0o644,
       uid: 501,
@@ -30,14 +31,14 @@ test("one-file", () => {
     stream.pipe(
       concat(function (data) {
         noEntries = true;
-        expect(data.toString()).toBe("hello world\n");
+        assert.strictEqual(data.toString(), "hello world\n");
         cb();
       }),
     );
   });
 
   extract.on("finish", function () {
-    expect(noEntries).toBeTrue();
+    assert.ok(noEntries);
   });
 
   extract.end(fs.readFileSync(fixtures.ONE_FILE_TAR));
@@ -48,7 +49,7 @@ test("chunked-one-file", function () {
   let noEntries = false;
 
   extract.on("entry", function (header, stream, cb) {
-    expect(header).toEqual({
+    assert.deepStrictEqual(header, {
       name: "test.txt",
       mode: 0o644,
       uid: 501,
@@ -67,14 +68,14 @@ test("chunked-one-file", function () {
     stream.pipe(
       concat(function (data) {
         noEntries = true;
-        expect(data.toString()).toBe("hello world\n");
+        assert.strictEqual(data.toString(), "hello world\n");
         cb();
       }),
     );
   });
 
   extract.on("finish", function () {
-    expect(noEntries).toBeTrue();
+    assert.ok(noEntries);
   });
 
   const b = fs.readFileSync(fixtures.ONE_FILE_TAR);
@@ -92,13 +93,13 @@ test("multi-file", function () {
   extract.once("entry", onfile1);
 
   extract.on("finish", function () {
-    expect(noEntries).toBeTrue();
+    assert.ok(noEntries);
   });
 
   extract.end(fs.readFileSync(fixtures.MULTI_FILE_TAR));
 
   function onfile1(header: unknown, stream, cb) {
-    expect(header).toEqual({
+    assert.deepStrictEqual(header, {
       name: "file-1.txt",
       mode: 0o644,
       uid: 501,
@@ -117,14 +118,14 @@ test("multi-file", function () {
     extract.on("entry", onfile2);
     stream.pipe(
       concat(function (data) {
-        expect(data.toString()).toBe("i am file-1\n");
+        assert.strictEqual(data.toString(), "i am file-1\n");
         cb();
       }),
     );
   }
 
   function onfile2(header: unknown, stream, cb) {
-    expect(header).toEqual({
+    assert.deepStrictEqual(header, {
       name: "file-2.txt",
       mode: 0o644,
       uid: 501,
@@ -143,7 +144,7 @@ test("multi-file", function () {
     stream.pipe(
       concat(function (data) {
         noEntries = true;
-        expect(data.toString()).toBe("i am file-2\n");
+        assert.strictEqual(data.toString(), "i am file-2\n");
         cb();
       }),
     );
@@ -157,7 +158,7 @@ test("chunked-multi-file", function () {
   extract.once("entry", onfile1);
 
   extract.on("finish", function () {
-    expect(noEntries).toBeTrue();
+    assert.ok(noEntries);
   });
 
   const b = fs.readFileSync(fixtures.MULTI_FILE_TAR);
@@ -167,7 +168,7 @@ test("chunked-multi-file", function () {
   extract.end();
 
   function onfile1(header: unknown, stream, cb) {
-    expect(header).toEqual({
+    assert.deepStrictEqual(header, {
       name: "file-1.txt",
       mode: 0o644,
       uid: 501,
@@ -186,14 +187,14 @@ test("chunked-multi-file", function () {
     extract.on("entry", onfile2);
     stream.pipe(
       concat(function (data) {
-        expect(data.toString()).toBe("i am file-1\n");
+        assert.strictEqual(data.toString(), "i am file-1\n");
         cb();
       }),
     );
   }
 
   function onfile2(header: unknown, stream, cb) {
-    expect(header).toEqual({
+    assert.deepStrictEqual(header, {
       name: "file-2.txt",
       mode: 0o644,
       uid: 501,
@@ -212,7 +213,7 @@ test("chunked-multi-file", function () {
     stream.pipe(
       concat(function (data) {
         noEntries = true;
-        expect(data.toString()).toBe("i am file-2\n");
+        assert.strictEqual(data.toString(), "i am file-2\n");
         cb();
       }),
     );
@@ -224,7 +225,7 @@ test("pax", function () {
   let noEntries = false;
 
   extract.on("entry", function (header, stream, cb) {
-    expect(header).toEqual({
+    assert.deepStrictEqual(header, {
       name: "pax.txt",
       mode: 0o644,
       uid: 501,
@@ -243,14 +244,14 @@ test("pax", function () {
     stream.pipe(
       concat(function (data) {
         noEntries = true;
-        expect(data.toString()).toBe("hello world\n");
+        assert.strictEqual(data.toString(), "hello world\n");
         cb();
       }),
     );
   });
 
   extract.on("finish", function () {
-    expect(noEntries).toBeTrue();
+    assert.ok(noEntries);
   });
 
   extract.end(fs.readFileSync(fixtures.PAX_TAR));
@@ -263,13 +264,13 @@ test("types", function () {
   extract.once("entry", ondir);
 
   extract.on("finish", function () {
-    expect(noEntries).toBeTrue();
+    assert.ok(noEntries);
   });
 
   extract.end(fs.readFileSync(fixtures.TYPES_TAR));
 
   function ondir(header: unknown, stream, cb) {
-    expect(header).toEqual({
+    assert.deepStrictEqual(header, {
       name: "directory",
       mode: 0o755,
       uid: 501,
@@ -285,17 +286,17 @@ test("types", function () {
       pax: null,
     });
     stream.on("data", function () {
-      expect.unreachable();
+      assert.fail();
     });
     stream.on("end", function () {
-      expect().pass("ended");
+      assert.ok(true);
     });
     extract.once("entry", onlink);
     cb();
   }
 
   function onlink(header: unknown, stream, cb) {
-    expect(header).toEqual({
+    assert.deepStrictEqual(header, {
       name: "directory-link",
       mode: 0o755,
       uid: 501,
@@ -311,10 +312,10 @@ test("types", function () {
       pax: null,
     });
     stream.on("data", function () {
-      expect.unreachable();
+      assert.fail();
     });
     stream.on("end", function () {
-      expect().pass("ended");
+      assert.ok(true);
     });
     noEntries = true;
     cb();
@@ -326,7 +327,7 @@ test("long-name", function () {
   let noEntries = false;
 
   extract.on("entry", function (header, stream, cb) {
-    expect(header).toEqual({
+    assert.deepStrictEqual(header, {
       name: "my/file/is/longer/than/100/characters/and/should/use/the/prefix/header/foobarbaz/foobarbaz/foobarbaz/foobarbaz/foobarbaz/foobarbaz/filename.txt",
       mode: 0o644,
       uid: 501,
@@ -345,14 +346,14 @@ test("long-name", function () {
     stream.pipe(
       concat(function (data) {
         noEntries = true;
-        expect(data.toString()).toBe("hello long name\n");
+        assert.strictEqual(data.toString(), "hello long name\n");
         cb();
       }),
     );
   });
 
   extract.on("finish", function () {
-    expect(noEntries).toBeTrue();
+    assert.ok(noEntries);
   });
 
   extract.end(fs.readFileSync(fixtures.LONG_NAME_TAR));
@@ -365,7 +366,7 @@ test("unicode-bsd", function () {
   let noEntries = false;
 
   extract.on("entry", function (header, stream, cb) {
-    expect(header).toEqual({
+    assert.deepStrictEqual(header, {
       name: "høllø.txt",
       mode: 0o644,
       uid: 501,
@@ -391,14 +392,14 @@ test("unicode-bsd", function () {
     stream.pipe(
       concat(function (data) {
         noEntries = true;
-        expect(data.toString()).toBe("hej\n");
+        assert.strictEqual(data.toString(), "hej\n");
         cb();
       }),
     );
   });
 
   extract.on("finish", function () {
-    expect(noEntries).toBeTrue();
+    assert.ok(noEntries);
   });
 
   extract.end(fs.readFileSync(fixtures.UNICODE_BSD_TAR));
@@ -411,7 +412,7 @@ test("unicode", function () {
   let noEntries = false;
 
   extract.on("entry", function (header, stream, cb) {
-    expect(header).toEqual({
+    assert.deepStrictEqual(header, {
       name: "høstål.txt",
       mode: 0o644,
       uid: 501,
@@ -430,14 +431,14 @@ test("unicode", function () {
     stream.pipe(
       concat(function (data) {
         noEntries = true;
-        expect(data.toString()).toBe("høllø\n");
+        assert.strictEqual(data.toString(), "høllø\n");
         cb();
       }),
     );
   });
 
   extract.on("finish", function () {
-    expect(noEntries).toBeTrue();
+    assert.ok(noEntries);
   });
 
   extract.end(fs.readFileSync(fixtures.UNICODE_TAR));
@@ -447,18 +448,18 @@ test("name-is-100", function () {
   const extract = tar.extract();
 
   extract.on("entry", function (header, stream, cb) {
-    expect(header.name.length).toBe(100);
+    assert.strictEqual(header.name.length, 100);
 
     stream.pipe(
       concat(function (data) {
-        expect(data.toString()).toBe("hello\n");
+        assert.strictEqual(data.toString(), "hello\n");
         cb();
       }),
     );
   });
 
   extract.on("finish", function () {
-    expect().pass();
+    assert.ok(true);
   });
 
   extract.end(fs.readFileSync(fixtures.NAME_IS_100_TAR));
@@ -468,7 +469,7 @@ test("invalid-file", function () {
   const extract = tar.extract();
 
   extract.on("error", function (err) {
-    expect(!!err).toBeTrue();
+    assert.ok(err);
     extract.destroy();
   });
 
@@ -479,12 +480,12 @@ test("space prefixed", function () {
   const extract = tar.extract();
 
   extract.on("entry", function (header, stream, cb) {
-    expect().pass();
+    assert.ok(true);
     cb();
   });
 
   extract.on("finish", function () {
-    expect().pass();
+    assert.ok(true);
   });
 
   extract.end(fs.readFileSync(fixtures.SPACE_TAR_GZ));
@@ -494,12 +495,12 @@ test("gnu long path", function () {
   const extract = tar.extract();
 
   extract.on("entry", function (header, stream, cb) {
-    expect(header.name.length).toBeGreaterThan(100);
+    assert.ok(header.name.length > 100);
     cb();
   });
 
   extract.on("finish", function () {
-    expect().pass();
+    assert.ok(true);
   });
 
   extract.end(fs.readFileSync(fixtures.GNU_LONG_PATH));
@@ -509,8 +510,8 @@ test("base 256 uid and gid", function () {
   const extract = tar.extract();
 
   extract.on("entry", function (header, stream, cb) {
-    expect(header.uid).toBe(116435139);
-    expect(header.gid).toBe(1876110778);
+    assert.strictEqual(header.uid, 116435139);
+    assert.strictEqual(header.gid, 1876110778);
     cb();
   });
 
@@ -521,7 +522,7 @@ test("base 256 size", function () {
   const extract = tar.extract();
 
   extract.on("entry", function (header, stream, cb) {
-    expect(header).toEqual({
+    assert.deepStrictEqual(header, {
       name: "test.txt",
       mode: 0o644,
       uid: 501,
@@ -540,7 +541,7 @@ test("base 256 size", function () {
   });
 
   extract.on("finish", function () {
-    expect().pass();
+    assert.ok(true);
   });
 
   extract.end(fs.readFileSync(fixtures.BASE_256_SIZE));
@@ -554,7 +555,7 @@ test("latin-1", function () {
   let noEntries = false;
 
   extract.on("entry", function (header, stream, cb) {
-    expect(header).toEqual({
+    assert.deepStrictEqual(header, {
       name: "En français, s'il vous plaît?.txt",
       mode: 0o644,
       uid: 0,
@@ -573,14 +574,14 @@ test("latin-1", function () {
     stream.pipe(
       concat(function (data) {
         noEntries = true;
-        expect(data.toString()).toBe("Hello, world!\n");
+        assert.strictEqual(data.toString(), "Hello, world!\n");
         cb();
       }),
     );
   });
 
   extract.on("finish", function () {
-    expect(noEntries).toBeTrue();
+    assert.ok(noEntries);
   });
 
   extract.end(fs.readFileSync(fixtures.LATIN1_TAR));
@@ -594,11 +595,11 @@ test("incomplete", function () {
   });
 
   extract.on("error", function (err) {
-    expect(err.message).toBe("Unexpected end of data");
+    assert.strictEqual(err.message, "Unexpected end of data");
   });
 
   extract.on("finish", function () {
-    expect.unreachable("should not finish");
+    assert.fail("should not finish");
   });
 
   extract.end(fs.readFileSync(fixtures.INCOMPLETE_TAR));
@@ -611,7 +612,7 @@ test("gnu", function () {
   let noEntries = false;
 
   extract.on("entry", function (header, stream, cb) {
-    expect(header).toEqual({
+    assert.deepStrictEqual(header, {
       name: "test.txt",
       mode: 0o644,
       uid: 12345,
@@ -630,14 +631,14 @@ test("gnu", function () {
     stream.pipe(
       concat(function (data) {
         noEntries = true;
-        expect(data.toString()).toBe("Hello, world!\n");
+        assert.strictEqual(data.toString(), "Hello, world!\n");
         cb();
       }),
     );
   });
 
   extract.on("finish", function () {
-    expect(noEntries).toBeTrue();
+    assert.ok(noEntries);
   });
 
   extract.end(fs.readFileSync(fixtures.GNU_TAR));
@@ -653,7 +654,7 @@ test("gnu-incremental", function () {
   let noEntries = false;
 
   extract.on("entry", function (header, stream, cb) {
-    expect(header).toEqual({
+    assert.deepStrictEqual(header, {
       name: "test.txt",
       mode: 0o644,
       uid: 12345,
@@ -672,14 +673,14 @@ test("gnu-incremental", function () {
     stream.pipe(
       concat(function (data) {
         noEntries = true;
-        expect(data.toString()).toBe("Hello, world!\n");
+        assert.strictEqual(data.toString(), "Hello, world!\n");
         cb();
       }),
     );
   });
 
   extract.on("finish", function () {
-    expect(noEntries).toBeTrue();
+    assert.ok(noEntries);
   });
 
   extract.end(fs.readFileSync(fixtures.GNU_INCREMENTAL_TAR));
@@ -691,7 +692,7 @@ test("v7 unsupported", function () {
   const extract = tar.extract();
 
   extract.on("error", function (err) {
-    expect(!!err).toBeTrue();
+    assert.ok(err);
     extract.destroy();
   });
 
@@ -702,7 +703,7 @@ test("unknown format doesn't extract by default", function () {
   const extract = tar.extract();
 
   extract.on("error", function (err) {
-    expect(!!err).toBeTrue();
+    assert.ok(err);
     extract.destroy();
   });
 
@@ -716,13 +717,13 @@ test("unknown format attempts to extract if allowed", function () {
   extract.once("entry", onfile1);
 
   extract.on("finish", function () {
-    expect(noEntries).toBeTrue();
+    assert.ok(noEntries);
   });
 
   extract.end(fs.readFileSync(fixtures.UNKNOWN_FORMAT));
 
   function onfile1(header: unknown, stream, cb) {
-    expect(header).toEqual({
+    assert.deepStrictEqual(header, {
       name: "file-1.txt",
       mode: 0o644,
       uid: 501,
@@ -741,14 +742,14 @@ test("unknown format attempts to extract if allowed", function () {
     extract.on("entry", onfile2);
     stream.pipe(
       concat(function (data) {
-        expect(data.toString()).toBe("i am file-1\n");
+        assert.strictEqual(data.toString(), "i am file-1\n");
         cb();
       }),
     );
   }
 
   function onfile2(header: unknown, stream, cb) {
-    expect(header).toEqual({
+    assert.deepStrictEqual(header, {
       name: "file-2.txt",
       mode: 0o644,
       uid: 501,
@@ -767,7 +768,7 @@ test("unknown format attempts to extract if allowed", function () {
     stream.pipe(
       concat(function (data) {
         noEntries = true;
-        expect(data.toString()).toBe("i am file-2\n");
+        assert.strictEqual(data.toString(), "i am file-2\n");
         cb();
       }),
     );
@@ -783,7 +784,7 @@ test("extract streams are async iterators", async function () {
   const expected = ["file-1.txt", "file-2.txt"];
 
   for await (const entry of extract) {
-    expect<string | undefined>(entry.header.name).toBe(expected.shift());
+    assert.strictEqual(entry.header.name, expected.shift());
     entry.resume();
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
@@ -804,13 +805,13 @@ test("async iterator - early break calls destroy", async function () {
   // Iterate but break after the first entry
   // This triggers the iterator's .return() -> internal destroy()
   for await (const entry of extract) {
-    expect(entry.header.name).toBe("file-1.txt");
+    assert.strictEqual(entry.header.name, "file-1.txt");
     entry.resume();
     break;
   }
 
-  expect(extract.destroyed).toBeTrue();
-  expect(closed).toBeTrue();
+  assert.ok(extract.destroyed);
+  assert.ok(closed);
 });
 
 test("async iterator - explicit throw calls destroy", async function () {
@@ -826,10 +827,10 @@ test("async iterator - explicit throw calls destroy", async function () {
       throw error; // This triggers the iterator's .throw() or .return()
     }
   } catch (err) {
-    expect(err).toBe(error);
+    assert.strictEqual(err, error);
   }
 
-  expect(extract.destroyed).toBeTrue();
+  assert.ok(extract.destroyed);
 });
 
 function clamp(index: number, len: number) {
