@@ -17,7 +17,7 @@
     "test": "bun run --sequential --filter='./packages/**' test"
   },
   "devDependencies": {
-    "@gameroman/config": "0.2.2",
+    "@gameroman/config": "0.2.4",
     "@types/bun": "1.3.14",
     "@types/node": "25.9.4",
     "oxfmt": "0.58.0",

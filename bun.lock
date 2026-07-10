@@ -4,7 +4,7 @@
   "workspaces": {
     "": {
       "devDependencies": {
-        "@gameroman/config": "0.2.2",
+        "@gameroman/config": "0.2.4",
         "@types/bun": "1.3.14",
         "@types/node": "25.9.4",
         "oxfmt": "0.58.0",
@@ -86,7 +86,7 @@
 
     "@emnapi/wasi-threads": ["@emnapi/wasi-threads@1.2.2", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-c95qOXkHdydNKhscBTebqEC1CVAZpyqOfVfBzQ1qgzyl3gfeldUjIggDbIZgDKsHLgnsM+igH7TJ/eAasaVuMA=="],
 
-    "@gameroman/config": ["@gameroman/config@0.2.2", "", { "peerDependencies": { "@biomejs/biome": "^2.5.1", "oxfmt": ">=0.56.0", "oxlint": "^1.71.0", "oxlint-tsgolint": ">=0.23.0", "typescript": "^6.0.3" }, "optionalPeers": ["@biomejs/biome", "oxfmt", "oxlint", "oxlint-tsgolint", "typescript"] }, "sha512-ePdH2qqfx4FxhNylQxARNVZWjFzXYBwxQvwiRHJgMrecWFau1eMITmlnRcO4HtC1ATNO+mZstcAnnSx/URr5SA=="],
+    "@gameroman/config": ["@gameroman/config@0.2.4", "", { "peerDependencies": { "@biomejs/biome": "^2.5.1", "oxfmt": ">=0.58.0", "oxlint": "^1.73.0", "oxlint-tsgolint": ">=0.24.0", "typescript": "^6.0.3" }, "optionalPeers": ["@biomejs/biome", "oxfmt", "oxlint", "oxlint-tsgolint", "typescript"] }, "sha512-rN2i3Ydei7dD7azlcW/VnCNyDCBinmeieoXjPold5XrnPjTZDUIk2AmWoLB3RQsaYm3sISKxochMrTpntfe0Ag=="],
 
     "@isaacs/fs-minipass": ["@isaacs/fs-minipass@4.0.1", "", { "dependencies": { "minipass": "^7.0.4" } }, "sha512-wgm9Ehl2jpeqP3zw/7mo3kRHFp5MEDhqAdwy1fTGkHAwnkGOVsgpvQhL8B5n1qlb01jV3n/bI0ZfZp5lWA1k4w=="],
 
