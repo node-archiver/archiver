@@ -24,7 +24,7 @@
     "prepublishOnly": "bun run build"
   },
   "devDependencies": {
-    "tsdown": "catalog:"
+    "tsdown": "0.22.7"
   },
   "engines": {
     "node": ">=24"

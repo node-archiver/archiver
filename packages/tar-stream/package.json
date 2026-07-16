@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "es-concat-stream": "0.1.0",
-    "tsdown": "catalog:"
+    "tsdown": "0.22.7"
   },
   "engines": {
     "node": ">=24"

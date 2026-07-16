@@ -3,10 +3,7 @@
   "workspaces": {
     "packages": [
       "packages/*"
-    ],
-    "catalog": {
-      "tsdown": "0.22.3"
-    }
+    ]
   },
   "type": "module",
   "scripts": {
