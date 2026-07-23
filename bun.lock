@@ -23,7 +23,7 @@
       "devDependencies": {
         "@types/yauzl": "3.3.0",
         "stream-bench": "0.1.2",
-        "tar": "7.5.16",
+        "tar": "7.5.21",
         "tsdown": "0.22.7",
         "yauzl": "3.3.2",
       },
@@ -299,7 +299,7 @@
 
     "stream-bench": ["stream-bench@0.1.2", "", { "dependencies": { "readable-stream": "0.2.0" } }, "sha512-TAEBNwsTSO5/25ZOuH6LglxgFDjoyjXsW6vPSr9xN2kdIJrPGjR2Kfarx+ScTKV8OD9ar4v/m6QxOOw+PMxjbA=="],
 
-    "tar": ["tar@7.5.16", "", { "dependencies": { "@isaacs/fs-minipass": "^4.0.0", "chownr": "^3.0.0", "minipass": "^7.1.2", "minizlib": "^3.1.0", "yallist": "^5.0.0" } }, "sha512-56adEpPMouktRlBLXiaYFFzZ/3+JXa8P9n7WbR+ibIjtviN55mEaOkiysCnPnWm+7kkui1Dn8J9l+g6zV8731w=="],
+    "tar": ["tar@7.5.21", "", { "dependencies": { "@isaacs/fs-minipass": "^4.0.0", "chownr": "^3.0.0", "minipass": "^7.1.2", "minizlib": "^3.1.0", "yallist": "^5.0.0" } }, "sha512-XdhtCvlMywwxpCW8YEq3lOXBJpUPTR2OHHcwLPO3HwsJqOHa2Ok/oJ7ruGzp+JrKoRPVCzJwAdEjqLW/vNRPHA=="],
 
     "tinyexec": ["tinyexec@1.2.4", "", {}, "sha512-SHf/r48b7vOrjve9PxJo3MN5v5yuyjHvdUcrQffT3WXMUfnGmHDVbC4k3sHJaJTgZCwpUplIaAo5ANtMyp3YHg=="],
 
