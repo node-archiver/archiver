@@ -177,7 +177,8 @@ function encode(opts: EncodeOptions): Buffer | null {
   while (Buffer.byteLength(name) > 100) {
     const i = name.indexOf("/");
     if (i === -1) return null;
-    prefix += prefix ? "/" + name.slice(0, i) : name.slice(0, i);
+    const leftPart = name.slice(0, i);
+    prefix += prefix ? `/${leftPart}` : leftPart;
     name = name.slice(i + 1);
   }
 
@@ -230,7 +231,7 @@ function decode(
   buf: Buffer,
   filenameEncoding: BufferEncoding,
   allowUnknownFormat?: boolean,
-): DecodedHeader {
+): DecodedHeader | null {
   let typeflag = buf[156] === 0 ? 0 : buf[156] - ZERO_OFFSET;
 
   let name = decodeStr(buf, 0, 100, filenameEncoding);
@@ -262,7 +263,7 @@ function decode(
     // ustar (posix) format.
     // prepend prefix, if present.
     if (buf[345])
-      name = decodeStr(buf, 345, 155, filenameEncoding) + "/" + name;
+      name = `${decodeStr(buf, 345, 155, filenameEncoding)}/${name}`;
   } else if (isGNU(buf)) {
     // 'gnu'/'oldgnu' format. Similar to ustar, but has support for incremental and
     // multi-volume tarballs.
@@ -391,8 +392,8 @@ function cksum(block: Buffer): number {
 
 function encodeOct(num: number, n: number): string {
   const val = num.toString(8);
-  if (val.length > n) return SEVENS.slice(0, n) + " ";
-  return ZEROS.slice(0, n - val.length) + val + " ";
+  if (val.length > n) return `${SEVENS.slice(0, n)} `;
+  return `${ZEROS.slice(0, n - val.length)}${val} `;
 }
 
 function encodeSizeBin(num: number, buf: Buffer, off: number): void {

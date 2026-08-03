@@ -248,7 +248,7 @@ class Archiver extends Transform {
    * Internal helper for appending files.
    */
   private _append(filepath: string, data?: EntryData): void {
-    data = data || {};
+    data ||= {};
     let task = {
       source: null,
       filepath: filepath,

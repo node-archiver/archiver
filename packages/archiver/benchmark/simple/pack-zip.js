@@ -36,7 +36,7 @@ if (file === false) {
   writeFileSync(file, binaryBuffer(BITS_IN_MBYTE * 20));
 }
 
-console.log("zlib level: " + level);
+console.log(`zlib level: ${level}`);
 
 const bench = streamBench({
   logReport: true,

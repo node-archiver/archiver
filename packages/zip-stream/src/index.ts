@@ -133,7 +133,7 @@ class ZipStream extends ZipArchiveOutputStream {
       normalizedData.type !== "symlink"
     ) {
       callback(
-        new Error(normalizedData.type + " entries not currently supported"),
+        new Error(`${normalizedData.type} entries not currently supported`),
       );
       return;
     }
