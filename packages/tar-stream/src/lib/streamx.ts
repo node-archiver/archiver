@@ -961,7 +961,7 @@ class WritableState {
     const stream = this.stream;
 
     if ((stream._duplexState & WRITE_FINISHING_STATUS) === WRITE_FINISHING) {
-      stream._duplexState = stream._duplexState | WRITE_ACTIVE;
+      stream._duplexState |= WRITE_ACTIVE;
       stream._final(afterFinal.bind(this));
       return;
     }
