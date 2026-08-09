@@ -11,11 +11,11 @@ import {
   SHORT_MASK,
   SHORT_SHIFT,
   ZIP64_MAGIC,
-} from "../constants";
-import { dateToDos, dosToDate, sanitizePath } from "../utils";
-import { ArchiveEntry } from "./archive-entry";
-import { GeneralPurposeBit } from "./general-purpose-bit";
-import * as UnixStat from "./unix-stat";
+} from "../constants.ts";
+import { dateToDos, dosToDate, sanitizePath } from "../utils.ts";
+import { ArchiveEntry } from "./archive-entry.ts";
+import { GeneralPurposeBit } from "./general-purpose-bit.ts";
+import * as UnixStat from "./unix-stat.ts";
 
 class ZipArchiveEntry extends ArchiveEntry {
   declare platform: number;

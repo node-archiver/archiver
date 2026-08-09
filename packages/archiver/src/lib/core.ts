@@ -10,9 +10,9 @@ import {
 import { readdirGlob } from "@archiver/readdir-glob";
 import { dateify, sanitizePath, isStream } from "@archiver/zip-stream/utils";
 
-import { queue } from "./async";
-import { ArchiverError } from "./error";
-import { Readable } from "./lazystream";
+import { queue } from "./async/index.ts";
+import { ArchiverError } from "./error.ts";
+import { Readable } from "./lazystream.ts";
 
 function trailingSlashIt(str: string): string {
   return str.slice(-1) !== "/" ? `${str}/` : str;

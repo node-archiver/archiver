@@ -7,7 +7,7 @@ import { readdirGlob } from "@archiver/readdir-glob";
 describe("noglobstar", () => {
   it("noglobstar:true — a/** must not match 'a' itself (zero extra segments)", async () => {
     await new Promise<void>((resolve) => {
-      const fixtureDir = path.resolve(__dirname, "fixtures");
+      const fixtureDir = path.resolve(import.meta.dirname, "fixtures");
 
       readdirGlob(
         fixtureDir,

@@ -1,6 +1,10 @@
-import { Archiver, type ArchiverOptions, type ProgressData } from "./lib/core";
-import { Tar, type TarOptions } from "./lib/plugins/tar";
-import { Zip, type ZipOptions } from "./lib/plugins/zip";
+import {
+  Archiver,
+  type ArchiverOptions,
+  type ProgressData,
+} from "./lib/core.ts";
+import { Tar, type TarOptions } from "./lib/plugins/tar.ts";
+import { Zip, type ZipOptions } from "./lib/plugins/zip.ts";
 
 interface ZipArchiveOptions extends ArchiverOptions, ZipOptions {}
 

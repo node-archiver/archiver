@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import * as tar from "../src/index";
-import { Readable } from "../src/lib/streamx";
+import * as tar from "@archiver/tar-stream";
+
+import { Readable } from "../src/lib/streamx.ts";
 
 test("write and read huge archive", () => {
   const pack = tar.pack();

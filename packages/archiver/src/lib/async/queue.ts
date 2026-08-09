@@ -1,5 +1,5 @@
-import { wrapAsync } from "./asyncify";
-import { DoublyLinkedList } from "./DoublyLinkedList";
+import { wrapAsync } from "./asyncify.ts";
+import { DoublyLinkedList } from "./DoublyLinkedList.ts";
 
 function onlyOnce(fn) {
   return function (...args) {

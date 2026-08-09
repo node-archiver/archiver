@@ -6,7 +6,7 @@ import glob from "@archiver/readdir-glob";
 
 const win32 = process.platform === "win32";
 
-const fixtureDir = path.resolve(__dirname, "fixtures");
+const fixtureDir = path.resolve(import.meta.dirname, "fixtures");
 const pattern = "a/symlink/{*,**/*/*/*,*/*/**,*/*/*/*/*/*}";
 
 describe("realpath", () => {

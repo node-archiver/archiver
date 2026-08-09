@@ -6,7 +6,7 @@ import glob from "@archiver/readdir-glob";
 
 describe.skip("eperm-stat", () => {
   beforeEach(() => {
-    process.chdir(__dirname);
+    process.chdir(import.meta.dirname);
     const badPaths = /\ba[\\/]?$|\babcdef\b/;
     const lstat = fs.lstat;
     mock.method(fs, "lstat", function (path, cb) {

@@ -1,13 +1,13 @@
 import { constants } from "node:fs";
 
-import * as headers from "./lib/headers";
-import type { HeaderType, TarHeader } from "./lib/headers";
+import * as headers from "./lib/headers.ts";
+import type { HeaderType, TarHeader } from "./lib/headers.ts";
 import {
   Readable,
   Writable,
   getStreamError,
   type ReadableOptions,
-} from "./lib/streamx";
+} from "./lib/streamx.ts";
 
 const DMODE = 0o755;
 const FMODE = 0o644;

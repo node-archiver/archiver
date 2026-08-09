@@ -13,8 +13,8 @@ import { describe, it, before, after } from "node:test";
 import * as tar from "tar";
 import yauzl from "yauzl";
 
-import { TarArchive, ZipArchive } from "../src/index.js";
-import { binaryBuffer } from "./helpers/index.js";
+import { TarArchive, ZipArchive } from "../src/index.ts";
+import { binaryBuffer } from "./helpers/index.ts";
 
 const testBuffer = binaryBuffer(1024 * 16);
 const testDate = new Date("Jan 03 2013 14:26:38 GMT");

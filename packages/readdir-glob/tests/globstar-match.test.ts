@@ -9,8 +9,10 @@ describe("globstar-match", () => {
       const pattern = "a/**/[gh]";
       let cb;
       const cbSet = new Promise<string[]>((resolve) => (cb = resolve));
-      const g = readdirGlob(".", { cwd: __dirname, pattern }, (_, matches) =>
-        cb(matches),
+      const g = readdirGlob(
+        ".",
+        { cwd: import.meta.dirname, pattern },
+        (_, matches) => cb(matches),
       );
       const matches: string[] = [];
       g.on("match", (m) => matches.push(m.relative));

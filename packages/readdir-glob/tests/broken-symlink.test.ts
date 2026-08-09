@@ -12,7 +12,7 @@ function cleanup() {
 
 describe("broken-symlink", () => {
   beforeEach(() => {
-    process.chdir(__dirname);
+    process.chdir(import.meta.dirname);
     fs.mkdirSync(`${process.cwd()}/broken-symlink/a/broken-link`, {
       recursive: true,
     });
@@ -20,7 +20,7 @@ describe("broken-symlink", () => {
   });
 
   afterEach(() => {
-    process.chdir(__dirname);
+    process.chdir(import.meta.dirname);
     cleanup();
   });
 

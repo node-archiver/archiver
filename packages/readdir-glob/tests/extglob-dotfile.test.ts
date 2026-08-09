@@ -13,7 +13,7 @@ import glob from "@archiver/readdir-glob";
 describe("extglob-dotfile", () => {
   it("positive extglob @(.y) should match the explicit dotfile segment with dot:false", async () => {
     await new Promise<void>((resolve) => {
-      process.chdir(`${__dirname}/fixtures`);
+      process.chdir(`${import.meta.dirname}/fixtures`);
 
       glob(".", { pattern: "a/x/@(.y)/b", dot: false }, (er, res) => {
         assert.ok(!er);

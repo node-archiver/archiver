@@ -5,7 +5,7 @@ import { readdirGlob } from "@archiver/readdir-glob";
 
 describe("new-glob-optional-options", () => {
   beforeEach(() => {
-    process.chdir(`${__dirname}/fixtures`);
+    process.chdir(`${import.meta.dirname}/fixtures`);
   });
 
   it("new glob, with cb, and no options", async () => {

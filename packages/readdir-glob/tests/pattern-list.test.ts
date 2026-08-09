@@ -5,7 +5,7 @@ import glob from "@archiver/readdir-glob";
 
 describe("pattern-list", () => {
   beforeEach(() => {
-    process.chdir(__dirname + "/fixtures");
+    process.chdir(import.meta.dirname + "/fixtures");
   });
 
   // [cwd, options, expected]

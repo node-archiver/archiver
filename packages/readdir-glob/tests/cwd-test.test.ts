@@ -6,7 +6,7 @@ import glob from "@archiver/readdir-glob";
 
 describe("cwd-test", () => {
   beforeEach(() => {
-    process.chdir(`${__dirname}/fixtures`);
+    process.chdir(`${import.meta.dirname}/fixtures`);
   });
 
   it('changing cwd and searching for **/d, "."', async () => {

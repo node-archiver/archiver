@@ -309,7 +309,7 @@ describe("ignore", () => {
 
     it(name, async () => {
       await new Promise<void>((resolve) => {
-        process.chdir(`${__dirname}/fixtures`);
+        process.chdir(`${import.meta.dirname}/fixtures`);
 
         glob(opt.cwd || ".", { ...opt, pattern }, (er, res) => {
           assert.ok(!er);
@@ -332,7 +332,7 @@ describe("ignore", () => {
   [true, false].forEach((dot) => {
     ["fixtures/**", null].forEach((ignore) => {
       [false, true].forEach((nonull) => {
-        [false, __dirname, "."].forEach((cwd) => {
+        [false, import.meta.dirname, "."].forEach((cwd) => {
           const opt = {
             dot: dot,
             ignore: ignore,
@@ -344,7 +344,7 @@ describe("ignore", () => {
             await new Promise<void>((resolve) => {
               let cb;
               const cbSet = new Promise((resolve, _) => (cb = resolve));
-              process.chdir(__dirname);
+              process.chdir(import.meta.dirname);
               glob(cwd, { ...opt, pattern }, (_, matches) => cb(matches)).on(
                 "end",
                 () => {

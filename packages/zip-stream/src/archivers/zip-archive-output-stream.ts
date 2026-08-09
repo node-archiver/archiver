@@ -19,11 +19,11 @@ import {
   ZIP64_MAGIC,
   ZIP64_MAGIC_SHORT,
   ZLIB_BEST_SPEED,
-} from "../constants";
-import { getEightBytes, getLongBytes, getShortBytes } from "../utils";
-import { ArchiveOutputStream } from "./archive-output-stream";
-import { CRC32Stream, DeflateCRC32Stream } from "./crc32-stream";
-import type { ZipArchiveEntry } from "./zip-archive-entry";
+} from "../constants.ts";
+import { getEightBytes, getLongBytes, getShortBytes } from "../utils.ts";
+import { ArchiveOutputStream } from "./archive-output-stream.ts";
+import { CRC32Stream, DeflateCRC32Stream } from "./crc32-stream.ts";
+import type { ZipArchiveEntry } from "./zip-archive-entry.ts";
 
 interface ZipOptions extends Partial<TransformOptions> {
   /** Forces the archive to contain local file times instead of UTC. */

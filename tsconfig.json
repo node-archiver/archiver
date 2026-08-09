@@ -1,30 +1,18 @@
 {
+  "extends": "@gameroman/config/ts/isolated",
   "compilerOptions": {
-    "declaration": true,
-    "isolatedDeclarations": true,
+    "allowImportingTsExtensions": true,
 
-    "target": "esnext",
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "moduleDetection": "force",
+    // TODO: remove later
+    "strict": false,
+    "noFallthroughCasesInSwitch": false,
+    "noUncheckedIndexedAccess": false,
+    "noImplicitOverride": false,
+    "noUnusedParameters": false,
+    "noPropertyAccessFromIndexSignature": false,
+    "noImplicitAny": false,
 
-    "skipLibCheck": true,
-
-    // Max strictness
-    // "strict": true,
-    // "noFallthroughCasesInSwitch": true,
-    // "noUncheckedIndexedAccess": true,
-    // "noImplicitOverride": true,
-    "noUnusedLocals": true,
-    // "noUnusedParameters": true,
-    // "noPropertyAccessFromIndexSignature": true,
-    // "noImplicitAny": true,
-    "strictNullChecks": true,
-    "erasableSyntaxOnly": true,
-    "forceConsistentCasingInFileNames": true,
-    "verbatimModuleSyntax": true,
-
-    "types": ["bun"]
+    "types": ["node"]
   },
   "include": ["**/src/*.ts"]
 }

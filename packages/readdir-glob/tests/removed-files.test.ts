@@ -4,7 +4,7 @@ import { describe, it, beforeEach, afterEach } from "node:test";
 
 import glob from "@archiver/readdir-glob";
 
-const dir = __dirname + "/removed-files";
+const dir = import.meta.dirname + "/removed-files";
 
 describe("removed-files", () => {
   beforeEach(() => {

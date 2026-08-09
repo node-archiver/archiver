@@ -4,8 +4,8 @@ import { type Gzip, type ZlibOptions, createGzip } from "node:zlib";
 
 import * as tar from "@archiver/tar-stream";
 
-import type { ArchiverModule, EntryData } from "../core";
-import { collectStream } from "../utils";
+import type { ArchiverModule, EntryData } from "../core.ts";
+import { collectStream } from "../utils.ts";
 
 interface TarEntryData extends EntryData {}
 

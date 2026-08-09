@@ -5,8 +5,8 @@ import Stream, {
 } from "node:stream";
 import { crc32 } from "node:zlib";
 
-import type { ArchiverModule } from "../core";
-import { collectStream } from "../utils";
+import type { ArchiverModule } from "../core.ts";
+import { collectStream } from "../utils.ts";
 
 class Json extends Transform implements ArchiverModule {
   files: unknown[];

@@ -3,9 +3,10 @@ import * as fs from "node:fs";
 import { test } from "node:test";
 import * as zlib from "node:zlib";
 
-import * as tar from "../src/index";
-import { Writable } from "../src/lib/streamx";
-import * as fixtures from "./fixtures";
+import * as tar from "@archiver/tar-stream";
+
+import { Writable } from "../src/lib/streamx.ts";
+import * as fixtures from "./fixtures/index.ts";
 
 const win32 = process.platform === "win32";
 

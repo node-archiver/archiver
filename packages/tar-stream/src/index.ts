@@ -1,5 +1,5 @@
-import { extract, type TarExtract, type TarExtractOptions } from "./extract";
-import { pack, type TarPack, type TarPackOptions } from "./pack";
+import { extract, type TarExtract, type TarExtractOptions } from "./extract.ts";
+import { pack, type TarPack, type TarPackOptions } from "./pack.ts";
 
 export {
   extract,

@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import * as fs from "node:fs";
 import { test } from "node:test";
 
+import * as tar from "@archiver/tar-stream";
 import concat from "es-concat-stream";
 
-import * as tar from "../src/index.js";
-import * as fixtures from "./fixtures";
+import * as fixtures from "./fixtures/index.ts";
 
 test("one-file", () => {
   const extract = tar.extract();

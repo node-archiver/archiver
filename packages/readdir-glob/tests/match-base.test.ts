@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 
 import glob from "@archiver/readdir-glob";
 
-const fixtureDir = path.resolve(__dirname, "fixtures");
+const fixtureDir = path.resolve(import.meta.dirname, "fixtures");
 const pattern = "a*";
 let expected = [
   "a",

@@ -1,4 +1,4 @@
-import { getShortBytes, getShortBytesValue } from "../utils";
+import { getShortBytes, getShortBytesValue } from "../utils.ts";
 
 const ENCRYPTION_FLAG = 1 << 0;
 const SLIDING_DICTIONARY_SIZE_FLAG = 1 << 1;

@@ -2,8 +2,9 @@ import { createReadStream, createWriteStream, mkdirSync } from "node:fs";
 import { Readable } from "node:stream";
 import { describe, it, before } from "node:test";
 
-import { ZipStream as Packer } from "../src/index.js";
-import { binaryBuffer, fileBuffer } from "./helpers/index.js";
+import { ZipStream as Packer } from "@archiver/zip-stream";
+
+import { binaryBuffer, fileBuffer } from "./helpers/index.ts";
 
 const testBuffer = binaryBuffer(1024 * 16);
 const testDate = new Date("Jan 03 2013 14:26:38 GMT");
