@@ -1,11 +1,11 @@
 import type { Stream } from "node:stream";
 
-import { ZipArchiveEntry } from "./archivers/zip-archive-entry";
+import { ZipArchiveEntry } from "./archivers/zip-archive-entry.ts";
 import {
   ZipArchiveOutputStream,
   type ZipOptions,
-} from "./archivers/zip-archive-output-stream";
-import { dateify, sanitizePath } from "./utils";
+} from "./archivers/zip-archive-output-stream.ts";
+import { dateify, sanitizePath } from "./utils.ts";
 
 interface ZlibOptions {
   level?: number;

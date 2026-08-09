@@ -3,7 +3,7 @@ import type * as nodestream from "node:stream";
 
 const STREAM_DESTROYED = new Error("Stream was destroyed");
 
-import { FastFIFO as FIFO } from "./fifo";
+import { FastFIFO as FIFO } from "./fifo.ts";
 
 // #region constants
 // 29 bits used total (4 from shared, 14 from read, and 11 from write)

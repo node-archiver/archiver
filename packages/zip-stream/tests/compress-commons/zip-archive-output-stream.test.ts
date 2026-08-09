@@ -4,9 +4,9 @@ import { Transform } from "node:stream";
 import { Readable } from "node:stream";
 import { describe, it, before } from "node:test";
 
-import { ZipArchiveEntry } from "../../src/archivers/zip-archive-entry";
-import { ZipArchiveOutputStream } from "../../src/archivers/zip-archive-output-stream";
-import { WriteHashStream, binaryBuffer } from "./helpers/index";
+import { ZipArchiveEntry } from "../../src/archivers/zip-archive-entry.ts";
+import { ZipArchiveOutputStream } from "../../src/archivers/zip-archive-output-stream.ts";
+import { WriteHashStream, binaryBuffer } from "./helpers/index.ts";
 
 const testBuffer = binaryBuffer(1024 * 16);
 

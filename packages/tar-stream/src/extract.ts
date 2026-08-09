@@ -1,11 +1,11 @@
-import { FastFIFO as FIFO } from "./lib/fifo";
-import * as headers from "./lib/headers";
+import { FastFIFO as FIFO } from "./lib/fifo.ts";
+import * as headers from "./lib/headers.ts";
 import {
   Writable,
   Readable,
   getStreamError,
   type WritableOptions,
-} from "./lib/streamx";
+} from "./lib/streamx.ts";
 
 const EMPTY = Buffer.alloc(0);
 

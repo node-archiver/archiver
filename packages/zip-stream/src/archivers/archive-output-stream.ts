@@ -1,7 +1,7 @@
 import { type Stream, Transform, PassThrough } from "node:stream";
 
-import { isStream } from "../utils";
-import { ArchiveEntry } from "./archive-entry";
+import { isStream } from "../utils.ts";
+import { ArchiveEntry } from "./archive-entry.ts";
 
 function normalizeInputSource(
   source: null | string | Stream | Buffer,

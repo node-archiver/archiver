@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import * as fs from "node:fs";
 import { test } from "node:test";
 
+import * as tar from "@archiver/tar-stream";
 import concat from "es-concat-stream";
 
-import * as tar from "../src/index";
-import { Writable } from "../src/lib/streamx";
-import * as fixtures from "./fixtures";
+import { Writable } from "../src/lib/streamx.ts";
+import * as fixtures from "./fixtures/index.ts";
 
 test("one-file", function () {
   const pack = tar.pack();

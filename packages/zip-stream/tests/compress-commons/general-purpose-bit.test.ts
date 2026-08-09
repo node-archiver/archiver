@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it, beforeEach } from "node:test";
 
-import { GeneralPurposeBit } from "../../src/archivers/general-purpose-bit";
+import { GeneralPurposeBit } from "../../src/archivers/general-purpose-bit.ts";
 
 let gpb;
 

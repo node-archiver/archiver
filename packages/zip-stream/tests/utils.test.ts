@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { dateify, sanitizePath } from "../src/utils";
+import { dateify, sanitizePath } from "../src/utils.ts";
 
 const testDateString = "Jan 03 2013 14:26:38 GMT";
 const testDate = new Date(testDateString);
