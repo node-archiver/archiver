@@ -18,7 +18,7 @@
   },
   "scripts": {
     "build": "tsdown",
-    "test": "bun test --reporter dot --preload ./tests/hooks.ts --max-concurrency 1",
+    "test:bun": "bun test --reporter dot --preload ./tests/hooks.ts --max-concurrency 1",
     "prepublishOnly": "bun run build"
   },
   "dependencies": {

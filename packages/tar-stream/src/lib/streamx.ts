@@ -253,11 +253,9 @@ function newListener(name) {
     }
   }
 
-  if (this._writableState !== null) {
-    if (name === "drain") {
-      this._duplexState |= WRITE_EMIT_DRAIN;
-      this._writableState.updateNextTick();
-    }
+  if (this._writableState !== null && name === "drain") {
+    this._duplexState |= WRITE_EMIT_DRAIN;
+    this._writableState.updateNextTick();
   }
 }
 

@@ -19,7 +19,8 @@
   },
   "scripts": {
     "build": "tsdown",
-    "test": "bun test --reporter dot",
+    "test": "node --test",
+    "test:bun": "bun test --dots",
     "bench": "bun benchmark/simple/pack-zip.js",
     "prepublishOnly": "bun run build"
   },

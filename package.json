@@ -7,21 +7,21 @@
   },
   "type": "module",
   "scripts": {
-    "u": "bun run --sequential format lint build test",
+    "u": "bun run --sequential format lint build test:bun test",
     "format": "oxfmt",
     "lint": "oxlint",
     "build": "bun run --parallel --filter='./packages/**' build",
-    "test": "bun run --sequential --filter='./packages/**' test"
+    "test": "bun run --sequential --filter='./packages/**' test",
+    "test:bun": "bun run --sequential --filter='./packages/**' test:bun"
   },
   "devDependencies": {
-    "@gameroman/config": "0.2.8",
-    "@types/bun": "1.3.14",
-    "@types/node": "26.1.2",
+    "@gameroman/config": "0.2.9",
+    "@types/node": "26.2.0",
     "oxfmt": "0.62.0",
     "oxlint": "1.77.0",
     "typescript": "7.0.2"
   },
   "overrides": {
-    "@types/node": "26.1.2"
+    "@types/node": "26.2.0"
   }
 }
