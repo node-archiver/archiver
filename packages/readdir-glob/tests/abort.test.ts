@@ -5,7 +5,7 @@ import glob from "@archiver/readdir-glob";
 
 describe.skip("abort", () => {
   beforeEach(() => {
-    process.chdir(__dirname);
+    process.chdir(import.meta.dirname);
   });
 
   it("abort prevents any action", () => {

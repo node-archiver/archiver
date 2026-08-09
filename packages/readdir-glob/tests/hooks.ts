@@ -33,7 +33,7 @@ function alphasort(a: string, b: string) {
 }
 
 before(async () => {
-  const fixtureDir = path.resolve(__dirname, "fixtures");
+  const fixtureDir = path.resolve(import.meta.dirname, "fixtures");
 
   let files = [
     "a/.abcdef/x/y/z/a",
@@ -134,7 +134,7 @@ before(async () => {
     return;
   }
 
-  const fname = path.resolve(__dirname, "bash-results.json");
+  const fname = path.resolve(import.meta.dirname, "bash-results.json");
   const data = JSON.stringify(bashOutput, null, 2) + "\n";
   await fsPromises.writeFile(fname, data);
 });
@@ -142,7 +142,7 @@ before(async () => {
 after(async () => {
   await new Promise((resolve) =>
     fs.rm(
-      path.resolve(__dirname, "fixtures"),
+      path.resolve(import.meta.dirname, "fixtures"),
       { recursive: true, force: true },
       resolve,
     ),

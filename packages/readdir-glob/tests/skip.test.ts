@@ -5,7 +5,7 @@ import glob, { type Options } from "@archiver/readdir-glob";
 
 describe("skip", () => {
   beforeEach(() => {
-    process.chdir(__dirname + "/fixtures");
+    process.chdir(import.meta.dirname + "/fixtures");
   });
 
   // [cwd, options, expected]

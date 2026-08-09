@@ -4,11 +4,11 @@ import { describe, it, beforeEach } from "node:test";
 
 import glob from "@archiver/readdir-glob";
 
-import bashResults from "./bash-results.json";
+import bashResults from "./bash-results.json" with { type: "json" };
 
 describe("absolute", () => {
   beforeEach(() => {
-    process.chdir(`${__dirname}/fixtures`);
+    process.chdir(`${import.meta.dirname}/fixtures`);
   });
 
   [true, false].forEach(function (mark) {

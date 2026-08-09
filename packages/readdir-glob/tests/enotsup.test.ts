@@ -7,7 +7,7 @@ import glob from "@archiver/readdir-glob";
 
 describe.skip("enotsup", () => {
   beforeEach(() => {
-    process.chdir(`${__dirname}/fixtures`);
+    process.chdir(`${import.meta.dirname}/fixtures`);
     const readdir = fs.readdir;
     mock.method(fs, "readdir", function (p, opts, cb) {
       if (
@@ -28,7 +28,7 @@ describe.skip("enotsup", () => {
   });
 
   let sawAsyncENOTSUP = false;
-  const fixtureDir = path.resolve(__dirname, "fixtures");
+  const fixtureDir = path.resolve(import.meta.dirname, "fixtures");
   const allowedDirs = [
     path.resolve(fixtureDir),
     path.resolve(fixtureDir, "a"),

@@ -19,7 +19,7 @@ function cleanResults(m: string[]) {
 
 describe("bash-comparison", () => {
   beforeEach(() => {
-    process.chdir(`${__dirname}/fixtures`);
+    process.chdir(`${import.meta.dirname}/fixtures`);
   });
 
   ["a/{b,c,d,e,f}/**/g"].forEach((pattern) => {

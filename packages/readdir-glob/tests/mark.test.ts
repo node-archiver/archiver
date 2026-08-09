@@ -5,7 +5,7 @@ import glob from "@archiver/readdir-glob";
 
 describe("mark", () => {
   beforeEach(() => {
-    process.chdir(`${__dirname}/fixtures`);
+    process.chdir(`${import.meta.dirname}/fixtures`);
   });
 
   it("mark with cwd", async () => {

@@ -7,7 +7,7 @@ const win32 = process.platform === "win32";
 
 describe("follow", () => {
   beforeEach(() => {
-    process.chdir(`${__dirname}/fixtures`);
+    process.chdir(`${import.meta.dirname}/fixtures`);
   });
 
   const _it = win32 ? it.skip : it;

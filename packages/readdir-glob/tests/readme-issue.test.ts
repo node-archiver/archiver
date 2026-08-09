@@ -4,7 +4,7 @@ import { describe, it, beforeEach, afterEach } from "node:test";
 
 import glob from "@archiver/readdir-glob";
 
-const dir = __dirname + "/package";
+const dir = import.meta.dirname + "/package";
 
 describe("readme-issue", () => {
   beforeEach(() => {

@@ -10,7 +10,7 @@ const expected = ["tests/"];
 
 describe("slash-cwd", () => {
   beforeEach(() => {
-    process.chdir(`${__dirname}/..`);
+    process.chdir(`${import.meta.dirname}/..`);
   });
 
   it("slashes only match directories", async () => {

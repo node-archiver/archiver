@@ -3,13 +3,13 @@ import { describe, it, beforeEach } from "node:test";
 
 import { readdirGlob } from "@archiver/readdir-glob";
 
-import bashResults from "./bash-results.json";
+import bashResults from "./bash-results.json" with { type: "json" };
 
 const pattern = "a/!(symlink)/**";
 
 describe("pause-resume", () => {
   beforeEach(() => {
-    process.chdir(`${__dirname}/fixtures`);
+    process.chdir(`${import.meta.dirname}/fixtures`);
   });
 
   function alphasort(a: string, b: string) {
