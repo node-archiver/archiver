@@ -1,5 +1,5 @@
-import { wrapAsync } from "./asyncify";
-import { queue as _queue } from "./queue";
+import { wrapAsync } from "./asyncify.ts";
+import { queue as _queue } from "./queue.ts";
 
 function queue<T>(
   worker: (task: T, callback: () => void) => void,

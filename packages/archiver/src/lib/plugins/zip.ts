@@ -3,7 +3,7 @@ import type { ZlibOptions } from "node:zlib";
 
 import { ZipStream, type FileEntryData } from "@archiver/zip-stream";
 
-import type { ArchiverModule } from "../core";
+import type { ArchiverModule } from "../core.ts";
 
 interface ZipEntryData extends FileEntryData {}
 

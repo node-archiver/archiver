@@ -1,6 +1,8 @@
 {
   "extends": "@gameroman/config/ts/isolated",
   "compilerOptions": {
+    "allowImportingTsExtensions": true,
+
     // TODO: remove later
     "strict": false,
     "noFallthroughCasesInSwitch": false,

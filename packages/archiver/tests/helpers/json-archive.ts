@@ -1,6 +1,6 @@
-import { Archiver } from "../../src/index.js";
-import type { ArchiverOptions } from "../../src/lib/core.js";
-import { Json } from "../../src/lib/plugins/json.js";
+import { Archiver } from "../../src/index.ts";
+import type { ArchiverOptions } from "../../src/lib/core.ts";
+import { Json } from "../../src/lib/plugins/json.ts";
 
 interface JsonArchiveOptions extends ArchiverOptions {}
 
