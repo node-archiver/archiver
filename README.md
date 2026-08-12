@@ -2,16 +2,16 @@
 
 [![version](https://npmx.dev/api/registry/badge/version/@archiver/archiver)](https://npmx.dev/package/@archiver/archiver) [![license](https://npmx.dev/api/registry/badge/license/@archiver/archiver)](https://npmx.dev/package/@archiver/archiver)
 
-A lightweight streaming interface for creating ZIP and TAR archives in Node.js.
+A lightweight streaming interface for creating ZIP and TAR archives in Node.js
 
-A modern, TypeScript-first rewrite of the popular [`archiver`](https://npmx.dev/package/archiver) package.
+A modern, TypeScript-first rewrite of the popular [`archiver`](https://npmx.dev/package/archiver) package
 
 ## Comparison with `archiver`
 
 |                  | `archiver@7`      | `archiver@8`      | `@archiver/archiver@0.1.0` |
 | ---------------- | ----------------- | ----------------- | -------------------------- |
-| **Package Size** | 43.1 kB           | 39.6 kB           | 37.5 kB                    |
-| **Install Size** | 9.9 MB            | 6.4 MB            | 240.7 kB                   |
+| **Package Size** | 43.1 kB           | 39.6 kB           | 37.6 kB                    |
+| **Install Size** | 9.9 MB            | 6.4 MB            | 241.1 kB                   |
 | **Dependencies** | 66 total          | 36 total          | 3 direct, 4 total          |
 | **Types**        | `@types/archiver` | `@types/archiver` | Built-in                   |
 | **ESM**          | CommonJS only     | ESM only          | ESM only                   |
@@ -239,7 +239,7 @@ archive.on("warning", (err) => {
 
 ## Contributing
 
-See [CONTRIBUTING.md](./.github/CONTRIBUTING.md) for setup instructions and guidelines.
+See [CONTRIBUTING.md](./.github/CONTRIBUTING.md) for setup instructions and guidelines
 
 ## License
 
@@ -247,4 +247,4 @@ See [CONTRIBUTING.md](./.github/CONTRIBUTING.md) for setup instructions and guid
 
 ## Credits
 
-This project is a modern rewrite of the original [`archiver`](https://github.com/archiverjs/node-archiver) package by [Chris Talkington](https://github.com/ctalkington).
+This project is a modern rewrite of the original [`archiver`](https://github.com/archiverjs/node-archiver) package by [Chris Talkington](https://github.com/ctalkington)
