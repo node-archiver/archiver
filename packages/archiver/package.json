@@ -1,6 +1,6 @@
 {
   "name": "@archiver/archiver",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "a streaming interface for archive generation",
   "license": "MIT",
   "repository": {
