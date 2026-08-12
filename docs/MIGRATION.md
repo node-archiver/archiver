@@ -9,7 +9,7 @@
 
 There are three major changes from `archiver` v7:
 
-1. Requires Node.js version is `^22.12.0 || >=24.0.0`
+1. Required Node.js version is `^22.12.0 || >=24.0.0`
 2. ESM only
 3. Class constructors instead of factory function.
 
