@@ -1,12 +1,17 @@
 # Migration Guide: `archiver` to `@archiver/archiver`
 
+> [!NOTE]
+> If you are using `archiver` v8, the only breaking change is Node.js version requirement
+>
+> If you are using `archiver` v7, this guide is also helpful to migrate to `archiver` v8
+
 ## Quick Migration
 
-There are two breaking changes:
+There are three major changes from `archiver` v7:
 
-1. Node.js >= 24 is required.
-
-2. Class constructors instead of factory function.
+1. Requires Node.js version is `^22.12.0 || >=24.0.0`
+2. ESM only
+3. Class constructors instead of factory function.
 
 For most codebases, migration is a two-line change:
 
@@ -30,8 +35,9 @@ If you dynamically choose the format at runtime, use a simple conditional:
 
 ```ts
 import { ZipArchive, TarArchive } from "@archiver/archiver";
+import type { ArchiverOptions } from "@archiver/archiver";
 
-function createArchive(format: "zip" | "tar", options?: any) {
+function createArchive(format: "zip" | "tar", options?: ArchiverOptions) {
   if (format === "zip") return new ZipArchive(options);
   if (format === "tar") return new TarArchive(options);
   throw new Error(`Unknown format: ${format}`);
@@ -130,13 +136,13 @@ const archive = new TarArchive({
 
 These APIs existed on the old `archiver` factory function and are no longer needed with the class-based approach:
 
-| Old API                                   | Status  | Why                                                                                                                  |
-| ----------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------- |
-| `archiver.registerFormat(format, module)` | Removed | Not needed — use `ZipArchive` or `TarArchive` directly                                                               |
-| `archiver.isRegisteredFormat(format)`     | Removed | Not needed — formats are classes, not a registry                                                                     |
-| `archive.setFormat(format)`               | Removed | Format is determined by which class you instantiate                                                                  |
-| `archive.setModule(module)`               | Removed | Module is set internally by the class constructor                                                                    |
-| `JsonArchive`                             | Removed | There is no reason to use it. If you still need it, you can manually implement it by extending main `Archiver` class |
+| Removed API                               | Why                                                                                                                  |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `archiver.registerFormat(format, module)` | Not needed — use `ZipArchive` or `TarArchive` directly                                                               |
+| `archiver.isRegisteredFormat(format)`     | Not needed — formats are classes, not a registry                                                                     |
+| `archive.setFormat(format)`               | Format is determined by which class you instantiate                                                                  |
+| `archive.setModule(module)`               | Module is set internally by the class constructor                                                                    |
+| `JsonArchive`                             | There is no reason to use it. If you still need it, you can manually implement it by extending main `Archiver` class |
 
 If you were using `registerFormat` to add custom archive formats, you can extend the `Archiver` base class directly instead.
 
@@ -144,11 +150,11 @@ If you were using `registerFormat` to add custom archive formats, you can extend
 
 If you depend on any of the underlying packages directly, here is how they map:
 
-| Old package                  | New package                                                     |
-| ---------------------------- | --------------------------------------------------------------- |
-| `archiver`                   | `@archiver/archiver`                                            |
-| `zip-stream`                 | `@archiver/zip-stream`                                          |
-| `tar-stream` (by @mafintosh) | `@archiver/tar-stream`                                          |
-| `is-stream`                  | Use `isStream` from `@archiver/archiver/utils`                  |
-| `normalize-path`             | Use `normalizePath` from `@archiver/archiver/utils`             |
-| `compress-commons`           | Not needed anymore. If you have a usecase, please open an issue |
+| Old package                  | New package                                                      |
+| ---------------------------- | ---------------------------------------------------------------- |
+| `archiver`                   | `@archiver/archiver`                                             |
+| `zip-stream`                 | `@archiver/zip-stream`                                           |
+| `tar-stream` (by @mafintosh) | `@archiver/tar-stream`                                           |
+| `is-stream`                  | Use `isStream` from `@archiver/archiver/utils`                   |
+| `normalize-path`             | Use `normalizePath` from `@archiver/archiver/utils`              |
+| `compress-commons`           | Not needed anymore. If you have a use case, please open an issue |
