@@ -347,47 +347,6 @@ describe("archiver", () => {
       });
     });
 
-    describe("#glob", () => {
-      let actual;
-      let archive;
-      const entries = {};
-
-      before(async () => {
-        archive = new JsonArchive();
-        await new Promise<void>((resolve) => {
-          const testStream = createWriteStream("tmp/glob.json");
-          testStream.on("close", () => {
-            actual = readJSON("tmp/glob.json");
-            actual.forEach((entry) => {
-              entries[entry.name] = entry;
-            });
-            resolve();
-          });
-          archive.pipe(testStream);
-          archive
-            .glob("tests/fixtures/test.txt", null)
-            .glob("tests/fixtures/empty.txt", null)
-            .glob("tests/fixtures/executable.sh", null)
-            .glob("tests/fixtures/directory/**/*", {
-              ignore: "tests/fixtures/directory/subdir/**/*",
-              nodir: true,
-            })
-            .glob("**/*", { cwd: "tests/fixtures/directory/subdir/" })
-            .finalize();
-        });
-      });
-
-      it("should append multiple entries", () => {
-        assert.ok(Array.isArray(actual));
-        assert.ok("tests/fixtures/test.txt" in entries);
-        assert.ok("tests/fixtures/executable.sh" in entries);
-        assert.ok("tests/fixtures/empty.txt" in entries);
-        assert.ok("tests/fixtures/directory/level0.txt" in entries);
-        assert.ok("level1.txt" in entries);
-        assert.ok("subsub/level2.txt" in entries);
-      });
-    });
-
     describe("#promise", () => {
       it("should use a promise", async () => {
         const archive = new JsonArchive();

@@ -51,10 +51,6 @@ interface EntryData {
   stats?: fs.Stats;
 }
 
-interface GlobOptions {
-  cwd: string;
-}
-
 function normalizeEntryData(data: EntryData, stats?: fs.Stats): EntryData {
   const normalizedData = {
     type: "file",
@@ -696,34 +692,6 @@ class Archiver extends Transform {
       return this;
     }
     this._append(filepath, data);
-    return this;
-  }
-
-  /**
-   * Appends multiple files that match a glob pattern.
-   */
-  glob(pattern: string, options: GlobOptions, data: EntryData): this {
-    this._pending++;
-    options = { stat: true, pattern, ...options };
-    function onGlobEnd() {
-      this._pending--;
-      this._maybeFinalize();
-    }
-    function onGlobError(err) {
-      this.emit("error", err);
-    }
-    function onGlobMatch(match) {
-      globber.pause();
-      const entryData = Object.assign({}, data);
-      entryData.callback = globber.resume.bind(globber);
-      entryData.stats = match.stat;
-      entryData.name = match.relative;
-      this._append(match.absolute, entryData);
-    }
-    const globber = readdirGlob(options.cwd || ".", options);
-    globber.on("error", onGlobError.bind(this));
-    globber.on("match", onGlobMatch.bind(this));
-    globber.on("end", onGlobEnd.bind(this));
     return this;
   }
 
