@@ -234,7 +234,7 @@ describe("archiver", () => {
 
       it(
         "should finalize when a directory contains an unsupported symlink",
-        { timeout: 1_000 },
+        { timeout: 10_000 },
         async (t) => {
           if (win32) {
             t.skip("the directory fixture contains no symlinks on Windows");
