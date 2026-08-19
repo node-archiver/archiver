@@ -598,6 +598,62 @@ class Archiver extends Transform {
   }
 
   /**
+   * Processes a single filesystem entry within a directory traversal.
+   */
+  private async _processDirectoryEntry(
+    entry: fs.Dirent,
+    rootDir: string,
+    dirpath: string,
+    destpath: string,
+    baseData: EntryData,
+    dataFunction: ((entryData: EntryData) => EntryData | false) | null,
+  ): Promise<void> {
+    const absolutePath = path.join(entry.parentPath, entry.name);
+    const relativePath = path
+      .relative(rootDir, absolutePath)
+      .replace(/\\/g, "/");
+
+    const stats = await fs.promises.lstat(absolutePath);
+
+    let ignoreMatch = false;
+    let entryData: EntryData = { ...baseData };
+
+    entryData.name = relativePath;
+    entryData.prefix = destpath;
+    entryData.stats = stats;
+
+    return new Promise<void>((resolve) => {
+      entryData.callback = resolve;
+
+      try {
+        if (dataFunction) {
+          const res = dataFunction(entryData);
+          if (res === false) {
+            ignoreMatch = true;
+          } else if (typeof res !== "object") {
+            throw new ArchiverError("DIRECTORYFUNCTIONINVALIDDATA", {
+              dirpath: dirpath,
+            });
+          } else {
+            entryData = res;
+          }
+        }
+      } catch (e) {
+        this.emit("error", e);
+        resolve();
+        return;
+      }
+
+      if (ignoreMatch) {
+        resolve();
+        return;
+      }
+
+      this._append(absolutePath, entryData);
+    });
+  }
+
+  /**
    * Appends a directory and its files, recursively, given its dirpath.
    */
   directory(
@@ -634,49 +690,14 @@ class Archiver extends Transform {
         for (const entry of entries) {
           if (this._state.aborted) break;
 
-          const absolutePath = path.join(entry.parentPath, entry.name);
-          const relativePath = path
-            .relative(rootDir, absolutePath)
-            .replace(/\\/g, "/");
-
-          const stats = await fs.promises.lstat(absolutePath);
-
-          let ignoreMatch = false;
-          let entryData: EntryData = { ...baseData };
-
-          entryData.name = relativePath;
-          entryData.prefix = destpath;
-          entryData.stats = stats;
-
-          await new Promise<void>((resolve) => {
-            entryData.callback = resolve;
-
-            try {
-              if (dataFunction) {
-                const res = dataFunction(entryData);
-                if (res === false) {
-                  ignoreMatch = true;
-                } else if (typeof res !== "object") {
-                  throw new ArchiverError("DIRECTORYFUNCTIONINVALIDDATA", {
-                    dirpath: dirpath,
-                  });
-                } else {
-                  entryData = res;
-                }
-              }
-            } catch (e) {
-              this.emit("error", e);
-              resolve();
-              return;
-            }
-
-            if (ignoreMatch) {
-              resolve();
-              return;
-            }
-
-            this._append(absolutePath, entryData);
-          });
+          await this._processDirectoryEntry(
+            entry,
+            rootDir,
+            dirpath,
+            destpath,
+            baseData,
+            dataFunction,
+          );
         }
       } catch (err) {
         this.emit("error", err);
