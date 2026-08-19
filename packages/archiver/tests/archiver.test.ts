@@ -232,6 +232,40 @@ describe("archiver", () => {
         });
       });
 
+      it(
+        "should finalize when a directory contains an unsupported symlink",
+        { timeout: 1_000 },
+        async (t) => {
+          if (win32) {
+            t.skip("the directory fixture contains no symlinks on Windows");
+            return;
+          }
+
+          const archive = new JsonArchive();
+          const warnings: Error[] = [];
+
+          archive._supportsSymlink = false;
+          archive.on("warning", (warning: Error) => {
+            warnings.push(warning);
+          });
+
+          archive.pipe(
+            createWriteStream("tmp/directory-unsupported-symlink.json"),
+          );
+          archive.directory("tests/fixtures/directory", false);
+
+          await archive.finalize();
+
+          assert.ok(
+            warnings.some(
+              (warning) =>
+                warning.message ===
+                "support for symlink entries not defined by module",
+            ),
+          );
+        },
+      );
+
       it("should append multiple entries", () => {
         assert.ok(Array.isArray(actual));
         assert.ok("tests/fixtures/directory/level0.txt" in entries);

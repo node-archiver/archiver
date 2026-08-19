@@ -37,7 +37,7 @@ const win32 = process.platform === "win32";
 
 interface EntryData {
   /** Sets the entry name including internal path. */
-  name: string;
+  name?: string;
   /** Sets the entry date. */
   date?: Date;
   /** Sets the entry permissions. */
@@ -603,7 +603,7 @@ class Archiver extends Transform {
    */
   directory(
     dirpath: string,
-    destpath: string,
+    destpath: string | false | null,
     data?: EntryData | ((entryData: EntryData) => EntryData | false),
   ): this {
     if (this._state.finalize || this._state.aborted) {
