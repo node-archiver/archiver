@@ -343,7 +343,7 @@ describe("ignore", () => {
           it("race condition: " + JSON.stringify(opt), async () => {
             await new Promise<void>((resolve) => {
               let cb;
-              const cbSet = new Promise((resolve, _) => (cb = resolve));
+              const cbSet = new Promise((resolve) => (cb = resolve));
               process.chdir(import.meta.dirname);
               glob(cwd, { ...opt, pattern }, (_, matches) => cb(matches)).on(
                 "end",
