@@ -7,7 +7,6 @@ import {
   PassThrough,
 } from "node:stream";
 
-import { readdirGlob } from "@archiver/readdir-glob";
 import { dateify, sanitizePath, isStream } from "@archiver/zip-stream/utils";
 
 import { queue } from "./async/index.ts";
@@ -599,6 +598,47 @@ class Archiver extends Transform {
   }
 
   /**
+   * Processes a single filesystem entry within a directory traversal.
+   */
+  private async _processDirectoryEntry(
+    entry: fs.Dirent,
+    rootDir: string,
+    destpath: string,
+    baseData: EntryData,
+    dataFunction: ((entryData: EntryData) => EntryData | false) | null,
+  ): Promise<void> {
+    const absolutePath = path.join(entry.parentPath, entry.name);
+    const relativePath = path
+      .relative(rootDir, absolutePath)
+      .replace(/\\/g, "/");
+
+    const stats = await fs.promises.lstat(absolutePath);
+
+    let entryData: EntryData = {
+      ...baseData,
+      name: relativePath,
+      prefix: destpath,
+      stats,
+    };
+
+    try {
+      if (dataFunction) {
+        const result = dataFunction(entryData);
+        if (result === false) return;
+        entryData = result;
+      }
+    } catch (err) {
+      this.emit("error", err);
+      return;
+    }
+
+    await new Promise<void>((resolve) => {
+      entryData.callback = resolve;
+      this._append(absolutePath, entryData);
+    });
+  }
+
+  /**
    * Appends a directory and its files, recursively, given its dirpath.
    */
   directory(
@@ -620,60 +660,37 @@ class Archiver extends Transform {
     } else if (typeof destpath !== "string") {
       destpath = dirpath;
     }
-    let dataFunction = null;
-    if (typeof data === "function") {
-      dataFunction = data;
-      data = {};
-    } else if (typeof data !== "object") {
-      data = {};
-    }
-    const globOptions = {
-      stat: true,
-      dot: true,
-    };
-    function onGlobEnd() {
-      this._pending--;
-      this._maybeFinalize();
-    }
-    function onGlobError(err) {
-      this.emit("error", err);
-    }
-    function onGlobMatch(match) {
-      globber.pause();
-      let ignoreMatch = false;
-      let entryData = Object.assign({}, data);
 
-      entryData.name = match.relative;
-      entryData.prefix = destpath;
-      entryData.stats = match.stat;
-      entryData.callback = globber.resume.bind(globber);
+    const dataFunction = typeof data === "function" ? data : null;
+    const baseData = typeof data === "object" ? data : {};
 
+    (async () => {
       try {
-        if (dataFunction) {
-          entryData = dataFunction(entryData);
-          if (entryData === false) {
-            ignoreMatch = true;
-          } else if (typeof entryData !== "object") {
-            throw new ArchiverError("DIRECTORYFUNCTIONINVALIDDATA", {
-              dirpath: dirpath,
-            });
-          }
-        }
-      } catch (e) {
-        this.emit("error", e);
-        return;
-      }
-      if (ignoreMatch) {
-        globber.resume();
-        return;
-      }
-      this._append(match.absolute, entryData);
-    }
+        const rootDir = path.resolve(dirpath);
+        const entries = await fs.promises.readdir(rootDir, {
+          recursive: true,
+          withFileTypes: true,
+        });
 
-    const globber = readdirGlob(dirpath, globOptions);
-    globber.on("error", onGlobError.bind(this));
-    globber.on("match", onGlobMatch.bind(this));
-    globber.on("end", onGlobEnd.bind(this));
+        for (const entry of entries) {
+          if (this._state.aborted) break;
+
+          await this._processDirectoryEntry(
+            entry,
+            rootDir,
+            destpath,
+            baseData,
+            dataFunction,
+          );
+        }
+      } catch (err) {
+        this.emit("error", err);
+      } finally {
+        this._pending--;
+        this._maybeFinalize();
+      }
+    })();
+
     return this;
   }
 
