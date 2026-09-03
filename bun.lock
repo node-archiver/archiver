@@ -15,7 +15,6 @@
       "name": "@archiver/archiver",
       "version": "0.2.0",
       "dependencies": {
-        "@archiver/readdir-glob": "workspace:*",
         "@archiver/tar-stream": "workspace:*",
         "@archiver/zip-stream": "workspace:*",
       },
