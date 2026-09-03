@@ -603,7 +603,6 @@ class Archiver extends Transform {
   private async _processDirectoryEntry(
     entry: fs.Dirent,
     rootDir: string,
-    dirpath: string,
     destpath: string,
     baseData: EntryData,
     dataFunction: ((entryData: EntryData) => EntryData | false) | null,
@@ -615,40 +614,26 @@ class Archiver extends Transform {
 
     const stats = await fs.promises.lstat(absolutePath);
 
-    let ignoreMatch = false;
-    let entryData: EntryData = { ...baseData };
+    let entryData: EntryData = {
+      ...baseData,
+      name: relativePath,
+      prefix: destpath,
+      stats,
+    };
 
-    entryData.name = relativePath;
-    entryData.prefix = destpath;
-    entryData.stats = stats;
+    try {
+      if (dataFunction) {
+        const result = dataFunction(entryData);
+        if (result === false) return;
+        entryData = result;
+      }
+    } catch (err) {
+      this.emit("error", err);
+      return;
+    }
 
-    return new Promise<void>((resolve) => {
+    await new Promise<void>((resolve) => {
       entryData.callback = resolve;
-
-      try {
-        if (dataFunction) {
-          const res = dataFunction(entryData);
-          if (res === false) {
-            ignoreMatch = true;
-          } else if (typeof res !== "object") {
-            throw new ArchiverError("DIRECTORYFUNCTIONINVALIDDATA", {
-              dirpath: dirpath,
-            });
-          } else {
-            entryData = res;
-          }
-        }
-      } catch (e) {
-        this.emit("error", e);
-        resolve();
-        return;
-      }
-
-      if (ignoreMatch) {
-        resolve();
-        return;
-      }
-
       this._append(absolutePath, entryData);
     });
   }
@@ -693,7 +678,6 @@ class Archiver extends Transform {
           await this._processDirectoryEntry(
             entry,
             rootDir,
-            dirpath,
             destpath,
             baseData,
             dataFunction,
