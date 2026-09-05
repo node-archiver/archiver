@@ -24,7 +24,7 @@
   },
   "devDependencies": {
     "es-concat-stream": "0.1.0",
-    "tsdown": "0.22.14"
+    "tsdown": "0.23.0"
   },
   "engines": {
     "node": "^22.12.0 || >=24.0.0"
