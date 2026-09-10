@@ -7,7 +7,7 @@ import {
   PassThrough,
 } from "node:stream";
 
-import { readdirGlob } from "@archiver/readdir-glob";
+import { readdirNoGlob } from "./readdir-no-glob/index.ts";
 import { dateify, sanitizePath, isStream } from "@archiver/zip-stream/utils";
 
 import { queue } from "./async/index.ts";
@@ -670,7 +670,7 @@ class Archiver extends Transform {
       this._append(match.absolute, entryData);
     }
 
-    const globber = readdirGlob(dirpath, globOptions);
+    const globber = readdirNoGlob(dirpath);
     globber.on("error", onGlobError.bind(this));
     globber.on("match", onGlobMatch.bind(this));
     globber.on("end", onGlobEnd.bind(this));
