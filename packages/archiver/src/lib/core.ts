@@ -627,10 +627,6 @@ class Archiver extends Transform {
     } else if (typeof data !== "object") {
       data = {};
     }
-    const globOptions = {
-      stat: true,
-      dot: true,
-    };
     function onGlobEnd() {
       this._pending--;
       this._maybeFinalize();
