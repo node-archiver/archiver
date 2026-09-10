@@ -13,7 +13,7 @@
     },
     "packages/archiver": {
       "name": "@archiver/archiver",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "dependencies": {
         "@archiver/tar-stream": "workspace:*",
         "@archiver/zip-stream": "workspace:*",
