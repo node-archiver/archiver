@@ -267,10 +267,8 @@ function decode(
   } else if (isGNU(buf)) {
     // 'gnu'/'oldgnu' format. Similar to ustar, but has support for incremental and
     // multi-volume tarballs.
-  } else {
-    if (!allowUnknownFormat) {
-      throw new Error("Invalid tar header: unknown format.");
-    }
+  } else if (!allowUnknownFormat) {
+    throw new Error("Invalid tar header: unknown format.");
   }
 
   // to support old tar versions that use trailing / to indicate dirs
