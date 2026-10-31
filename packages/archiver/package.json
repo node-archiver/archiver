@@ -32,7 +32,7 @@
     "@types/yauzl": "3.4.0",
     "stream-bench": "0.1.2",
     "tar": "7.5.22",
-    "tsdown": "0.23.3",
+    "tsdown": "0.23.4",
     "yauzl": "3.4.0"
   },
   "engines": {
